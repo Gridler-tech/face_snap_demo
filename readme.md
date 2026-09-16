@@ -27,11 +27,27 @@
 
 ## What is FaceSnap?
 
-[FaceSnap](https://www.gridler.com/gridler-facesnap/) is Gridler's multi-camera photo
-kiosk for official document photos. The kiosk
-server — on a Windows PC or a Linux kiosk board — drives the camera column and the LED
-lighting, checks every shot against the ICAO quality rules as it is taken, and delivers
-the finished photo. Clients talk to it over gRPC; this repository shows how.
+[FaceSnap](https://www.gridler.com/gridler-facesnap/) is Gridler's photo kiosk for
+official document photos — passport, ID and other government formats. A column of
+cameras at different heights photographs every person straight-on, seated or standing,
+with no height adjustment: the kiosk selects the best camera for the subject
+automatically. The kiosk server — on a Windows PC or a Linux kiosk board — does all
+the heavy lifting; clients talk to it over gRPC, and this repository shows how.
+
+What the kiosk server takes care of:
+
+- **Automatic capture** — face detection picks the best camera, guides the subject
+  into position (distance and pose), and takes the photo hands-free
+- **Live ICAO/OFIQ quality checks** while capturing: eyes open, neutral expression,
+  gaze, head pose and size, sharpness, lighting evenness, red-eye, glasses
+- **Controlled LED lighting** — calibrated white point, glare-safe mode for glasses,
+  and a light sensor for closed-loop tuning
+- **Document formats** — ICAO 35×45 passport, US 2×2, CA 50×70 and ISO enrolment
+  framing, with automatic cropping and background erasing to a configurable colour
+- **Face verification** — compare the captured photo against a reference (e.g. the
+  photo in a passport) with Dlib, Facenet512 or SFace models
+- **Fleet friendliness** — kiosks announce themselves on the network over mDNS, and
+  the full configuration is remotely operable through the same gRPC API
 
 ```mermaid
 flowchart LR
@@ -112,7 +128,7 @@ Each [release](https://github.com/Gridler-tech/face_snap_demo/releases) ships:
 
 > [!NOTE]
 > The former .NET MAUI demo app was removed in September 2026 — it was superseded by
-> the Flutter operator app and the C# sample. It remains available in the git history.
+> the Flutter operator app and the C# sample.
 
 ## Documentation
 
@@ -120,3 +136,13 @@ The SDK documentation lives at **https://gridler-tech.github.io/face_snap/** —
 [getting started](https://gridler-tech.github.io/face_snap/docs/getting-started.html),
 the full [API reference](https://gridler-tech.github.io/face_snap/api/GrpcLibrary.html),
 and the SDK [changelog](changelog.md).
+
+## License
+
+The sample and application source code in this repository is licensed under the
+**MIT License**; the `GrpcLibrary` SDK binaries in [`library/`](library) are
+proprietary © Gridler — see [license.md](license.md) for both. The `library/`
+folder redistributes open-source components (gRPC for .NET, Protocol Buffers,
+Microsoft.Extensions), and FaceSnap itself is proudly built with open source —
+.NET, Flutter/Dart, gRPC, OpenCV and more. See
+[third_party_notices.md](third_party_notices.md).

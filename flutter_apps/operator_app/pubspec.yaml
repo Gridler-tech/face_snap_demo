@@ -39,8 +39,8 @@ dependencies:
   # letterboxed canvas, so zooming drifted the photo off-center).
   photo_view: ^0.15.0
   flutter_colorpicker: ^1.1.0
-  # Start/stop the server on a kiosk board over SSH (same package and fleet
-  # credentials as the updater app).
+  # Start/stop the server on a kiosk board over SSH (same package as the
+  # updater app; credentials come from config.json).
   dartssh2: ^2.22.2
 
 dev_dependencies:

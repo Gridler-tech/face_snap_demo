@@ -11,8 +11,10 @@ installer (`FaceSnapUpdaterSetup-<version>.exe`).
 The .NET MAUI demo app (`maui_app/`) was removed: it was superseded by the Flutter
 operator app and by the new minimal C# console sample in `csharp_sample/`, which
 walks the getting-started flow (connect, settings, automatic capture, face
-recognition) against the bundled release DLLs. The MAUI app remains in the git
-history.
+recognition) against the bundled release DLLs.
+
+With the repository going public, its git history was restarted from a fresh
+initial commit.
 
 
 
