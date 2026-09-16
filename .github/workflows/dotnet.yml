@@ -1,0 +1,32 @@
+# Builds the C# console sample against the bundled release DLLs in library/,
+# so a stale or breaking GrpcLibrary refresh fails the build.
+
+name: .NET sample build
+
+on:
+  push:
+    branches: "**"
+  pull_request:
+    branches: "**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run dotnet formatter
+        continue-on-error: true
+        run: dotnet format --verify-no-changes csharp_sample/FaceSnapSample.csproj
+
+      - name: Build the C# sample
+        run: dotnet build -c Release csharp_sample/FaceSnapSample.csproj

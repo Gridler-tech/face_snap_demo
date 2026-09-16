@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>FaceSnapSample</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <!-- The sample builds against the bundled release DLLs in ../library, the same
+         binaries every release ships — so this project doubles as a build check
+         that the published library is complete and consistent. -->
+    <ItemGroup>
+        <Reference Include="GrpcLibrary">
+            <HintPath>..\library\GrpcLibrary.dll</HintPath>
+        </Reference>
+        <Reference Include="Google.Protobuf">
+            <HintPath>..\library\Google.Protobuf.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Core.Api">
+            <HintPath>..\library\Grpc.Core.Api.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Net.Client">
+            <HintPath>..\library\Grpc.Net.Client.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Net.Common">
+            <HintPath>..\library\Grpc.Net.Common.dll</HintPath>
+        </Reference>
+        <Reference Include="Microsoft.Extensions.Logging.Abstractions">
+            <HintPath>..\library\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+</Project>
