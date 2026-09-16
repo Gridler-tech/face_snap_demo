@@ -7,10 +7,7 @@
 **Example clients for the FaceSnap photo kiosk — ICAO-compliant document photos over gRPC.**
 
 [![.NET sample build](https://github.com/Gridler-tech/face_snap_demo/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Gridler-tech/face_snap_demo/actions/workflows/dotnet.yml)
-<!-- Static while the repo is private (shields cannot see private release data);
-     switch to img.shields.io/github/v/release/Gridler-tech/face_snap_demo when public.
-     Bump the version here with each release. -->
-[![Latest release](https://img.shields.io/badge/release-1.5.0-2ea44f)](https://github.com/Gridler-tech/face_snap_demo/releases)
+[![Latest release](https://img.shields.io/github/v/release/Gridler-tech/face_snap_demo?label=release&color=2ea44f)](https://github.com/Gridler-tech/face_snap_demo/releases)
 [![API docs](https://img.shields.io/badge/docs-facesnap--sdk-1f6feb)](https://gridler-tech.github.io/face_snap/)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](csharp_sample)
 [![Flutter](https://img.shields.io/badge/Flutter-Windows-02569B)](flutter_apps/operator_app)
