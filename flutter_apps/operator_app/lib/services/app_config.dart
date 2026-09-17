@@ -19,12 +19,16 @@ class AppConfig {
   // control with the FaceSnap SDKs (see ui/dev_info.dart).
   static bool devMode = false;
 
-  static File get _file {
+  /// The app's data folder (%APPDATA%\FaceSnapOperator) — also the parent of
+  /// PhotoStore's captures directory.
+  static String get appDataDir {
     final appData = Platform.environment['APPDATA'] ??
         Platform.environment['HOME'] ??
         '.';
-    return File('$appData\\FaceSnapOperator\\config.json');
+    return '$appData\\FaceSnapOperator';
   }
+
+  static File get _file => File('$appDataDir\\config.json');
 
   static Future<void> load() async {
     try {

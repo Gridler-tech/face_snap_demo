@@ -1,9 +1,11 @@
-// Lighting page: the kiosk-lighting controls (on/off, R/G/B intensity, glasses
-// mode, and the sensor-driven auto-tune white point). Split out of the old
-// Settings page.
+// Lighting page: the kiosk-lighting controls (on/off, R/G/B intensity,
+// glasses mode) and the manual per-camera light buttons. Split out of the
+// old Settings page.
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+// hide colorToHex: the picker package exports a util with the same name as
+// our ui.dart helper.
+import 'package:flutter_colorpicker/flutter_colorpicker.dart' hide colorToHex;
 
 import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
@@ -16,7 +18,7 @@ class LightingPage extends StatefulWidget {
   State<LightingPage> createState() => _LightingPageState();
 }
 
-class _LightingPageState extends State<LightingPage> {
+class _LightingPageState extends State<LightingPage> with ServerCallState {
   late bool _lighting;
   late bool _glassesLightsOff;
   late double _intensityRed, _intensityGreen, _intensityBlue;
@@ -28,24 +30,33 @@ class _LightingPageState extends State<LightingPage> {
   // flight and the newest value always lands last.
   bool _focusPushBusy = false, _focusPushPending = false;
   int? _focusPreviewCamera;
-  String? _message;
-  bool _loaded = false;
 
-  // Auto-tune white point: hidden for now (user request 2026-09-14) — flip this
-  // flag to bring the button back; the implementation below stays wired up.
-  static const bool _showAutoTune = false;
-  bool _tuning = false;
-  String? _tuneStatus;
+  // The snapshot the local fields were read from; re-read when the shared
+  // snapshot is replaced (connect after boot, server change).
+  LoadSettingsResponse? _source;
+
+  // Auto-tune white point: hidden since 2026-09-14 (user request); the
+  // implementation was removed with it — recover both from git (grep
+  // autoTuneWhitePoint) if the feature returns.
 
   SettingsClient get _client => SettingsState.client;
 
   @override
   void initState() {
     super.initState();
-    // The app boots straight into the shell (IndexedStack builds every page)
-    // before a server is necessarily connected, so settings may be null here.
-    // Read them only when present; build() loads them lazily once connected.
-    if (SettingsState.current != null) _readFromState();
+    // Leave "No server connected" the moment the snapshot lands after a
+    // late server start (const IndexedStack pages never rebuild otherwise).
+    SettingsState.revision.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _readFromState() {
@@ -56,37 +67,18 @@ class _LightingPageState extends State<LightingPage> {
     _intensityGreen = s.intensityGreen.toDouble();
     _intensityBlue = s.intensityBlue.toDouble();
     _ledLayout = s.ledLayout.isEmpty ? 'strip' : s.ledLayout;
-    _focusColor = _colorFromHex(s.focusColor);
+    _focusColor = hexToColor(s.focusColor, fallback: const Color(0xFF00FF00));
     _focusIntensity = (s.focusIntensity == 0 && s.focusColor.isEmpty)
         ? 78 // pre-upgrade server without the field
         : s.focusIntensity.toDouble().clamp(0, 100);
-    _loaded = true;
-  }
-
-  static Color _colorFromHex(String hex) {
-    if (hex.length != 6) return const Color(0xFF00FF00);
-    final value = int.tryParse(hex, radix: 16);
-    return value == null ? const Color(0xFF00FF00) : Color(0xFF000000 | value);
-  }
-
-  static String _hexOf(Color c) => (c.toARGB32() & 0xFFFFFF)
-      .toRadixString(16)
-      .padLeft(6, '0')
-      .toUpperCase();
-
-  Future<void> _run(Future<dynamic> Function() action) async {
-    try {
-      await action();
-      if (mounted) setState(() => _message = null);
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Server call failed: $e');
-    }
+    _source = s;
   }
 
   @override
   Widget build(BuildContext context) {
     if (SettingsState.current == null) return const NotConnectedNotice();
-    if (!_loaded) _readFromState(); // connected after boot — pick up settings
+    // Fresh snapshot (connect after boot, server change): pick up its values.
+    if (!identical(_source, SettingsState.current)) _readFromState();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(14),
       child: Column(children: [
@@ -99,10 +91,7 @@ class _LightingPageState extends State<LightingPage> {
             title: 'Lights',
             titleLeading: const DevInfoBadge('lights'),
             child: _buildLightsCard()),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-        ],
+        ErrorLine(message),
       ]),
     );
   }
@@ -117,7 +106,7 @@ class _LightingPageState extends State<LightingPage> {
           min: 0,
           max: 255,
           onChanged: (v) => setState(() => set(v)),
-          onChangeEnd: (v) => _run(() => rpc(v.round())),
+          onChangeEnd: (v) => runServerCall(() => rpc(v.round())),
         ),
       ]);
     }
@@ -128,7 +117,7 @@ class _LightingPageState extends State<LightingPage> {
             value: _lighting,
             onChanged: (v) {
               setState(() => _lighting = v);
-              _run(() => _client.setLighting(LightingRequest(value: _lighting)));
+              runServerCall(() => _client.setLighting(LightingRequest(value: _lighting)));
             }),
         const SizedBox(width: 10),
         const RowLabel('Lighting'),
@@ -157,7 +146,7 @@ class _LightingPageState extends State<LightingPage> {
           ),
         ),
         const SizedBox(width: 10),
-        Text('#${_hexOf(_focusColor)}',
+        Text('#${colorToHex(_focusColor)}',
             style: const TextStyle(fontSize: 13, color: T.muted)),
       ]),
       RowLabel('Focus intensity ${_focusIntensity.round()}%'),
@@ -190,7 +179,7 @@ class _LightingPageState extends State<LightingPage> {
             if (v == null || v == _ledLayout) return;
             setState(() => _ledLayout = v);
             SettingsState.current?.ledLayout = v;
-            _run(() async {
+            runServerCall(() async {
               await _client.setLedLayout(LedLayoutRequest(value: v));
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -208,7 +197,7 @@ class _LightingPageState extends State<LightingPage> {
             value: _glassesLightsOff,
             onChanged: (v) {
               setState(() => _glassesLightsOff = v);
-              _run(() => _client.setGlassesLightsOff(
+              runServerCall(() => _client.setGlassesLightsOff(
                   GlassesLightsOffRequest(value: _glassesLightsOff)));
             }),
         const SizedBox(width: 10),
@@ -216,20 +205,6 @@ class _LightingPageState extends State<LightingPage> {
             child: RowLabel(
                 'Glasses mode: photo with all lights off when glasses are detected')),
       ]),
-      if (_showAutoTune) ...[
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 220,
-          child: QuietButton(
-            text: _tuning ? 'Tuning…' : 'Auto-tune white point',
-            onPressed: _tuning ? null : _autoTuneWhitePoint,
-          ),
-        ),
-        if (_tuneStatus != null) ...[
-          const SizedBox(height: 8),
-          Text(_tuneStatus!, style: const TextStyle(color: T.muted, fontSize: 13)),
-        ],
-      ],
     ]);
   }
 
@@ -251,24 +226,24 @@ class _LightingPageState extends State<LightingPage> {
         Expanded(
             child: QuietButton(
                 text: 'All lights on',
-                onPressed: () => _run(() =>
+                onPressed: () => runServerCall(() =>
                     lights.setAllLights(AllLightsRequest(status: true))))),
         const SizedBox(width: 12),
         Expanded(
             child: QuietButton(
                 text: 'All lights off',
-                onPressed: () => _run(() =>
+                onPressed: () => runServerCall(() =>
                     lights.setAllLights(AllLightsRequest(status: false))))),
       ]),
       const SizedBox(height: 14),
       cameraRow(
           'Focus light on',
-          (i) => _run(
+          (i) => runServerCall(
               () => lights.setLightAtCameraIndex(LightIndexRequest(index: i)))),
       const SizedBox(height: 10),
       cameraRow(
           'Focus light off',
-          (i) => _run(() =>
+          (i) => runServerCall(() =>
               lights.setLightOffAtCameraIndex(LightIndexRequest(index: i)))),
     ]);
   }
@@ -324,7 +299,7 @@ class _LightingPageState extends State<LightingPage> {
     try {
       do {
         _focusPushPending = false;
-        final hex = _hexOf(_focusColor);
+        final hex = colorToHex(_focusColor);
         final percent = _focusIntensity.round();
         await _client
             .setFocusLight(FocusLightRequest(color: hex, intensity: percent));
@@ -332,9 +307,11 @@ class _LightingPageState extends State<LightingPage> {
           ?..focusColor = hex
           ..focusIntensity = percent;
       } while (_focusPushPending);
-      if (mounted) setState(() => _message = null);
+      if (mounted) setState(() => message = null);
     } catch (e) {
-      if (mounted) setState(() => _message = 'Server call failed: $e');
+      if (mounted) {
+        setState(() => message = 'Server call failed: ${operatorMessage(e)}');
+      }
     } finally {
       _focusPushBusy = false;
     }
@@ -371,40 +348,4 @@ class _LightingPageState extends State<LightingPage> {
     }
   }
 
-  /// Closed-loop white-point tuning: the server measures each LED channel with
-  /// the OPT4048 sensor and solves for the R/G/B mix that hits a neutral
-  /// white, streaming progress. The sensor must face the cameras from the
-  /// subject position.
-  Future<void> _autoTuneWhitePoint() async {
-    setState(() {
-      _tuning = true;
-      _tuneStatus = 'Starting… (point the light sensor at the cameras '
-          'from the subject position)';
-    });
-    try {
-      final updates =
-          LightsClient(GrpcChannelProvider.channel).autoTuneWhitePoint(Empty());
-      await for (final update in updates) {
-        if (!mounted) return;
-        setState(() {
-          if (update.done) {
-            _tuneStatus = update.success
-                ? update.message
-                : '${update.message} ${update.error}';
-            if (update.success) {
-              _intensityRed = update.red.toDouble();
-              _intensityGreen = update.green.toDouble();
-              _intensityBlue = update.blue.toDouble();
-            }
-          } else {
-            _tuneStatus = update.message;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _tuneStatus = 'Auto-tune failed: $e');
-    } finally {
-      if (mounted) setState(() => _tuning = false);
-    }
-  }
 }

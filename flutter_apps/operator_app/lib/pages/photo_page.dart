@@ -40,7 +40,7 @@ class PhotoPage extends StatefulWidget {
   State<PhotoPage> createState() => _PhotoPageState();
 }
 
-class _PhotoPageState extends State<PhotoPage> {
+class _PhotoPageState extends State<PhotoPage> with ServerCallState {
   final _cropWidth = TextEditingController();
   final _backgroundColor = TextEditingController();
 
@@ -51,25 +51,31 @@ class _PhotoPageState extends State<PhotoPage> {
   late double _jpegQuality;
   late Map<String, bool> _checks;
   late bool _ofiqChecks;
-  String? _message;
+
+  // The snapshot the local fields were read from; re-read when the shared
+  // snapshot is replaced (connect after boot, server change).
+  LoadSettingsResponse? _source;
 
   SettingsClient get _client => SettingsState.client;
-
-  bool _loaded = false;
 
   @override
   void initState() {
     super.initState();
-    // Settings may be null at boot (app enters the shell before a server is
-    // connected); read lazily in build() once one is chosen.
-    if (SettingsState.current != null) _readFromState();
+    // Leave "No server connected" the moment the snapshot lands after a
+    // late server start (const IndexedStack pages never rebuild otherwise).
+    SettingsState.revision.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
     _cropWidth.dispose();
     _backgroundColor.dispose();
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _readFromState() {
@@ -94,16 +100,7 @@ class _PhotoPageState extends State<PhotoPage> {
       'Gaze': s.gazeCheck,
       'Lighting evenness': s.lightingEvennessCheck,
     };
-    _loaded = true;
-  }
-
-  Future<void> _run(Future<dynamic> Function() action) async {
-    try {
-      await action();
-      if (mounted) setState(() => _message = null);
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Server call failed: $e');
-    }
+    _source = s;
   }
 
   Future<void> _applyCropWidth() async {
@@ -114,7 +111,7 @@ class _PhotoPageState extends State<PhotoPage> {
     if (width == SettingsState.current?.cropWidth && height == _cropHeight) {
       return; // unchanged — skip the redundant push on focus loss
     }
-    await _run(() => _client.setCropResolution(
+    await runServerCall(() => _client.setCropResolution(
         CropResolutionRequest(width: width, height: height)));
     SettingsState.current?.cropWidth = width;
     setState(() => _cropHeight = height);
@@ -130,12 +127,12 @@ class _PhotoPageState extends State<PhotoPage> {
         _backgroundColor.text.trim().replaceFirst('#', '').toUpperCase();
     if (hex.length != 6 || int.tryParse(hex, radix: 16) == null) {
       setState(() =>
-          _message = 'Background color must be 6 hex digits, e.g. DDDDDD');
+          message = 'Background color must be 6 hex digits, e.g. DDDDDD');
       return;
     }
     if (hex == SettingsState.current?.backgroundColor) return; // unchanged
     _backgroundColor.text = hex;
-    _run(() async {
+    runServerCall(() async {
       await _client.setBackgroundColor(BackgroundColorRequest(color: hex));
       // Keep the local snapshot in sync so pages re-reading it (and the
       // unchanged-check above) see the new value.
@@ -143,18 +140,15 @@ class _PhotoPageState extends State<PhotoPage> {
     });
   }
 
-  Color _swatchColor() {
-    final hex = _backgroundColor.text.trim().replaceFirst('#', '');
-    if (hex.length != 6 || int.tryParse(hex, radix: 16) == null) {
-      return Colors.transparent;
-    }
-    return Color(0xFF000000 | int.parse(hex, radix: 16));
-  }
+  Color _swatchColor() => hexToColor(
+      _backgroundColor.text.trim().replaceFirst('#', ''),
+      fallback: Colors.transparent);
 
   @override
   Widget build(BuildContext context) {
     if (SettingsState.current == null) return const NotConnectedNotice();
-    if (!_loaded) _readFromState(); // connected after boot — pick up settings
+    // Fresh snapshot (connect after boot, server change): pick up its values.
+    if (!identical(_source, SettingsState.current)) _readFromState();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(14),
       child: Column(children: [
@@ -167,10 +161,7 @@ class _PhotoPageState extends State<PhotoPage> {
             title: 'Quality checks',
             titleLeading: const DevInfoBadge('quality-checks'),
             child: _buildChecks()),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-        ],
+        ErrorLine(message),
       ]),
     );
   }
@@ -182,7 +173,7 @@ class _PhotoPageState extends State<PhotoPage> {
             value: _crop,
             onChanged: (v) {
               setState(() => _crop = v);
-              _run(() => _client.setCrop(CropRequest(value: _crop)));
+              runServerCall(() => _client.setCrop(CropRequest(value: _crop)));
             }),
         const SizedBox(width: 10),
         const RowLabel('Crop photo'),
@@ -203,7 +194,7 @@ class _PhotoPageState extends State<PhotoPage> {
           onSelected: (code) async {
             if (code == null) return;
             setState(() => _photoFormat = code);
-            await _run(
+            await runServerCall(
                 () => _client.setPhotoFormat(PhotoFormatRequest(value: code)));
             await _applyCropWidth();
           },
@@ -251,7 +242,7 @@ class _PhotoPageState extends State<PhotoPage> {
           onSelected: (code) {
             if (code == null) return;
             setState(() => _backgroundMethod = code);
-            _run(() => _client
+            runServerCall(() => _client
                 .setBackgroundMethod(BackgroundMethodRequest(method: code)));
           },
         ),
@@ -300,7 +291,7 @@ class _PhotoPageState extends State<PhotoPage> {
         max: 100,
         divisions: 50,
         onChanged: (v) => setState(() => _jpegQuality = v),
-        onChangeEnd: (v) => _run(() =>
+        onChangeEnd: (v) => runServerCall(() =>
             _client.setJpegQuality(JpegQualityRequest(value: v.round()))),
       ),
     ]);
@@ -334,8 +325,8 @@ class _PhotoPageState extends State<PhotoPage> {
     }
   }
 
-  Widget _buildChecks() {
-    final rpcs = <String, Future<dynamic> Function(bool)>{
+  // Built once (not per build): the per-check setter RPCs by display label.
+  late final Map<String, Future<dynamic> Function(bool)> _checkRpcs = {
       'Eyes open': (v) => _client.setEyesCheck(EyesCheckRequest(value: v)),
       'Lips closed': (v) => _client.setLipsCheck(LipsCheckRequest(value: v)),
       'Glasses': (v) =>
@@ -353,8 +344,9 @@ class _PhotoPageState extends State<PhotoPage> {
       'Gaze': (v) => _client.setGazeCheck(GazeCheckRequest(value: v)),
       'Lighting evenness': (v) => _client
           .setLightingEvennessCheck(LightingEvennessCheckRequest(value: v)),
-    };
+  };
 
+  Widget _buildChecks() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // Engine choice: the kiosk's own checks, or the standardized OFIQ
       // (ISO/IEC 29794-5) report computed on the delivered photo.
@@ -366,7 +358,7 @@ class _PhotoPageState extends State<PhotoPage> {
               // Keep the shared snapshot current: the Capture page seeds its
               // result checklist from it (custom rows vs the OFIQ row).
               SettingsState.current?.ofiqChecks = v;
-              _run(() =>
+              runServerCall(() =>
                   _client.setOfiqChecks(OfiqChecksRequest(value: v)));
             }),
         const SizedBox(width: 10),
@@ -403,7 +395,7 @@ class _PhotoPageState extends State<PhotoPage> {
                         // toggle above): the Capture page seeds its result
                         // checklist from it.
                         _syncCheckToSnapshot(entry.key, v);
-                        _run(() => rpcs[entry.key]!(v));
+                        runServerCall(() => _checkRpcs[entry.key]!(v));
                       }),
                   const SizedBox(width: 10),
                   Flexible(child: RowLabel(entry.key)),

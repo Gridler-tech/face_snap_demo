@@ -10,7 +10,10 @@ class ServerManager {
   static const exePath = r'C:\Program Files\FaceSnapServer\face_snap_server.exe';
   static const _shortcutName = 'FaceSnap Server.lnk';
 
-  static bool get applicable => Platform.isWindows && File(exePath).existsSync();
+  /// Whether the local server exe is installed. Computed once — build()
+  /// consults it on every rebuild, and a stat per rebuild is UI-thread I/O.
+  static final bool applicable =
+      Platform.isWindows && File(exePath).existsSync();
 
   static Future<String> _powershell(String command) async {
     final result = await Process.run(
@@ -40,12 +43,12 @@ class ServerManager {
   }
 
   static Future<bool> isAutostartEnabled() async {
+    // One PowerShell spawn for both locations (each spawn is ~200-500 ms).
     final out = await _powershell(
-        'Test-Path (Join-Path ([Environment]::GetFolderPath("Startup")) "$_shortcutName")');
-    if (out.toLowerCase() == 'true') return true;
-    final common = await _powershell(
-        'Test-Path (Join-Path ([Environment]::GetFolderPath("CommonStartup")) "$_shortcutName")');
-    return common.toLowerCase() == 'true';
+        'if ((Test-Path (Join-Path ([Environment]::GetFolderPath("Startup")) "$_shortcutName")) -or '
+        '(Test-Path (Join-Path ([Environment]::GetFolderPath("CommonStartup")) "$_shortcutName"))) '
+        '{ "True" } else { "False" }');
+    return out.toLowerCase() == 'true';
   }
 
   static Future<void> setAutostart(bool enabled) async {

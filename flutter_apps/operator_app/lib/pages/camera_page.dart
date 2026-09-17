@@ -13,29 +13,66 @@ import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 
 class _SliderSpec {
-  const _SliderSpec(this.name, this.label, this.fallbackMin, this.fallbackMax);
+  const _SliderSpec(this.name, this.label, this.fallbackMin, this.fallbackMax,
+      this.read, this.write);
 
   final String name; // server property name (matches ranges/unsupported lists)
   final String label;
   final double fallbackMin;
   final double fallbackMax;
+
+  /// Current value from the camera-settings response.
+  final int Function(LoadCameraSettingsResponse) read;
+
+  /// Push a new value to the server.
+  final Future<dynamic> Function(CameraClient, int) write;
 }
 
-const _sliderSpecs = [
-  _SliderSpec('brightness', 'Brightness', 0, 255),
-  _SliderSpec('contrast', 'Contrast', 0, 255),
-  _SliderSpec('saturation', 'Saturation', 0, 255),
-  _SliderSpec('hue', 'Hue', -180, 180),
-  _SliderSpec('gamma', 'Gamma', 64, 300),
-  _SliderSpec('gain', 'Gain', 0, 255),
-  _SliderSpec('white_balance_temperature', 'White balance temperature', 2800, 6500),
-  _SliderSpec('sharpness', 'Sharpness', 0, 6),
-  _SliderSpec('backlight_compensation', 'Backlight compensation', 0, 2),
-  _SliderSpec('pan_absolute', 'Pan', -180, 180),
-  _SliderSpec('tilt_absolute', 'Tilt', -180, 180),
-  _SliderSpec('zoom_absolute', 'Zoom', -3, 3),
-  _SliderSpec('exposure_absolute', 'Exposure', 10, 1250),
-  _SliderSpec('focus_absolute', 'Focus', 0, 120),
+// One row per camera property: label, fallback range, and how to read/push
+// it - _load and the slider callbacks iterate this instead of restating the
+// property list per use.
+final _sliderSpecs = [
+  _SliderSpec('brightness', 'Brightness', 0, 255, (s) => s.brightness,
+      (c, v) => c.setBrightness(BrightnessRequest(value: v))),
+  _SliderSpec('contrast', 'Contrast', 0, 255, (s) => s.contrast,
+      (c, v) => c.setContrast(ContrastRequest(value: v))),
+  _SliderSpec('saturation', 'Saturation', 0, 255, (s) => s.saturation,
+      (c, v) => c.setSaturation(SaturationRequest(value: v))),
+  _SliderSpec('hue', 'Hue', -180, 180, (s) => s.hue,
+      (c, v) => c.setHue(HueRequest(value: v))),
+  _SliderSpec('gamma', 'Gamma', 64, 300, (s) => s.gamma,
+      (c, v) => c.setGamma(GammaRequest(value: v))),
+  _SliderSpec('gain', 'Gain', 0, 255, (s) => s.gain,
+      (c, v) => c.setGain(GainRequest(value: v))),
+  _SliderSpec(
+      'white_balance_temperature',
+      'White balance temperature',
+      2800,
+      6500,
+      (s) => s.whiteBalanceTemperature,
+      (c, v) => c.setWhiteBalanceTemperature(
+          WhiteBalanceTemperatureRequest(value: v))),
+  _SliderSpec('sharpness', 'Sharpness', 0, 6, (s) => s.sharpness,
+      (c, v) => c.setSharpness(SharpnessRequest(value: v))),
+  _SliderSpec(
+      'backlight_compensation',
+      'Backlight compensation',
+      0,
+      2,
+      (s) => s.backlightCompensation,
+      (c, v) =>
+          c.setBacklightCompensation(BacklightCompensationRequest(value: v))),
+  _SliderSpec('pan_absolute', 'Pan', -180, 180, (s) => s.panAbsolute,
+      (c, v) => c.setPanAbsolute(PanAbsoluteRequest(value: v))),
+  _SliderSpec('tilt_absolute', 'Tilt', -180, 180, (s) => s.tiltAbsolute,
+      (c, v) => c.setTiltAbsolute(TiltAbsoluteRequest(value: v))),
+  _SliderSpec('zoom_absolute', 'Zoom', -3, 3, (s) => s.zoomAbsolute,
+      (c, v) => c.setZoomAbsolute(ZoomAbsoluteRequest(value: v))),
+  _SliderSpec('exposure_absolute', 'Exposure', 10, 1250,
+      (s) => s.exposureAbsolute,
+      (c, v) => c.setExposureAbsolute(ExposureAbsoluteRequest(value: v))),
+  _SliderSpec('focus_absolute', 'Focus', 0, 120, (s) => s.focusAbsolute,
+      (c, v) => c.setFocusAbsolute(FocusAbsoluteRequest(value: v))),
 ];
 
 class CameraPage extends StatefulWidget {
@@ -45,11 +82,13 @@ class CameraPage extends StatefulWidget {
   State<CameraPage> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> {
+class _CameraPageState extends State<CameraPage> with ServerCallState {
   LoadCameraSettingsResponse? _settings;
   final Map<String, double> _values = {};
+  // Lookup tables built once per _load (build() consults them per slider).
+  final Map<String, CameraPropertyRange> _ranges = {};
+  final Set<String> _unsupported = {};
   String? _resolution;
-  String? _message;
 
   // Camera distance + Windows camera options (moved here from the old Settings
   // page). These live in the kiosk settings snapshot and push via SettingsClient.
@@ -71,12 +110,20 @@ class _CameraPageState extends State<CameraPage> {
   void initState() {
     super.initState();
     _load();
+    // Retry the load when the server comes up after app start (the first
+    // _load then failed and left the error screen).
+    SettingsState.revision.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
     _previewSubscription?.cancel();
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted && _settings == null) _load();
   }
 
   void _startPreview(int cameraIndex) {
@@ -84,7 +131,7 @@ class _CameraPageState extends State<CameraPage> {
     setState(() {
       _previewCamera = cameraIndex;
       _previewFrame = null;
-      _message = null;
+      message = null;
     });
     final client = KioskClient(GrpcChannelProvider.channel);
     _previewSubscription = client
@@ -92,11 +139,14 @@ class _CameraPageState extends State<CameraPage> {
         .listen(
       (image) {
         if (mounted && image.chunkData.isNotEmpty) {
-          setState(() => _previewFrame = Uint8List.fromList(image.chunkData));
+          // Protobuf bytes fields already arrive as Uint8List - no copy.
+          final data = image.chunkData;
+          setState(() => _previewFrame =
+              data is Uint8List ? data : Uint8List.fromList(data));
         }
       },
       onError: (Object e) => setState(() {
-        _message = 'Preview failed: $e';
+        message = 'Preview failed: ${operatorMessage(e)}';
         _previewSubscription = null;
         _previewCamera = null;
       }),
@@ -123,22 +173,15 @@ class _CameraPageState extends State<CameraPage> {
       final kiosk = SettingsState.current;
       setState(() {
         _settings = s;
-        _values['brightness'] = s.brightness.toDouble();
-        _values['contrast'] = s.contrast.toDouble();
-        _values['saturation'] = s.saturation.toDouble();
-        _values['hue'] = s.hue.toDouble();
-        _values['gamma'] = s.gamma.toDouble();
-        _values['gain'] = s.gain.toDouble();
-        _values['white_balance_temperature'] =
-            s.whiteBalanceTemperature.toDouble();
-        _values['sharpness'] = s.sharpness.toDouble();
-        _values['backlight_compensation'] =
-            s.backlightCompensation.toDouble();
-        _values['pan_absolute'] = s.panAbsolute.toDouble();
-        _values['tilt_absolute'] = s.tiltAbsolute.toDouble();
-        _values['zoom_absolute'] = s.zoomAbsolute.toDouble();
-        _values['exposure_absolute'] = s.exposureAbsolute.toDouble();
-        _values['focus_absolute'] = s.focusAbsolute.toDouble();
+        for (final spec in _sliderSpecs) {
+          _values[spec.name] = spec.read(s).toDouble();
+        }
+        _ranges
+          ..clear()
+          ..addEntries(s.propertyRanges.map((r) => MapEntry(r.name, r)));
+        _unsupported
+          ..clear()
+          ..addAll(s.unsupportedProperties);
         if (kiosk != null) {
           _resolution = '${kiosk.width}x${kiosk.height}';
           _distanceMin = kiosk.distanceMin.toDouble();
@@ -148,57 +191,15 @@ class _CameraPageState extends State<CameraPage> {
         }
       });
     } catch (e) {
-      setState(() => _message = 'Could not load camera settings: $e');
+      setState(() =>
+          message = 'Could not load camera settings: ${operatorMessage(e)}');
     }
   }
 
-  Future<void> _run(Future<dynamic> Function() action) async {
-    try {
-      await action();
-      if (mounted) setState(() => _message = null);
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Server call failed: $e');
-    }
-  }
-
-  Future<void> _push(String name, int value) {
-    final c = _camera;
-    return _run(() => switch (name) {
-          'brightness' => c.setBrightness(BrightnessRequest(value: value)),
-          'contrast' => c.setContrast(ContrastRequest(value: value)),
-          'saturation' => c.setSaturation(SaturationRequest(value: value)),
-          'hue' => c.setHue(HueRequest(value: value)),
-          'gamma' => c.setGamma(GammaRequest(value: value)),
-          'gain' => c.setGain(GainRequest(value: value)),
-          'white_balance_temperature' => c.setWhiteBalanceTemperature(
-              WhiteBalanceTemperatureRequest(value: value)),
-          'sharpness' => c.setSharpness(SharpnessRequest(value: value)),
-          'backlight_compensation' => c.setBacklightCompensation(
-              BacklightCompensationRequest(value: value)),
-          'pan_absolute' => c.setPanAbsolute(PanAbsoluteRequest(value: value)),
-          'tilt_absolute' =>
-            c.setTiltAbsolute(TiltAbsoluteRequest(value: value)),
-          'zoom_absolute' =>
-            c.setZoomAbsolute(ZoomAbsoluteRequest(value: value)),
-          'exposure_absolute' =>
-            c.setExposureAbsolute(ExposureAbsoluteRequest(value: value)),
-          'focus_absolute' =>
-            c.setFocusAbsolute(FocusAbsoluteRequest(value: value)),
-          _ => throw ArgumentError('unknown property $name'),
-        });
-  }
-
-  CameraPropertyRange? _range(String name) {
-    final ranges = _settings?.propertyRanges;
-    if (ranges == null) return null;
-    for (final range in ranges) {
-      if (range.name == name) return range;
-    }
-    return null;
-  }
+  CameraPropertyRange? _range(String name) => _ranges[name];
 
   bool _supported(String name) {
-    if (_settings?.unsupportedProperties.contains(name) ?? false) return false;
+    if (_unsupported.contains(name)) return false;
     final range = _range(name);
     return range == null || range.supported;
   }
@@ -218,9 +219,9 @@ class _CameraPageState extends State<CameraPage> {
   Widget build(BuildContext context) {
     if (_settings == null) {
       return Center(
-          child: _message == null
+          child: message == null
               ? const CircularProgressIndicator()
-              : Text(_message!, style: const TextStyle(color: T.fail)));
+              : Text(message!, style: const TextStyle(color: T.fail)));
     }
     final s = _settings!;
     return SingleChildScrollView(
@@ -246,7 +247,7 @@ class _CameraPageState extends State<CameraPage> {
                 if (value == null) return;
                 final parts = value.split('x');
                 setState(() => _resolution = value);
-                _run(() => SettingsState.client.setResolution(ResolutionRequest(
+                runServerCall(() => SettingsState.client.setResolution(ResolutionRequest(
                     width: int.parse(parts[0]), height: int.parse(parts[1]))));
               },
             ),
@@ -267,17 +268,17 @@ class _CameraPageState extends State<CameraPage> {
               _switchRow('Automatic white balance', s.whiteBalanceTemperatureAuto,
                   (v) {
                 setState(() => _settings!.whiteBalanceTemperatureAuto = v);
-                _run(() => _camera.setWhiteBalanceTemperatureAuto(
+                runServerCall(() => _camera.setWhiteBalanceTemperatureAuto(
                     WhiteBalanceTemperatureAutoRequest(value: v)));
               }),
               _switchRow('Exposure auto priority', s.exposureAutoPriority, (v) {
                 setState(() => _settings!.exposureAutoPriority = v);
-                _run(() => _camera.setExposureAutoPriority(
+                runServerCall(() => _camera.setExposureAutoPriority(
                     ExposureAutoPriorityRequest(value: v)));
               }),
               _switchRow('Autofocus', s.autofocus, (v) {
                 setState(() => _settings!.autofocus = v);
-                _run(() => _camera.setAutofocus(AutofocusRequest(value: v)));
+                runServerCall(() => _camera.setAutofocus(AutofocusRequest(value: v)));
               }),
               const SizedBox(height: 6),
               for (final spec in _sliderSpecs)
@@ -295,10 +296,7 @@ class _CameraPageState extends State<CameraPage> {
             title: 'Camera (Windows)',
             titleLeading: const DevInfoBadge('camera-windows'),
             child: _buildCameraOptions()),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-        ],
+        ErrorLine(message),
       ]),
     );
   }
@@ -311,7 +309,7 @@ class _CameraPageState extends State<CameraPage> {
         min: 0,
         max: 200,
         onChanged: (v) => setState(() => _distanceMin = v),
-        onChangeEnd: (v) => _run(() => _settingsClient
+        onChangeEnd: (v) => runServerCall(() => _settingsClient
             .setDistanceMin(DistanceMinRequest(value: v.round()))),
       ),
       RowLabel('Maximal distance ${_distanceMax.round()}'),
@@ -320,7 +318,7 @@ class _CameraPageState extends State<CameraPage> {
         min: 0,
         max: 200,
         onChanged: (v) => setState(() => _distanceMax = v),
-        onChangeEnd: (v) => _run(() => _settingsClient
+        onChangeEnd: (v) => runServerCall(() => _settingsClient
             .setDistanceMax(DistanceMaxRequest(value: v.round()))),
       ),
     ]);
@@ -414,7 +412,8 @@ class _CameraPageState extends State<CameraPage> {
         min: min,
         max: max,
         onChanged: (v) => setState(() => _values[spec.name] = v),
-        onChangeEnd: (v) => _push(spec.name, v.round()),
+        onChangeEnd: (v) =>
+            runServerCall(() => spec.write(_camera, v.round())),
       ),
     ]);
   }

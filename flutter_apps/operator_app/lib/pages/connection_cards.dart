@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../services/app_config.dart';
 import '../services/board_server_manager.dart';
 import '../services/server_manager.dart';
+import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 
@@ -37,8 +38,11 @@ class _ConnectionCardsState extends State<ConnectionCards> {
   }
 
   Future<void> _refreshServerState() async {
-    final running = await ServerManager.isRunning(AppConfig.port);
-    final autostart = await ServerManager.isAutostartEnabled();
+    // Independent PowerShell probes — run them concurrently.
+    final [running, autostart] = await Future.wait([
+      ServerManager.isRunning(AppConfig.port),
+      ServerManager.isAutostartEnabled(),
+    ]);
     if (!mounted) return;
     setState(() {
       _serverRunning = running;
@@ -63,9 +67,18 @@ class _ConnectionCardsState extends State<ConnectionCards> {
         if (!mounted) return;
         if (await ServerManager.isRunning(AppConfig.port) == starting) break;
       }
+      if (starting) {
+        // The server is up — load the settings snapshot so every page leaves
+        // its "No server connected" state (they listen to the revision).
+        try {
+          await SettingsState.refresh();
+        } catch (_) {/* port open but not answering yet — picker still works */}
+      }
       await _refreshServerState();
     } catch (e) {
-      if (mounted) setState(() => _message = 'Server control failed: $e');
+      if (mounted) {
+        setState(() => _message = 'Server control failed: ${operatorMessage(e)}');
+      }
     } finally {
       if (mounted) setState(() => _serverBusy = false);
     }
@@ -88,7 +101,10 @@ class _ConnectionCardsState extends State<ConnectionCards> {
       if (!mounted) return;
       setState(() => _message = null);
     } catch (e) {
-      if (mounted) setState(() => _message = 'Board server control failed: $e');
+      if (mounted) {
+        setState(
+            () => _message = 'Board server control failed: ${operatorMessage(e)}');
+      }
     } finally {
       if (mounted) setState(() => _boardBusy = false);
     }
@@ -112,15 +128,9 @@ class _ConnectionCardsState extends State<ConnectionCards> {
             titleLeading: const DevInfoBadge('server-board'),
             child: _buildBoard()),
     ];
-    return Column(children: [
-      for (var i = 0; i < cards.length; i++) ...[
-        if (i > 0) const SizedBox(height: 14),
-        cards[i],
-      ],
-      if (_message != null) ...[
-        const SizedBox(height: 12),
-        Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-      ],
+    return Column(spacing: 14, children: [
+      ...cards,
+      ErrorLine(_message),
     ]);
   }
 
@@ -156,7 +166,8 @@ class _ConnectionCardsState extends State<ConnectionCards> {
                 await ServerManager.setAutostart(v);
               } catch (e) {
                 if (mounted) {
-                  setState(() => _message = 'Autostart change failed: $e');
+                  setState(() =>
+                      _message = 'Autostart change failed: ${operatorMessage(e)}');
                 }
               }
             }),

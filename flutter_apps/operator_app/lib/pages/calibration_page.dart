@@ -31,21 +31,38 @@ class _CalibrationPageState extends State<CalibrationPage> {
   void initState() {
     super.initState();
     _load();
+    // Retry the load when the server comes up after app start.
+    SettingsState.revision.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted && _rows == null) _load();
   }
 
   Future<void> _load() async {
     try {
-      final calibration = await _calibration.getCalibration(Empty());
-      final camera = await _camera.loadSettings(Empty());
-      final kiosk = await SettingsState.client.loadSettings(Empty());
+      // Independent reads — one round-trip each, in parallel. The expected
+      // camera count comes from the shared settings snapshot instead of a
+      // third LoadSettings call.
+      final (calibration, camera) = await (
+        _calibration.getCalibration(Empty()),
+        _camera.loadSettings(Empty()),
+      ).wait;
       setState(() {
         _rows = calibration.calibrate.toList()
           ..sort((a, b) => a.linuxCameraIndex.compareTo(b.linuxCameraIndex));
         _currentFocus = camera.focusAbsolute;
-        _expectedCameras = kiosk.expectedCameras;
+        _expectedCameras = SettingsState.current?.expectedCameras ?? 0;
       });
     } catch (e) {
-      setState(() => _message = 'Could not load calibration: $e');
+      setState(
+          () => _message = 'Could not load calibration: ${operatorMessage(e)}');
     }
   }
 
@@ -55,10 +72,13 @@ class _CalibrationPageState extends State<CalibrationPage> {
     try {
       await SettingsState.client
           .setExpectedCameras(ExpectedCamerasRequest(value: value));
+      // Write through to the shared snapshot so other readers stay current.
+      SettingsState.current?.expectedCameras = value;
     } catch (e) {
       setState(() {
         _expectedCameras = previous;
-        _message = 'Could not save the expected camera count: $e';
+        _message =
+            'Could not save the expected camera count: ${operatorMessage(e)}';
       });
     }
   }
@@ -74,7 +94,7 @@ class _CalibrationPageState extends State<CalibrationPage> {
             const SnackBar(content: Text('Camera positions saved.')));
       }
     } catch (e) {
-      setState(() => _message = 'Save failed: $e');
+      setState(() => _message = 'Save failed: ${operatorMessage(e)}');
     }
   }
 
@@ -99,7 +119,7 @@ class _CalibrationPageState extends State<CalibrationPage> {
         }
       });
     } catch (e) {
-      setState(() => _message = 'Focus calibration failed: $e');
+      setState(() => _message = 'Focus calibration failed: ${operatorMessage(e)}');
     } finally {
       setState(() => _calibratingFocus = false);
     }
@@ -219,10 +239,7 @@ class _CalibrationPageState extends State<CalibrationPage> {
             ]),
           ]),
         ),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-        ],
+        ErrorLine(_message),
       ]),
     );
   }

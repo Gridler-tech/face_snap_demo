@@ -55,13 +55,24 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
     setState(() {
       final photo = CapturedPhoto(0, -1, bytes, label: file.name);
       _diskPhotos.add(photo);
-      // Put it straight into the first free comparison slot.
-      if (_first == null) {
-        _first = photo;
-      } else {
-        _second ??= photo;
-      }
+      // Put it straight into the first free comparison slot (same rule as
+      // tapping a tile).
+      _toggleSelection(photo);
     });
+  }
+
+  /// Tap rule shared by the photo tiles and the disk loader: deselect when
+  /// already selected, otherwise fill the first free slot.
+  void _toggleSelection(CapturedPhoto photo) {
+    if (_first == photo) {
+      _first = null;
+    } else if (_second == photo) {
+      _second = null;
+    } else if (_first == null) {
+      _first = photo;
+    } else {
+      _second ??= photo;
+    }
   }
   Model _model = Model.DLIB;
   DistanceMetric _metric = DistanceMetric.COSINE;
@@ -122,7 +133,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
       );
       setState(() => _result = response);
     } catch (e) {
-      setState(() => _message = 'Face recognition failed: $e');
+      setState(() => _message = 'Face recognition failed: ${operatorMessage(e)}');
     } finally {
       setState(() => _busy = false);
     }
@@ -207,21 +218,29 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
               ),
             ]),
             const SizedBox(height: 8),
-            Row(children: [
-              RowLabel('Threshold ${_threshold.toStringAsFixed(2)}'),
-              const SizedBox(width: 12),
-              Text(
-                  'calibrated default '
-                  '${_thresholdSpec(_model, _metric).calibrated.toStringAsFixed(2)}',
-                  style: const TextStyle(color: T.muted, fontSize: 12)),
-            ]),
-            Slider(
-              value: _threshold.clamp(0.01, _thresholdSpec(_model, _metric).max),
-              min: 0.01,
-              max: _thresholdSpec(_model, _metric).max,
-              divisions: 100,
-              onChanged: (v) => setState(() => _threshold = v),
-            ),
+            Builder(builder: (context) {
+              final spec = _thresholdSpec(_model, _metric);
+              return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      RowLabel('Threshold ${_threshold.toStringAsFixed(2)}'),
+                      const SizedBox(width: 12),
+                      Text(
+                          'calibrated default '
+                          '${spec.calibrated.toStringAsFixed(2)}',
+                          style:
+                              const TextStyle(color: T.muted, fontSize: 12)),
+                    ]),
+                    Slider(
+                      value: _threshold.clamp(0.01, spec.max),
+                      min: 0.01,
+                      max: spec.max,
+                      divisions: 100,
+                      onChanged: (v) => setState(() => _threshold = v),
+                    ),
+                  ]);
+            }),
             const SizedBox(height: 6),
             SizedBox(
               width: 220,
@@ -257,17 +276,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
             ? 'Capture ${photo.capture} — camera ${photo.cameraIndex}'
             : 'Capture ${photo.capture} — auto');
     return GestureDetector(
-      onTap: () => setState(() {
-        if (_first == photo) {
-          _first = null;
-        } else if (_second == photo) {
-          _second = null;
-        } else if (_first == null) {
-          _first = photo;
-        } else {
-          _second ??= photo;
-        }
-      }),
+      onTap: () => setState(() => _toggleSelection(photo)),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Stack(children: [
           Container(
@@ -279,7 +288,10 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
             ),
             child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: Image.memory(photo.bytes, height: 170)),
+                // cacheHeight: decode at tile size, not the 4K native
+                // resolution — the grid can hold dozens of captures.
+                child:
+                    Image.memory(photo.bytes, height: 170, cacheHeight: 340)),
           ),
           if (selection != null)
             Positioned(

@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'app_config.dart';
+
 /// One photo available for comparison: delivered by a capture on the Capture
 /// page, or loaded from disk on the Face recognition page (then [label] holds
 /// the file name and [capture] is 0).
@@ -43,12 +45,8 @@ class PhotoStore {
 
   static int _captureSeq = 0;
 
-  static Directory get _dir {
-    final appData = Platform.environment['APPDATA'] ??
-        Platform.environment['HOME'] ??
-        '.';
-    return Directory('$appData\\FaceSnapOperator\\captures');
-  }
+  static Directory get _dir =>
+      Directory('${AppConfig.appDataDir}\\captures');
 
   /// Append one capture's photos ((camera index, jpeg bytes); index 0 =
   /// automatic-flow photo) and drop captures beyond the newest [keepCaptures].
@@ -89,19 +87,29 @@ class PhotoStore {
     }
   }
 
-  /// Rewrite the on-disk store to match [photos] (best-effort, fire-and-forget).
+  /// Sync the on-disk store with [photos] (best-effort, fire-and-forget).
+  /// Incremental: a file name is unique per capture+camera and captures are
+  /// immutable, so only new photos are written and only trimmed captures'
+  /// files are deleted — not tens of MB of unchanged JPEGs per capture.
   static Future<void> _persist() async {
     try {
       final dir = _dir;
-      if (await dir.exists()) {
-        await dir.delete(recursive: true);
-      }
       await dir.create(recursive: true);
+      final keep = <String>{'index.json'};
       final index = <Map<String, dynamic>>[];
       for (final p in photos) {
         final name = 'capture${p.capture}_cam${p.cameraIndex}.jpg';
-        await File('${dir.path}\\$name').writeAsBytes(p.bytes, flush: true);
+        keep.add(name);
         index.add({'capture': p.capture, 'camera': p.cameraIndex, 'file': name});
+        final file = File('${dir.path}\\$name');
+        if (!await file.exists()) {
+          await file.writeAsBytes(p.bytes, flush: true);
+        }
+      }
+      await for (final entity in dir.list()) {
+        if (entity is File && !keep.contains(entity.uri.pathSegments.last)) {
+          await entity.delete();
+        }
       }
       await File('${dir.path}\\index.json').writeAsString(jsonEncode(index));
     } catch (_) {

@@ -18,15 +18,21 @@ Future<void> main() async {
   // "No server" until one is chosen.
   await AppConfig.load();
   DevMode.enabled.value = AppConfig.devMode;
-  // Captured photos survive restarts (Face recognition compares them against
-  // stored reference photos, possibly days later).
-  await PhotoStore.load();
-  await GrpcChannelProvider.setAddress(AppConfig.host, AppConfig.port);
-  try {
-    await SettingsState.refresh();
-  } catch (_) {
-    // Not reachable yet — the Kiosk page's Server card handles connecting.
-  }
+  // Two independent startup jobs, in parallel: reading the persisted captures
+  // (Face recognition compares them against stored reference photos, possibly
+  // days later — up to 18 JPEGs of disk I/O) and the first settings snapshot
+  // over the network.
+  await Future.wait([
+    PhotoStore.load(),
+    () async {
+      await GrpcChannelProvider.setAddress(AppConfig.host, AppConfig.port);
+      try {
+        await SettingsState.refresh();
+      } catch (_) {
+        // Not reachable yet — the Kiosk page's Server card handles connecting.
+      }
+    }(),
+  ]);
 
   // ExcludeSemantics: the Flutter Windows accessibility bridge corrupts its
   // AXTree on every page switch in this app ("Failed to update ui::AXTree,

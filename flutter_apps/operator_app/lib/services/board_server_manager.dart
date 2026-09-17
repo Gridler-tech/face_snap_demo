@@ -14,6 +14,8 @@ enum BoardServerStatus { running, stopped, unreachable, noCredentials }
 class BoardServerManager {
   BoardServerManager._();
 
+  // Same literal as updater_app/lib/kiosk.dart's kServiceUnit (the board
+  // contract's owner) — keep the two in sync on a rename.
   static const _service = 'face-snap-docker-compose.service';
 
   /// true when [host] is not this machine — only then can it be a board.

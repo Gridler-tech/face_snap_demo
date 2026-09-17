@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 
+import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 
@@ -33,12 +34,22 @@ class _MonitoringPageState extends State<MonitoringPage> {
     super.initState();
     _loadKioskInfo();
     _measureLight();
+    // Retry the loads when the server comes up after app start.
+    SettingsState.revision.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
     _usageSubscription?.cancel();
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted && _kioskInfo == null) {
+      _loadKioskInfo();
+      _measureLight();
+    }
   }
 
   Future<void> _loadKioskInfo() async {
@@ -47,7 +58,7 @@ class _MonitoringPageState extends State<MonitoringPage> {
           .getKioskInfo(Empty());
       setState(() => _kioskInfo = info);
     } catch (e) {
-      setState(() => _message = 'Could not load kiosk info: $e');
+      setState(() => _message = 'Could not load kiosk info: ${operatorMessage(e)}');
     }
   }
 
@@ -62,7 +73,7 @@ class _MonitoringPageState extends State<MonitoringPage> {
         setState(() => _statusLines.add((line.description, line.status)));
       }
     } catch (e) {
-      setState(() => _message = 'Kiosk status failed: $e');
+      setState(() => _message = 'Kiosk status failed: ${operatorMessage(e)}');
     } finally {
       setState(() => _statusRunning = false);
     }
@@ -92,7 +103,7 @@ class _MonitoringPageState extends State<MonitoringPage> {
     final subscription = _monitoring.odroidUsage(Empty()).listen(
       (u) => setState(() => _usage[u.usageType] = u.usage),
       onError: (Object e) => setState(() {
-        _message = 'Usage stream failed: $e';
+        _message = 'Usage stream failed: ${operatorMessage(e)}';
         _usageSubscription = null;
       }),
       onDone: () => setState(() => _usageSubscription = null),
@@ -226,10 +237,7 @@ class _MonitoringPageState extends State<MonitoringPage> {
             ],
           ]),
         ),
-        if (_message != null) ...[
-          const SizedBox(height: 12),
-          Text(_message!, style: const TextStyle(color: T.fail, fontSize: 13)),
-        ],
+        ErrorLine(_message),
       ]),
     );
   }

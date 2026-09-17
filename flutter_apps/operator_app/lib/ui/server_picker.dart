@@ -95,7 +95,9 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
     });
     try {
       await GrpcChannelProvider.setAddress(host, port);
-      await SettingsState.refresh(); // proves the server answers before saving
+      // Proves the server answers before saving. Short deadline: a dead host
+      // must fail fast here, not hang the dialog on "Connecting…".
+      await SettingsState.refresh(timeout: const Duration(seconds: 5));
       AppConfig.host = host;
       AppConfig.port = port;
       await AppConfig.save();
@@ -103,7 +105,7 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _error =
-            'Could not connect to $host:$port. Is the server running?\n$e');
+            'Could not connect to $host:$port — ${operatorMessage(e)}');
       }
     } finally {
       if (mounted) setState(() => _connecting = false);
@@ -208,7 +210,9 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
-                  width: 130,
+                  // Wide enough for "Connecting…" on one line; the host field
+                  // is the flexible one and gives up the space.
+                  width: 165,
                   child: GoButton(
                     text: _connecting ? 'Connecting…' : 'Connect',
                     onPressed: _connecting ? null : _connectManual,

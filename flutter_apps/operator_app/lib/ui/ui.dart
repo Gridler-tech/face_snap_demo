@@ -2,9 +2,58 @@
 // the updater app) plus the widgets only this app uses.
 import 'package:flutter/material.dart';
 
+import '../services/rpc_error.dart';
 import 'ui_shared.dart';
 
+export '../services/rpc_error.dart';
 export 'ui_shared.dart';
+
+/// The settings pages' shared server-call state: run an RPC, clear the error
+/// line on success, show an operator-readable failure otherwise. Pages render
+/// [message] through [ErrorLine].
+mixin ServerCallState<T extends StatefulWidget> on State<T> {
+  String? message;
+
+  Future<void> runServerCall(Future<dynamic> Function() action) async {
+    try {
+      await action();
+      if (mounted) setState(() => message = null);
+    } catch (e) {
+      if (mounted) {
+        setState(() => message = 'Server call failed: ${operatorMessage(e)}');
+      }
+    }
+  }
+}
+
+/// The error footer every page renders under its cards: nothing while
+/// [message] is null, otherwise the standard red line with its top gap.
+class ErrorLine extends StatelessWidget {
+  const ErrorLine(this.message, {super.key});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = this.message;
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text(message, style: const TextStyle(color: T.fail, fontSize: 13)),
+    );
+  }
+}
+
+/// Parse a 6-digit hex colour ("00FF00"); [fallback] on anything else.
+Color hexToColor(String hex, {required Color fallback}) {
+  if (hex.length != 6) return fallback;
+  final value = int.tryParse(hex, radix: 16);
+  return value == null ? fallback : Color(0xFF000000 | value);
+}
+
+/// The 6-digit uppercase hex of a colour (no leading #).
+String colorToHex(Color c) =>
+    (c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
 
 /// Small square numbered button (per-camera actions).
 class NumButton extends StatelessWidget {

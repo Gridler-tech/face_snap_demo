@@ -1,7 +1,8 @@
 // Operator Capture page — the capture flow split out of the Kiosk page:
-// automatic/manual capture and the photo pane on the left, the pill-style
-// capture-results checklist (pre-populated from the enabled quality checks)
-// on the right.
+// automatic/manual capture, the photo pane and the per-step timing card on
+// the left, the pill-style capture-results checklist (pre-populated from the
+// enabled quality checks) on the right.
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:face_snap_grpc/face_snap_grpc.dart';
@@ -32,15 +33,89 @@ class CapturePage extends StatefulWidget {
 }
 
 class _CapturePageState extends State<CapturePage> {
+  static final _cameraNumberRe = RegExp(r'camera (\d+)');
+
   final List<_ResultItem> _results = [];
   final List<(int, Uint8List)> _photos = []; // (camera index, jpeg)
   bool _capturing = false;
   String? _message;
 
+  // ---------- step timing ----------
+  // Wall clock at the operator app from the moment the capture RPC is sent.
+  // Each server status line marks the END of a stage, so the gaps between the
+  // marks are the per-stage durations (the same split the measurement
+  // scripts use): selection -> photo -> checks/background -> OFIQ.
+  final Stopwatch _clock = Stopwatch();
+  DateTime? _clockStartedAt; // wall-clock twin of _clock, for chunk stamps
+  Timer? _clockTicker;
+  bool _timedRunIsManual = false;
+  bool _timedRunHasOfiq = false;
+  Duration? _tSelected; // "Best Camera was determined"
+  Duration? _tPhotoStart; // "Taking a high res photo using camera N"
+  Duration? _tFrame; // "Distance in cm" = a valid frame was grabbed
+  Duration? _tPhoto; // the assembled photo arrived
+  Duration? _tOfiq; // OFIQ overall score (or OFIQ failure) line
+  Duration? _tEnd; // stream closed
+  final List<(int, Duration)> _tManualPhotos = []; // (camera, arrival)
+
   @override
   void initState() {
     super.initState();
     _prepareChecklist();
+  }
+
+  @override
+  void dispose() {
+    _clockTicker?.cancel();
+    super.dispose();
+  }
+
+  void _resetTiming(bool manual) {
+    _clock
+      ..reset()
+      ..start();
+    _clockStartedAt = DateTime.now();
+    _timedRunIsManual = manual;
+    _timedRunHasOfiq = SettingsState.current?.ofiqChecks ?? false;
+    _tSelected = _tPhotoStart = _tFrame = _tPhoto = _tOfiq = _tEnd = null;
+    _tManualPhotos.clear();
+    // Repaint the running step's counter while the capture is in flight.
+    _clockTicker?.cancel();
+    _clockTicker = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _finishTiming() {
+    _clock.stop();
+    _clockTicker?.cancel();
+    _clockTicker = null;
+    _tEnd = _clock.elapsed;
+  }
+
+  /// When the photo's last JPEG chunk arrived, on the capture clock. The photo
+  /// EVENT can only be emitted once the stream shows the chunks are complete
+  /// (the next status line), which on the C# server is after OFIQ scoring —
+  /// the chunk stamp is what actually times the delivery.
+  Duration _photoArrival(DateTime? lastChunkAt) {
+    final started = _clockStartedAt;
+    if (lastChunkAt == null || started == null) return _clock.elapsed;
+    return lastChunkAt.difference(started);
+  }
+
+  /// Marks the stage a server status line closes (automatic flow).
+  void _markTiming(String text) {
+    final now = _clock.elapsed;
+    if (text.startsWith('Best Camera was determined')) {
+      _tSelected ??= now;
+    } else if (text.startsWith('Taking a high res photo')) {
+      _tPhotoStart = now;
+    } else if (text.startsWith('Distance in cm')) {
+      _tFrame ??= now;
+    } else if (text.startsWith('OFIQ overall quality') ||
+        text.startsWith('OFIQ scoring')) {
+      _tOfiq ??= now;
+    }
   }
 
   // ---------- results checklist ----------
@@ -102,7 +177,7 @@ class _CapturePageState extends State<CapturePage> {
       return;
     }
     if (text.startsWith('Taking a high res photo')) {
-      final match = RegExp(r'camera (\d+)').firstMatch(text);
+      final match = _cameraNumberRe.firstMatch(text);
       final combined = match == null
           ? 'Best camera determined — taking a high res photo'
           : 'Camera ${match.group(1)} selected — taking a high res photo';
@@ -222,16 +297,20 @@ class _CapturePageState extends State<CapturePage> {
       _message = null;
       _photos.clear();
       _prepareChecklist();
+      _resetTiming(!automatic);
     });
     try {
       final stream = automatic ? startAutomaticCapture() : startManualCapture();
       await for (final event in stream) {
         switch (event) {
           case CaptureStatus(:final description):
+            _markTiming(description);
             _addServerStatus(description);
-          case CapturePhoto(:final bytes):
+          case CapturePhoto(:final bytes, :final lastChunkAt):
+            _tPhoto ??= _photoArrival(lastChunkAt);
             setState(() => _photos.add((0, bytes)));
-          case CameraPhoto(:final cameraIndex, :final bytes):
+          case CameraPhoto(:final cameraIndex, :final bytes, :final lastChunkAt):
+            _tManualPhotos.add((cameraIndex, _photoArrival(lastChunkAt)));
             setState(() => _photos.add((cameraIndex, bytes)));
         }
       }
@@ -242,10 +321,120 @@ class _CapturePageState extends State<CapturePage> {
       // recognition page can compare across captures.
       PhotoStore.addCapture(_photos);
     } catch (e) {
-      setState(() => _message = 'Capture failed: $e');
+      setState(() => _message = 'Capture failed: ${operatorMessage(e)}');
     } finally {
+      _finishTiming();
       setState(() => _capturing = false);
     }
+  }
+
+  // ---------- timing rows ----------
+
+  /// (label, start, end) per stage; `end == null` = still running. Stages
+  /// the flow never reached are left out, so a failed capture shows exactly
+  /// how far it got.
+  List<(String, Duration, Duration?)> _timingRows() {
+    if (!_clock.isRunning && _tEnd == null) return const [];
+    final rows = <(String, Duration, Duration?)>[];
+    if (_timedRunIsManual) {
+      // One photo per camera, no gating: each row is that camera's turn.
+      var previous = Duration.zero;
+      for (final (camera, at) in _tManualPhotos) {
+        rows.add(('Camera $camera photo', previous, at));
+        previous = at;
+      }
+      if (_capturing) rows.add(('Next camera', previous, null));
+      return rows;
+    }
+
+    rows.add(('Camera selection + liveness', Duration.zero, _tSelected));
+    if (_tSelected == null) return rows;
+
+    final photoStart = _tPhotoStart ?? _tSelected!;
+    rows.add(('Photo (open camera, valid frame)', photoStart, _tFrame));
+    if (_tFrame == null) return rows;
+
+    rows.add((
+      _timedRunHasOfiq
+          ? 'Background + delivery'
+          : 'Quality checks + background + delivery',
+      _tFrame!,
+      _tPhoto,
+    ));
+    if (_tPhoto == null) return rows;
+
+    if (_timedRunHasOfiq || _tOfiq != null) {
+      rows.add(('OFIQ scoring', _tPhoto!, _tOfiq));
+    }
+    return rows;
+  }
+
+  static String _seconds(Duration d) =>
+      '${(d.inMilliseconds / 1000).toStringAsFixed(2)} s';
+
+  Widget _buildTimingCard() {
+    final rows = _timingRows();
+    final total = _tEnd ?? (_clock.isRunning ? _clock.elapsed : null);
+    if (rows.isEmpty && total == null) {
+      return const Text(
+          'Run a capture to see how long each step takes '
+          '(measured at this app, so network time is included).',
+          style: TextStyle(color: T.muted, fontSize: 13));
+    }
+    final scale = (total ?? Duration.zero).inMilliseconds.clamp(1, 1 << 30);
+
+    Widget row(String label, Duration? duration, {bool running = false,
+        bool bold = false}) {
+      final style = TextStyle(
+          color: T.ink,
+          fontSize: 13.5,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+          fontFeatures: const [FontFeature.tabularFigures()]);
+      final fraction = duration == null
+          ? 0.0
+          : (duration.inMilliseconds / scale).clamp(0.0, 1.0);
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(children: [
+          SizedBox(width: 250, child: Text(label, style: style)),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: SizedBox(
+                height: 6,
+                child: Stack(children: [
+                  Container(color: const Color(0xFFF0F3F7)),
+                  FractionallySizedBox(
+                    widthFactor: fraction,
+                    child: Container(
+                        color: running ? T.pending : T.titleBlue),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 72,
+            child: Text(
+              duration == null ? '…' : _seconds(duration),
+              textAlign: TextAlign.right,
+              style: style,
+            ),
+          ),
+        ]),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final (label, start, end) in rows)
+        row(label, (end ?? _clock.elapsed) - start, running: end == null),
+      const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: Divider(color: T.cardStroke, height: 1),
+      ),
+      row(_capturing ? 'Total (running)' : 'Total', total,
+          running: _capturing, bold: true),
+    ]);
   }
 
   // ---------- UI ----------
@@ -287,11 +476,13 @@ class _CapturePageState extends State<CapturePage> {
                   child: Expanded(child: _buildPhotoPane()),
                 ),
               ),
-              if (_message != null) ...[
-                const SizedBox(height: 12),
-                Text(_message!,
-                    style: const TextStyle(color: T.fail, fontSize: 13)),
-              ],
+              const SizedBox(height: 14),
+              SectionCard(
+                title: 'Capture timing',
+                shrinkWrap: true,
+                child: _buildTimingCard(),
+              ),
+              ErrorLine(_message),
             ]),
           ),
           const SizedBox(width: 14),
@@ -343,7 +534,10 @@ class _CapturePageState extends State<CapturePage> {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(bytes, height: 240),
+                  // cacheHeight: decode at thumbnail size, not the 4K native
+                  // resolution (~50 MB RGBA per photo without it). The zoom
+                  // dialog decodes the full bytes itself.
+                  child: Image.memory(bytes, height: 240, cacheHeight: 480),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

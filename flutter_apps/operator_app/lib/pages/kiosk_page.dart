@@ -18,13 +18,25 @@ class KioskPage extends StatefulWidget {
 }
 
 class _KioskPageState extends State<KioskPage> {
-  bool _connected = false;
+  /// Derived, not stored: a settings snapshot means the server answered.
+  bool get _connected => SettingsState.current != null;
 
   @override
   void initState() {
     super.initState();
-    // A settings snapshot present at launch means the saved server answered.
-    _connected = SettingsState.current != null;
+    // Repaint the status dot when the snapshot lands after a server start
+    // (the page sits const in the IndexedStack and never rebuilds otherwise).
+    SettingsState.revision.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    SettingsState.revision.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Open the search-or-manual server picker; on a new connection reload the
@@ -32,7 +44,7 @@ class _KioskPageState extends State<KioskPage> {
   Future<void> _changeServer() async {
     final changed = await showServerPicker(context);
     if (!mounted || !changed) return;
-    setState(() => _connected = true);
+    setState(() {});
   }
 
   @override
