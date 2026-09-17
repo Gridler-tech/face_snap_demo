@@ -42,6 +42,24 @@ class ServerManager {
         'if (\$c) { \$c.OwningProcess | Sort-Object -Unique | ForEach-Object { Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue } }');
   }
 
+  // The server installer's Inno Setup AppId (face_snap_server.iss) plus the
+  // "_is1" suffix Inno appends to its uninstall registry key. The installed
+  // version lives there as DisplayVersion — the frozen exe itself carries no
+  // version resource.
+  static const _uninstallKey = '{7B2F4E1A-0C3D-4A9E-9F1B-FACE5NAP0001}_is1';
+
+  /// DisplayVersion of the locally installed server, or null when the
+  /// registry has no entry (server not installed via the setup).
+  static Future<String?> installedVersion() async {
+    // The installer is 64-bit (x64compatible), but check the 32-bit view too
+    // in case the app runs under a 32-bit PowerShell host.
+    final out = await _powershell(
+        '\$p = Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\$_uninstallKey" -ErrorAction SilentlyContinue; '
+        'if (-not \$p) { \$p = Get-ItemProperty -Path "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\$_uninstallKey" -ErrorAction SilentlyContinue }; '
+        'if (\$p) { \$p.DisplayVersion }');
+    return out.isEmpty ? null : out;
+  }
+
   static Future<bool> isAutostartEnabled() async {
     // One PowerShell spawn for both locations (each spawn is ~200-500 ms).
     final out = await _powershell(

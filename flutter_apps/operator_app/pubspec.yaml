@@ -16,7 +16,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+# The product version. Single source of truth for what the app displays (via
+# package_info_plus) AND the exe's Windows version resource — keep it equal to
+# the /DAppVersion passed to ISCC when building the installer.
+version: 1.1.7+1
 
 environment:
   sdk: ^3.12.2
@@ -42,6 +45,9 @@ dependencies:
   # Start/stop the server on a kiosk board over SSH (same package as the
   # updater app; credentials come from config.json).
   dartssh2: ^2.22.2
+  # Read the app's own version (from this pubspec, stamped into the exe) for
+  # display on the Kiosk page.
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:

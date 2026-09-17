@@ -15,6 +15,9 @@
 ; FlutterOperatorDir = the staged flutter Release folder (operator_app.exe +
 ; flutter_windows.dll + data\ + the three VC++ runtime DLLs).
 
+; NOTE: keep /DAppVersion equal to the version: in this app's pubspec.yaml —
+; the app displays the pubspec version in its UI (package_info_plus), so a
+; mismatched define ships an installer whose app shows a different version.
 #ifndef AppVersion
   #define AppVersion "1.0.0"
 #endif
