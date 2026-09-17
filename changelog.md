@@ -2,6 +2,18 @@
 
 
 
+## Repository note, 17-09-2026
+
+The Dart client SDK is now part of this repository: `flutter_apps/face_snap_grpc/`
+(generated gRPC stubs for all six services, `GrpcChannelProvider`, the
+`startAutomaticCapture()` / `startManualCapture()` stream helpers and command-line
+examples). The operator app in `flutter_apps/operator_app/` depends on it by path,
+so the app now builds straight from a clone. Capture photo events carry
+`firstChunkAt` / `lastChunkAt` timestamps (used by the operator app's new Capture
+timing card).
+
+
+
 ## Repository note, 16-09-2026
 
 The updater app's source (`flutter_apps/updater_app/`) was removed — it is a fleet

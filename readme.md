@@ -59,7 +59,8 @@ flowchart LR
 |---|---|
 | [`library/`](library) | The .NET client SDK: `GrpcLibrary.dll` with XML docs, plus its Grpc/Protobuf dependencies — the same binaries every release ships |
 | [`csharp_sample/`](csharp_sample) | Minimal C# console client: connect, read the kiosk info and settings, run one automatic capture, save the photo and verify it with face recognition — the getting-started guide as a runnable program |
-| [`flutter_apps/operator_app`](flutter_apps/operator_app) | The full Flutter operator app (Windows desktop): server discovery and control, capture, face recognition, calibration, monitoring, settings |
+| [`flutter_apps/face_snap_grpc`](flutter_apps/face_snap_grpc) | The Dart client SDK: generated gRPC stubs for all six FaceSnap services, the shared channel provider and capture-stream helpers, plus small command-line examples |
+| [`flutter_apps/operator_app`](flutter_apps/operator_app) | The full Flutter operator app (Windows desktop): server discovery and control, capture, face recognition, calibration, monitoring, settings — built on `face_snap_grpc` |
 
 ## Quick start (C#)
 
@@ -85,6 +86,38 @@ Or run the complete sample against your kiosk (requires the .NET 8 SDK or later)
 
 ```
 dotnet run --project csharp_sample -- http://<server>:50051
+```
+
+## Quick start (Dart)
+
+```dart
+import 'dart:io';
+import 'package:face_snap_grpc/face_snap_grpc.dart';
+
+Future<void> main() async {
+  await GrpcChannelProvider.setAddress('192.168.1.50', 50051);
+  await for (final event in startAutomaticCapture()) {
+    switch (event) {
+      case CaptureStatus(:final description, :final status):
+        print('$description: $status');
+      case CapturePhoto(:final bytes):
+        File('photo.jpg').writeAsBytesSync(bytes);
+      case CameraPhoto():
+        break; // manual captures only
+    }
+  }
+  exit(0);
+}
+```
+
+Add the SDK to your own Dart or Flutter project as a path dependency
+(`face_snap_grpc: {path: <clone>/flutter_apps/face_snap_grpc}`), or run one of its
+examples (requires the Dart or Flutter SDK):
+
+```
+cd flutter_apps/face_snap_grpc
+dart pub get
+dart run example/capture_once.dart <server> photo.jpg
 ```
 
 ## The operator app

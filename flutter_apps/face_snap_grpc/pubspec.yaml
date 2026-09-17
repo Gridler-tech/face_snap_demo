@@ -1,0 +1,11 @@
+name: face_snap_grpc
+description: Shared gRPC client library for the FaceSnap kiosk server (used by the Flutter operator and customer apps).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  grpc: ^5.1.0
+  protobuf: ^6.0.0
