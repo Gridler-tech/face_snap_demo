@@ -132,6 +132,7 @@ dart run example/capture_once.dart <server> photo.jpg
 | **Calibration** | Camera positions, expected camera count and focus calibration |
 | **Face recognition** | Compare captured photos against a reference photo (Dlib, Facenet512, SFace) |
 | **Monitoring** | Kiosk status, live usage stream and light-sensor readings |
+| **Updater** (Developer mode) | Fleet tool: find kiosk boards, deploy a server image to one or many, back up / restore / remove an installation |
 
 > [!TIP]
 > The operator app has a **Developer mode**: switch it on and every page shows `</>`
@@ -151,10 +152,12 @@ Each [release](https://github.com/Gridler-tech/face_snap_demo/releases) ships:
 
 - the `GrpcLibrary` artifacts (`GrpcLibrary.dll` + XML docs and dependencies),
 - `FaceSnapOperatorSetup-<version>.exe` — signed Windows installer of the operator app
-  (per-user, no admin rights needed),
-- `FaceSnapUpdaterSetup-<version>.exe` — signed Windows installer of the fleet updater,
-  which finds and provisions kiosk boards and deploys server images. The updater ships
-  as an installer only; its source is not part of this repository.
+  (per-user, no admin rights needed). Since 1.1.9 it includes the former fleet updater
+  as the **Updater** page (Developer mode): it finds kiosk boards on the network,
+  provisions clean ones, deploys server images — one board or a batch — and backs up,
+  restores or removes an installation. Its source is in `flutter_apps/operator_app/`
+  (`lib/updater/`, with headless command-line tools under `bin/`). The server images
+  themselves are not distributed here.
 
 > [!NOTE]
 > The former .NET MAUI demo app was removed in September 2026 — it was superseded by

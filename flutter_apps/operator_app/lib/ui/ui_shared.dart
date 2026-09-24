@@ -3,9 +3,7 @@
 // strokes, blue caps titles, green primary buttons, quiet outlined
 // secondaries.
 //
-// Shared verbatim between the operator app (lib/ui/ui_shared.dart) and the
-// updater app (lib/ui/ui_shared.dart) - keep the two copies in sync; app-
-// specific widgets live in each app's own ui.dart, which re-exports this file.
+// App-specific widgets live in ui.dart, which re-exports this file.
 import 'package:flutter/material.dart';
 
 /// Design tokens.

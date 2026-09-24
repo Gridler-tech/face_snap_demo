@@ -2,6 +2,18 @@
 
 
 
+## Repository note, 24-09-2026
+
+The fleet updater is now a page of the operator app (**Updater**, shown in Developer
+mode) and its source is part of this repository again: `flutter_apps/operator_app/
+lib/updater/` (deploy, remove, backup and restore engines, the kiosk board contract,
+batch orchestration) with headless command-line tools under `bin/`. The separate
+`FaceSnapUpdaterSetup` installer is retired; release 1.5.0 now carries
+`FaceSnapOperatorSetup-1.1.9.exe` only. The operator app also lists the servers on
+the network directly on its Kiosk page, and the Dart SDK gained
+`GrpcChannelProvider.openChannel(host, port)` for talking to a server other than
+the shared one.
+
 ## Repository note, 17-09-2026
 
 The Dart client SDK is now part of this repository: `flutter_apps/face_snap_grpc/`

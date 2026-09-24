@@ -9,11 +9,41 @@ import 'dart:convert';
 
 import 'package:dartssh2/dartssh2.dart';
 
+import '../updater/kiosk.dart';
 import 'app_config.dart';
 import 'rpc_error.dart';
 import 'ssh_runner.dart';
 
 enum BoardServerStatus { running, stopped, unreachable, noCredentials }
+
+/// Version, service state and board model read in ONE SSH session (the
+/// Kiosk page's server list probes every board, so three round-trips per
+/// board would add up).
+class BoardDetails {
+  const BoardDetails({this.version, this.running, this.model});
+  final String? version;
+  final bool? running;
+  final String? model;
+}
+
+/// Parse the `KEY=value` lines [detailsCmd] prints. Exposed for tests.
+BoardDetails parseBoardDetails(String stdout) {
+  final kv = <String, String>{};
+  for (final line in stdout.split('\n')) {
+    final eq = line.indexOf('=');
+    if (eq > 0) kv[line.substring(0, eq).trim()] = line.substring(eq + 1).trim();
+  }
+  final image = kv['IMAGE'] ?? '';
+  final active = kv['ACTIVE'];
+  final model = kv['MODEL'] ?? '';
+  return BoardDetails(
+    version: BoardServerManager.versionFromImageTag(image),
+    running: active == null || active.isEmpty
+        ? null
+        : (active == 'active' || active == 'activating'),
+    model: model.isEmpty ? null : model,
+  );
+}
 
 /// A change-board-password failure carrying a message ready to show the
 /// operator (wrong current password, host unreachable, chpasswd refused).
@@ -27,9 +57,8 @@ class BoardPasswordException implements Exception {
 class BoardServerManager {
   BoardServerManager._();
 
-  // Same literal as updater_app/lib/kiosk.dart's kServiceUnit (the board
-  // contract's owner) — keep the two in sync on a rename.
-  static const _service = 'face-snap-docker-compose.service';
+  // The board contract (updater/kiosk.dart) owns the unit name; one copy.
+  static const _service = kServiceUnit;
 
   /// true when [host] is not this machine — only then can it be a board.
   /// (A Windows host without sshd simply reports unreachable.)
@@ -82,6 +111,27 @@ class BoardServerManager {
           '/root/face_snap/docker-compose.yml',
           timeout: const Duration(seconds: 20));
       return versionFromImageTag(out);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The shell that prints the three facts as KEY=value lines. `uname -n`
+  /// style portability applies: only commands present on every board image
+  /// (the Radxa image has no `hostname` binary, for instance).
+  static const detailsCmd =
+      "echo IMAGE=\$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "
+      '/root/face_snap/docker-compose.yml 2>/dev/null | head -1); '
+      'echo ACTIVE=\$(systemctl is-active $_service 2>/dev/null); '
+      "echo MODEL=\$(tr -d '\\0' < /proc/device-tree/model 2>/dev/null)";
+
+  /// Version + running + model in one SSH session; null when the board is
+  /// unreachable or no credentials are configured.
+  static Future<BoardDetails?> details(String host) async {
+    if (AppConfig.boardPassword.isEmpty) return null;
+    try {
+      return parseBoardDetails(await _run(host, detailsCmd,
+          timeout: const Duration(seconds: 20)));
     } catch (_) {
       return null;
     }

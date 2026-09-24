@@ -1,11 +1,5 @@
 // Network discovery of FaceSnap kiosks AND clean (not yet provisioned) boards.
 //
-// Shared verbatim with the updater app (client/flutter/updater_app/lib/
-// discovery.dart) - keep the two copies in sync; it is deliberately self-
-// contained (dart:io only) so it can be dropped into either app unchanged.
-//
-// (updater header continues)
-//
 // Provisioned kiosks announce a _facesnap._tcp service (see UpdateEngine's
 // identity step) and are found with a one-shot mDNS PTR query. Clean vendor
 // images announce nothing FaceSnap-specific — but they do answer for their

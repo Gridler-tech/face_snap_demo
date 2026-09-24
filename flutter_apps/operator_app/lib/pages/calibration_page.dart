@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
+import '../util/sharpness.dart';
+import '../util/sweep_color.dart';
 
 class CalibrationPage extends StatefulWidget {
   const CalibrationPage({super.key});
@@ -23,6 +25,12 @@ class CalibrationPage extends StatefulWidget {
 
 class _CalibrationPageState extends State<CalibrationPage> {
   List<CalibrateType>? _rows;
+
+  /// kiosk.camera_ordering_mode == automatic: positions come from the USB
+  /// sockets when the wiring matches a known loom, and that wins over a saved
+  /// calibration. Off: a complete saved calibration wins (the loom still
+  /// fills in an uncalibrated column).
+  bool _orderingAutomatic = false;
   int _currentFocus = -1;
   int _expectedCameras = 0;
   bool _sweeping = false;
@@ -34,11 +42,16 @@ class _CalibrationPageState extends State<CalibrationPage> {
       CalibrationClient(GrpcChannelProvider.channel);
   CameraClient get _camera => CameraClient(GrpcChannelProvider.channel);
 
+  /// SettingsState.serverKey the rows were loaded for (see _onSettingsChanged).
+  String? _loadedFor;
+
   @override
   void initState() {
     super.initState();
+    _loadedFor = SettingsState.serverKey;
     _load();
-    // Retry the load when the server comes up after app start.
+    // Retry the load when the server comes up after app start, and reload
+    // when the app switches to another server.
     SettingsState.revision.addListener(_onSettingsChanged);
   }
 
@@ -49,7 +62,48 @@ class _CalibrationPageState extends State<CalibrationPage> {
   }
 
   void _onSettingsChanged() {
-    if (mounted && _rows == null) _load();
+    if (!mounted) return;
+    final server = SettingsState.serverKey;
+    if (_rows != null && _loadedFor == server) return; // loaded, same server
+    if (_loadedFor != server) {
+      // Switched servers: drop the previous server's rows at once so the
+      // page shows "loading", never six cameras for a four-camera kiosk.
+      setState(() => _rows = null);
+    }
+    _loadedFor = server;
+    _load();
+  }
+
+  /// Re-read the attached cameras and their positions from the server. The
+  /// column can change under a CONNECTED server — a camera swapped, a whole
+  /// new rig plugged in — and nothing else re-reads it: a reload only happens
+  /// at start-up and on a server switch.
+  Future<void> _refresh() async {
+    setState(() {
+      _rows = null;
+      _message = null;
+    });
+    _loadedFor = SettingsState.serverKey;
+    await _load();
+  }
+
+  /// Switch the ordering mode on the kiosk, then re-read the rows: the
+  /// resolved positions change with the mode (the same resolver serves the
+  /// capture flow and this page).
+  Future<void> _setOrdering(bool automatic) async {
+    setState(() => _orderingAutomatic = automatic);
+    try {
+      await SettingsState.client.setCameraOrderingMode(
+          CameraOrderingModeRequest(automatic: automatic));
+      SettingsState.current?.cameraOrderingAutomatic = automatic;
+      await _refresh();
+    } catch (e) {
+      setState(() {
+        _orderingAutomatic = !automatic;
+        _message =
+            'Could not change the ordering mode: ${operatorMessage(e)}';
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -66,6 +120,8 @@ class _CalibrationPageState extends State<CalibrationPage> {
           ..sort((a, b) => a.linuxCameraIndex.compareTo(b.linuxCameraIndex));
         _currentFocus = camera.focusAbsolute;
         _expectedCameras = SettingsState.current?.expectedCameras ?? 0;
+        _orderingAutomatic =
+            SettingsState.current?.cameraOrderingAutomatic ?? false;
       });
     } catch (e) {
       setState(
@@ -125,10 +181,9 @@ class _CalibrationPageState extends State<CalibrationPage> {
     return photo;
   }
 
-  /// Face-region sharpness of a JPEG: variance of the Laplacian over the centre
-  /// crop, skipping the digitally-white background (>=245) so it cannot dominate
-  /// the smooth, high-value area. Higher = sharper. Runs in Dart; no server or
-  /// extra package needed.
+  /// Face-region sharpness of a JPEG: decodes the photo and measures the
+  /// Laplacian variance over its centre crop (see [faceSharpnessFromRgba]).
+  /// Higher = sharper. Runs in Dart; no server or extra package needed.
   Future<double> _faceSharpness(Uint8List jpeg) async {
     final codec = await ui.instantiateImageCodec(jpeg);
     final frame = await codec.getNextFrame();
@@ -137,63 +192,9 @@ class _CalibrationPageState extends State<CalibrationPage> {
     final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
     image.dispose();
     if (data == null) return 0;
-    final px = data.buffer.asUint8List();
-
-    final x0 = (w * 0.25).floor(), x1 = (w * 0.75).floor();
-    final y0 = (h * 0.20).floor(), y1 = (h * 0.80).floor();
-    final cw = x1 - x0, chh = y1 - y0;
-    if (cw < 8 || chh < 8) return 0;
-
-    // Grayscale of the crop (BT.601 luma).
-    final gray = Uint8List(cw * chh);
-    for (var y = 0; y < chh; y++) {
-      var src = ((y0 + y) * w + x0) * 4;
-      var dst = y * cw;
-      for (var x = 0; x < cw; x++) {
-        gray[dst++] =
-            (px[src] * 299 + px[src + 1] * 587 + px[src + 2] * 114) ~/ 1000;
-        src += 4;
-      }
-    }
-
-    // Variance of the 4-neighbour Laplacian over non-white pixels.
-    var sum = 0.0, sumSq = 0.0, n = 0;
-    for (var y = 1; y < chh - 1; y++) {
-      for (var x = 1; x < cw - 1; x++) {
-        final c = gray[y * cw + x];
-        if (c >= 245) continue;
-        final lap = 4 * c -
-            gray[(y - 1) * cw + x] -
-            gray[(y + 1) * cw + x] -
-            gray[y * cw + x - 1] -
-            gray[y * cw + x + 1];
-        sum += lap;
-        sumSq += lap * lap;
-        n++;
-      }
-    }
-    if (n < 1000) return 0;
-    final mean = sum / n;
-    return sumSq / n - mean * mean;
+    return faceSharpnessFromRgba(data.buffer.asUint8List(), w, h);
   }
 
-  /// Focus-indicator colour for sweep progress `t` (0 = start, 1 = pinpoint):
-  /// red -> amber -> green as a RRGGBB hex (hue 0°..120° at full saturation).
-  static String _sweepHex(double t) {
-    final h = 120.0 * t.clamp(0.0, 1.0) / 60.0; // 0..2
-    final x = 1 - (h % 2 - 1).abs();
-    final double r, g;
-    if (h < 1) {
-      r = 1;
-      g = x;
-    } else {
-      r = x;
-      g = 1;
-    }
-    String c(double v) =>
-        (v * 255).round().clamp(0, 255).toRadixString(16).padLeft(2, '0');
-    return '${c(r)}${c(g)}00'.toUpperCase();
-  }
 
   Future<void> _focusSweep() async {
     setState(() {
@@ -240,7 +241,7 @@ class _CalibrationPageState extends State<CalibrationPage> {
         // capture below uses this focus_color for the per-camera indicator.
         try {
           await SettingsState.client.setFocusLight(FocusLightRequest(
-              color: _sweepHex(shot / shotsToGreen), intensity: focusIntensity));
+              color: sweepHex(shot / shotsToGreen), intensity: focusIntensity));
         } catch (_) {/* the sweep still works without the light cue */}
         shot++;
         await _camera.setFocusAbsolute(FocusAbsoluteRequest(value: focus));
@@ -379,7 +380,22 @@ class _CalibrationPageState extends State<CalibrationPage> {
                     '(1 = bottom). Save after changing.',
                     style: TextStyle(color: T.muted, fontSize: 13),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Switch(
+                        value: _orderingAutomatic, onChanged: _setOrdering),
+                    const SizedBox(width: 8),
+                    const RowLabel('Automatic camera ordering (USB positions)'),
+                  ]),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12, bottom: 4),
+                    child: Text(
+                        'On: the column is ordered from its USB sockets when the '
+                        'wiring matches a known loom, and that wins over the '
+                        'positions below. Off: complete saved positions win.',
+                        style: TextStyle(color: T.muted, fontSize: 12.5)),
+                  ),
+                  const SizedBox(height: 8),
                   for (final row in rows)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -410,7 +426,18 @@ class _CalibrationPageState extends State<CalibrationPage> {
                       ]),
                     ),
                   const SizedBox(height: 12),
-                  GoButton(text: 'Save positions', onPressed: _savePositions),
+                  Row(children: [
+                    Expanded(
+                        child: GoButton(
+                            text: 'Save positions', onPressed: _savePositions)),
+                    const SizedBox(width: 10),
+                    // The column can change under a connected server (a camera
+                    // swapped, a whole new rig): re-read what is attached now.
+                    QuietButton(
+                        text: 'Refresh cameras',
+                        width: 160,
+                        onPressed: _refresh),
+                  ]),
                 ]),
         ),
         const SizedBox(height: 14),

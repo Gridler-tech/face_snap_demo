@@ -95,7 +95,6 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
   double _distanceMin = 0;
   double _distanceMax = 200;
   bool _msmfSelection = true;
-  bool _orderingAutomatic = false;
 
   SettingsClient get _settingsClient => SettingsState.client;
 
@@ -106,12 +105,17 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
 
   CameraClient get _camera => CameraClient(GrpcChannelProvider.channel);
 
+  /// SettingsState.serverKey the settings were loaded for.
+  String? _loadedFor;
+
   @override
   void initState() {
     super.initState();
+    _loadedFor = SettingsState.serverKey;
     _load();
     // Retry the load when the server comes up after app start (the first
-    // _load then failed and left the error screen).
+    // _load then failed and left the error screen), and reload when the app
+    // switches to another server.
     SettingsState.revision.addListener(_onSettingsChanged);
   }
 
@@ -123,7 +127,17 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
   }
 
   void _onSettingsChanged() {
-    if (mounted && _settings == null) _load();
+    if (!mounted) return;
+    final server = SettingsState.serverKey;
+    if (_settings != null && _loadedFor == server) return; // loaded, same server
+    if (_loadedFor != server) {
+      // Switched servers: the previous server's camera settings and any
+      // running preview belong to the old channel — drop them and reload.
+      _previewSubscription?.cancel();
+      setState(() => _settings = null);
+    }
+    _loadedFor = server;
+    _load();
   }
 
   void _startPreview(int cameraIndex) {
@@ -187,7 +201,6 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
           _distanceMin = kiosk.distanceMin.toDouble();
           _distanceMax = kiosk.distanceMax.toDouble();
           _msmfSelection = kiosk.msmfSelection;
-          _orderingAutomatic = kiosk.cameraOrderingAutomatic;
         }
       });
     } catch (e) {
@@ -324,20 +337,15 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
     ]);
   }
 
-  // Inactive for now (user request 2026-09-14): the switches are shown greyed
-  // out (onChanged: null) and push nothing. Restore the callbacks to re-enable
-  // — they call setMsmfSelection / setCameraOrderingMode.
+  // Fast camera selection stays greyed out (user request 2026-09-14; it is a
+  // Windows Media Foundation option). The automatic-ordering switch lives on
+  // the Calibration page, next to the positions it affects.
   Widget _buildCameraOptions() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Switch(value: _msmfSelection, onChanged: null),
         const SizedBox(width: 8),
         const RowLabel('Fast camera selection (Media Foundation)'),
-      ]),
-      Row(children: [
-        Switch(value: _orderingAutomatic, onChanged: null),
-        const SizedBox(width: 8),
-        const RowLabel('Automatic camera ordering (USB positions)'),
       ]),
     ]);
   }

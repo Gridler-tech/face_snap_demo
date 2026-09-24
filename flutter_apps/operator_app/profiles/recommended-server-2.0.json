@@ -1,0 +1,27 @@
+{
+  "profile": "Recommended settings for FaceSnap Server 2.0",
+  "description": "4K photos, every quality check on, fast mediapipe background. OFIQ scoring stays off: it adds about 2.4 s per capture on the kiosk boards.",
+  "kiosk_settings": {
+    "camera": {
+      "width": 3840,
+      "height": 2160
+    },
+    "kiosk": {
+      "face_quality": {
+        "eyes_check": true,
+        "lips_check": true,
+        "eye_glasses_check": true,
+        "head_pose_check": true,
+        "sharpness_check": true,
+        "red_eye_detection_check": true,
+        "head_size_check": true,
+        "expression_check": true,
+        "gaze_check": true,
+        "lighting_evenness_check": true
+      },
+      "background_method": "mediapipe",
+      "jpeg_quality": 95,
+      "ofiq_checks": false
+    }
+  }
+}

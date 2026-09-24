@@ -29,12 +29,17 @@ class _MonitoringPageState extends State<MonitoringPage> {
   MonitoringClient get _monitoring =>
       MonitoringClient(GrpcChannelProvider.channel);
 
+  /// SettingsState.serverKey the kiosk info was loaded for.
+  String? _loadedFor;
+
   @override
   void initState() {
     super.initState();
+    _loadedFor = SettingsState.serverKey;
     _loadKioskInfo();
     _measureLight();
-    // Retry the loads when the server comes up after app start.
+    // Retry the loads when the server comes up after app start, and reload
+    // when the app switches to another server.
     SettingsState.revision.addListener(_onSettingsChanged);
   }
 
@@ -46,10 +51,16 @@ class _MonitoringPageState extends State<MonitoringPage> {
   }
 
   void _onSettingsChanged() {
-    if (mounted && _kioskInfo == null) {
-      _loadKioskInfo();
-      _measureLight();
+    if (!mounted) return;
+    final server = SettingsState.serverKey;
+    if (_kioskInfo != null && _loadedFor == server) return; // loaded, same server
+    if (_loadedFor != server) {
+      // Switched servers: the previous server's kiosk info must not linger.
+      setState(() => _kioskInfo = null);
     }
+    _loadedFor = server;
+    _loadKioskInfo();
+    _measureLight();
   }
 
   Future<void> _loadKioskInfo() async {

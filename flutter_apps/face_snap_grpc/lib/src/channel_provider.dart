@@ -23,6 +23,18 @@ class GrpcChannelProvider {
         ),
       );
 
+  /// An INDEPENDENT channel to [host]:[port], for probing or talking to a
+  /// server other than the shared one (e.g. checking every kiosk on the
+  /// network) without disturbing it. The caller owns it: shut it down when
+  /// done.
+  static ClientChannel openChannel(String host, int port) => ClientChannel(
+        host,
+        port: port,
+        options: const ChannelOptions(
+          credentials: ChannelCredentials.insecure(),
+        ),
+      );
+
   /// Points the shared channel at a new address. No-op when unchanged;
   /// otherwise the old channel is shut down (in-flight calls on it fail,
   /// which is expected when switching servers).

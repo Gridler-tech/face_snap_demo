@@ -4,14 +4,11 @@
 // list, or type an IP/port MANUALLY. On confirm it points the shared gRPC
 // channel at the chosen address, persists it, and reloads the settings
 // snapshot. Returns true when the server changed + settings loaded.
-import 'dart:io';
-
-import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 
 import '../services/app_config.dart';
 import '../services/discovery.dart';
-import '../services/settings_state.dart';
+import '../services/server_connector.dart';
 import 'ui.dart';
 
 /// Opens the picker; returns true when a new server was connected.
@@ -58,33 +55,17 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
       _error = null;
     });
     try {
-      // mDNS only finds provisioned boards (they announce _facesnap._tcp);
-      // a server on this machine announces nothing, so probe the local gRPC
-      // port directly and list it first when it answers.
-      final results =
-          await Future.wait([discoverKiosks(), _findLocalServer()]);
+      // A server on this PC announces nothing over mDNS, so it is probed
+      // directly and listed first when it answers (server_connector.dart).
+      final results = await Future.wait([discoverKiosks(), findLocalServer()]);
       final kiosks = results[0] as List<DiscoveredKiosk>;
       final local = results[1] as DiscoveredKiosk?;
       if (!mounted) return;
-      setState(() => _found = [?local, ...kiosks]);
+      setState(() => _found = [?local, ...dedupeDiscovered(kiosks)]);
     } catch (e) {
       if (mounted) setState(() => _error = 'Search failed: $e');
     } finally {
       if (mounted) setState(() => _searching = false);
-    }
-  }
-
-  /// A FaceSnap server on this machine, if one is listening on the gRPC port.
-  Future<DiscoveredKiosk?> _findLocalServer() async {
-    try {
-      final socket = await Socket.connect(
-          InternetAddress.loopbackIPv4, AppConfig.port,
-          timeout: const Duration(seconds: 1));
-      socket.destroy();
-      return DiscoveredKiosk(
-          hostName: 'This PC', ip: '127.0.0.1', port: AppConfig.port);
-    } catch (_) {
-      return null; // nothing listening locally
     }
   }
 
@@ -94,13 +75,8 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
       _error = null;
     });
     try {
-      await GrpcChannelProvider.setAddress(host, port);
-      // Proves the server answers before saving. Short deadline: a dead host
-      // must fail fast here, not hang the dialog on "Connecting…".
-      await SettingsState.refresh(timeout: const Duration(seconds: 5));
-      AppConfig.host = host;
-      AppConfig.port = port;
-      await AppConfig.save();
+      // The shared connect routine proves the server answers before saving.
+      await connectTo(host, port);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {

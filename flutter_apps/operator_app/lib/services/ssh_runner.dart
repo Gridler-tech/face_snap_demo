@@ -1,10 +1,8 @@
 // Thin wrapper around dartssh2: run remote commands collecting stdout/stderr
 // and exit code, and stream local files into a remote command's stdin.
 //
-// Shared verbatim with the operator app (client/flutter/operator_app/lib/
-// services/ssh_runner.dart) - keep the two copies in sync; it is deliberately
-// self-contained (dartssh2 + dart:io only) so it can be dropped into either
-// app unchanged.
+// Self-contained (dartssh2 + dart:io only); shared by the pages, the update
+// engines and the headless CLIs.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

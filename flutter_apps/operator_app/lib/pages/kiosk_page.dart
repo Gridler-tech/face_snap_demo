@@ -1,15 +1,15 @@
-// Operator Kiosk page — connecting to and controlling servers: the
-// search-or-manual server picker plus the server-process cards (this PC /
-// remote kiosk PC). The capture flow lives on its own Capture page.
+// Operator Kiosk page — connecting to and controlling servers: the live list
+// of every server on the network (click to connect; manual address behind
+// "Add an address…") plus the server-process cards (this PC / remote kiosk
+// PC). The capture flow lives on its own Capture page.
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../services/app_config.dart';
-import '../services/board_server_manager.dart';
-import '../services/server_manager.dart';
 import 'connection_cards.dart';
 import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
+import '../ui/server_list.dart';
 import '../ui/server_picker.dart';
 import '../ui/ui.dart';
 
@@ -21,25 +21,16 @@ class KioskPage extends StatefulWidget {
 }
 
 class _KioskPageState extends State<KioskPage> {
-  /// Derived, not stored: a settings snapshot means the server answered.
-  bool get _connected => SettingsState.current != null;
-
   /// This app's own version (from pubspec via the exe's version resource).
   String _appVersion = '';
-
-  /// The connected server's version, and the host it belongs to (so a server
-  /// change re-probes and a stale probe result is dropped).
-  String? _serverVersion;
-  String? _versionHost;
 
   @override
   void initState() {
     super.initState();
-    // Repaint the status dot when the snapshot lands after a server start
-    // (the page sits const in the IndexedStack and never rebuilds otherwise).
+    // Repaint when the snapshot lands after a server start (the page sits
+    // const in the IndexedStack and never rebuilds otherwise).
     SettingsState.revision.addListener(_onSettingsChanged);
     _loadAppVersion();
-    _refreshServerVersion();
   }
 
   @override
@@ -49,9 +40,7 @@ class _KioskPageState extends State<KioskPage> {
   }
 
   void _onSettingsChanged() {
-    if (!mounted) return;
-    setState(() {});
-    _refreshServerVersion();
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadAppVersion() async {
@@ -63,34 +52,18 @@ class _KioskPageState extends State<KioskPage> {
     }
   }
 
-  /// Fetch the connected server's version: a kiosk board reports it via the
-  /// compose image tag over SSH, a server on this PC via its installer's
-  /// registry entry. Probed once per host; unknown stays blank.
-  Future<void> _refreshServerVersion() async {
-    final host = AppConfig.host;
-    if (!_connected || host == _versionHost) return;
-    _versionHost = host;
-    String? version;
-    if (BoardServerManager.isRemoteHost(host)) {
-      version = await BoardServerManager.serverVersion(host);
-    } else if (ServerManager.applicable) {
-      version = await ServerManager.installedVersion();
-    }
-    if (!mounted || AppConfig.host != host) return;
-    setState(() => _serverVersion = version);
+  /// After the connection changed (a list row, or a manual address): rebuild
+  /// so the server-process cards re-key on the new host. The server's version
+  /// is the list's business now — every row shows its own.
+  Future<void> _afterServerChange() async {
+    if (mounted) setState(() {});
   }
 
-  /// Open the search-or-manual server picker; on a new connection reload the
-  /// state so the cards reflect the new kiosk.
+  /// Manual entry for a kiosk the network does not show.
   Future<void> _changeServer() async {
     final changed = await showServerPicker(context);
     if (!mounted || !changed) return;
-    setState(() {
-      // Forget the previous server's version so the new one is probed.
-      _versionHost = null;
-      _serverVersion = null;
-    });
-    await _refreshServerVersion();
+    await _afterServerChange();
   }
 
   @override
@@ -110,10 +83,12 @@ class _KioskPageState extends State<KioskPage> {
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
                 child: SectionCard(
-                  title: 'Automatically find servers',
+                  title: 'Servers on the network',
                   titleLeading: const DevInfoBadge('discovery'),
                   shrinkWrap: true,
-                  child: _buildServerRow(),
+                  child: ServerList(
+                      onConnected: _afterServerChange,
+                      onAddAddress: _changeServer),
                 ),
               ),
               const SizedBox(width: 14),
@@ -162,34 +137,4 @@ class _KioskPageState extends State<KioskPage> {
     );
   }
 
-  Widget _buildServerRow() {
-    final dot = _connected ? T.pass : T.pending;
-    return Row(children: [
-      Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Text(
-          _connected
-              ? '${AppConfig.host}:${AppConfig.port}'
-                  '${_serverVersion == null ? '' : '  ·  server $_serverVersion'}'
-              : 'No server — search or add one',
-          style: TextStyle(
-              color: _connected ? T.ink : T.muted,
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      const SizedBox(width: 12),
-      QuietButton(
-        text: 'Search / change…',
-        width: 170,
-        onPressed: _changeServer,
-      ),
-    ]);
-  }
 }

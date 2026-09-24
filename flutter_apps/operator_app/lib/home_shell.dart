@@ -9,6 +9,8 @@ import 'pages/kiosk_page.dart';
 import 'pages/lighting_page.dart';
 import 'pages/monitoring_page.dart';
 import 'pages/photo_page.dart';
+import 'pages/updater_page.dart';
+import 'ui/dev_info.dart';
 import 'ui/ui.dart';
 
 /// Navigation shell: rail on the left (desktop idiom replacing the MAUI tab
@@ -23,7 +25,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _pages = [
+  static const _operatorPages = [
     ('Kiosk', Icons.sensors, KioskPage()),
     ('Capture', Icons.center_focus_strong, CapturePage()),
     ('Face recognition', Icons.badge_outlined, FaceRecognitionPage()),
@@ -35,8 +37,25 @@ class _HomeShellState extends State<HomeShell> {
     ('About', Icons.info_outline, AboutPage()),
   ];
 
+  /// The Updater (install / update / remove / batch — fleet-destructive)
+  /// only appears in dev mode, so an operator's everyday rail never shows it.
+  static const _updaterPage =
+      ('Updater', Icons.system_update_alt, UpdaterPage());
+
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: DevMode.enabled,
+      builder: (context, dev, _) {
+        final pages = [..._operatorPages, if (dev) _updaterPage];
+        // Leaving dev mode while on the Updater page: fall back to Kiosk.
+        final index = _index < pages.length ? _index : 0;
+        return _shell(pages, index);
+      },
+    );
+  }
+
+  Widget _shell(List<(String, IconData, Widget)> pages, int index) {
     return Scaffold(
       body: Row(
         children: [
@@ -47,7 +66,7 @@ class _HomeShellState extends State<HomeShell> {
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: NavigationRail(
-                    selectedIndex: _index,
+                    selectedIndex: index,
                     onDestinationSelected: (i) => setState(() => _index = i),
                     labelType: NavigationRailLabelType.all,
                     backgroundColor: Colors.white,
@@ -61,7 +80,7 @@ class _HomeShellState extends State<HomeShell> {
                     unselectedLabelTextStyle:
                         const TextStyle(color: T.muted, fontSize: 12),
                     destinations: [
-                      for (final (label, icon, _) in _pages)
+                      for (final (label, icon, _) in pages)
                         NavigationRailDestination(
                             icon: Icon(icon), label: Text(label)),
                     ],
@@ -73,8 +92,8 @@ class _HomeShellState extends State<HomeShell> {
           const VerticalDivider(width: 1, color: T.cardStroke),
           Expanded(
             child: IndexedStack(
-              index: _index,
-              children: [for (final (_, _, page) in _pages) page],
+              index: index,
+              children: [for (final (_, _, page) in pages) page],
             ),
           ),
         ],

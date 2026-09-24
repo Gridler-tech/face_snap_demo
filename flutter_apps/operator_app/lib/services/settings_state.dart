@@ -16,6 +16,15 @@ class SettingsState {
 
   static SettingsClient get client => SettingsClient(GrpcChannelProvider.channel);
 
+  /// The server the shared channel points at. Pages that load server-derived
+  /// state (calibration rows, camera settings, kiosk info) remember the key
+  /// their data was loaded for and reload when it changes: a server switch
+  /// bumps [revision] too, but "data already loaded" must not mask it, or the
+  /// previous server's rows linger on the page (six cameras shown for a
+  /// four-camera kiosk).
+  static String get serverKey =>
+      '${GrpcChannelProvider.host}:${GrpcChannelProvider.port}';
+
   /// Load the snapshot. Always under a deadline: without one, a call to a
   /// dead/absent host never completes (gRPC keeps retrying the connection),
   /// which froze the server picker on "Connecting…" indefinitely.
