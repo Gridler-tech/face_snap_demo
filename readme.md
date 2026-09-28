@@ -140,6 +140,73 @@ dart run example/capture_once.dart <server> photo.jpg
 > badges that open an implementation popup for that control — the gRPC call behind it,
 > ready-to-copy C# and Dart snippets, and a link into the API reference.
 
+### The Updater — how a server update works
+
+The **Updater** page (visible in Developer mode) is the fleet tool for the Linux kiosk
+boards. It talks to a board over SSH — you are prompted for the credentials once; they
+are kept in the app's own `config.json` — and every action runs as a visible pipeline
+of steps with a log and a summary. **Search** finds provisioned kiosks by their
+`_facesnap._tcp` mDNS announcement (`facesnap-<mac>.local`) and also detects *clean*
+vendor boards by probing their stock hostnames over mDNS and LLMNR; a board can always
+be added by IP address instead.
+
+**Update server** (one board, or a batch) runs these steps:
+
+1. **Connect to the kiosk** — open the SSH session.
+2. **Inspect the current installation** — board type and OS, installed server image,
+   compose file, auto-start unit. Only POSIX commands are used, so it works on both
+   the Ubuntu (Odroid) and Arch (Radxa) images.
+3. **Set up a clean board** — if Docker is missing (a fresh vendor image), it is
+   installed and enabled; on old kernels this can require one automatic reboot.
+   Skipped on a provisioned kiosk.
+4. **Pre-update checks** — compares the running version with the new image tag and
+   checks free disk space.
+5. **Back up settings and configuration** — the kiosk's `data/` (settings, camera
+   calibration) and compose file are packed into a `.tgz` and downloaded to the
+   operator PC; nothing is left behind on the board.
+6. **Stop the server** — the auto-start unit and any running FaceSnap containers.
+7. **Make room** — on a small eMMC that cannot hold the old and new image together,
+   the old image is removed first. This trades away automatic rollback; the step
+   says so explicitly when it happens.
+8. **Install the new server image** — the `docker save` tar is **streamed from the
+   operator PC straight into `docker load`**; it is never stored on the eMMC, which
+   is what makes 16 GB boards updatable.
+9. **Update the start-up configuration** — writes the `docker-compose.yml` for the
+   new image and the auto-start service; a first-generation installation is migrated
+   to the current `data/` layout on the way (the old files stay in place, so a
+   downgrade keeps working).
+10. **Apply the settings profile** — if the image ships one: a small JSON that moves
+    settings that were merely *defaults of their era* (capture resolution, enabled
+    checks, …) to the new generation's values, while everything the kiosk owns
+    (calibration, per-camera tuning, LED layout, photo format) is carried across
+    untouched.
+11. **Provision kiosk identity** — hostname `facesnap-<MAC>` plus the
+    `_facesnap._tcp` mDNS service, so the kiosk shows up in **Search** from now on.
+    Best-effort: a board without avahi still updates fine.
+12. **Start the server** — auto-start unit enabled and started.
+13. **Verify the new server** — waits for the server's own *ready* marker in the
+    container log (an open port 50051 is not proof: Docker listens there before the
+    server has finished booting).
+14. **Clean up** — temporary files and, when space allowed keeping it, nothing else;
+    the summary states the installed version.
+
+A **batch** update first pre-flights *every* selected board (unreachable or
+ineligible boards are listed and excluded before anything is touched), then runs the
+same pipeline per board with a small concurrency cap and produces one combined report.
+
+The other actions reuse the same machinery: **Backup** is read-only (the server keeps
+running); **Restore** puts a backup's `data/` back but deliberately *not* its compose
+file (that is infrastructure owned by the updater — an old copy could point at an
+image that is no longer on the kiosk); **Remove** uninstalls service, containers and
+images, keeps the configuration files unless told otherwise, and can take a backup
+first. **Get server info** is a read-only inspection.
+
+Everything is also scriptable headlessly — the same engines drive the CLIs in
+`flutter_apps/operator_app/bin/`: `updater_cli`, `batch_cli`, `backup_cli`,
+`restore_cli`, `remove_cli`, `info_cli`, `discover_cli`
+(`dart run bin/updater_cli.dart <host> <user> <password> <image.tar>`).
+The server images themselves are not distributed in this repository.
+
 Build it with the Flutter SDK (Windows desktop support enabled):
 
 ```
