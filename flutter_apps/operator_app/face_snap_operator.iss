@@ -41,6 +41,15 @@ DefaultDirName={autopf}\FaceSnapOperator
 DefaultGroupName=FaceSnap Operator
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#ExeName}
+; Look: the setup exe carries the app's own icon (icon A: brain mark on a green
+; tile); a welcome page with the side image, the icon in the header of the other
+; pages. Every standard DPI scale is supplied; Inno picks the best match.
+; Artwork: installer_art\ (regenerate with make_installer_art.py).
+SetupIconFile=windows\runner\resources\app_icon.ico
+WizardStyle=modern
+DisableWelcomePage=no
+WizardImageFile=installer_art\wizard_side_164x314.bmp,installer_art\wizard_side_192x386.bmp,installer_art\wizard_side_246x459.bmp,installer_art\wizard_side_273x556.bmp,installer_art\wizard_side_328x604.bmp,installer_art\wizard_side_355x700.bmp,installer_art\wizard_side_410x797.bmp
+WizardSmallImageFile=installer_art\wizard_small_55.bmp,installer_art\wizard_small_64.bmp,installer_art\wizard_small_83.bmp,installer_art\wizard_small_92.bmp,installer_art\wizard_small_110.bmp,installer_art\wizard_small_119.bmp,installer_art\wizard_small_138.bmp
 OutputBaseFilename=FaceSnapOperatorSetup-{#AppVersion}
 Compression={#CompressMode}
 SolidCompression=no
@@ -54,6 +63,12 @@ PrivilegesRequiredOverridesAllowed=dialog commandline
 SignTool=signtool
 SignedUninstaller=yes
 #endif
+
+[Messages]
+; The intro (welcome) page. %n = line break. Keep ASCII: this file has no BOM.
+WelcomeLabel1=Welcome to FaceSnap Operator {#AppVersion}
+WelcomeLabel2=The operator console for FaceSnap photo kiosks:%n%n  -  find the kiosks on the network and connect to one%n  -  capture photos and review every ICAO quality check%n  -  tune camera, lighting and photo settings, calibrate the cameras%n  -  update the kiosk servers (Updater page, in developer mode)%n%nClose FaceSnap Operator if it is running before you continue.
+FinishedHeadingLabel=FaceSnap Operator is installed
 
 [Files]
 ; The staged Flutter Release folder (exe + flutter_windows.dll + data + VC++ DLLs).

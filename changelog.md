@@ -2,6 +2,14 @@
 
 
 
+## Repository note, 28-09-2026
+
+Release 1.5.0 now carries `FaceSnapOperatorSetup-1.1.11.exe`. The operator app has
+a new icon (the brain mark on a green tile) on the app and on the setup, and the
+installer opens with an intro page; the artwork lives in
+`flutter_apps/operator_app/installer_art/` (regenerate with `make_installer_art.py`).
+No SDK or behaviour changes.
+
 ## Repository note, 24-09-2026
 
 The fleet updater is now a page of the operator app (**Updater**, shown in Developer
