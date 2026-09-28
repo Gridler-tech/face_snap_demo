@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PhotoColumnApp.CalibrationPage"
+             x:Name="CalibrationRoot"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             x:DataType="viewmodel:CalibrationViewModel"
+             BackgroundColor="#F3F5F8"
+             Title="Calibration settings">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="14" VerticalOptions="Start">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="CAMERA POSITIONS" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal">
+                        <Switch x:Name="automaticOrderingToggle"
+                                IsToggled="{Binding AutomaticOrdering}" />
+                        <Label VerticalOptions="Center"
+                               Margin="10,0,0,0"
+                               FontSize="13"
+                               Text="Automatic ordering (standard hub) — cameras positioned from their USB port; no manual calibration" />
+                    </StackLayout>
+
+                    <!-- Manual calibration: top-to-bottom position table -->
+                    <VerticalStackLayout
+                        IsVisible="{Binding ShowManualCalibration}"
+                        Spacing="10">
+
+                        <Label
+                            LineBreakMode="WordWrap"
+                            FontSize="13"
+                            TextColor="#5B6B7B"
+                            Text="Assign a camera to each position (top row = top camera, bottom row = bottom camera). Each camera can be used only once." />
+
+                        <Button
+                            x:Name="RefreshCamerasBtn"
+                            Text="Search cameras again"
+                            Style="{StaticResource QuietButton}"
+                            WidthRequest="220"
+                            SemanticProperties.Hint="Re-detect the cameras."
+                            Command="{Binding LoadCamerasCommand}" />
+
+                        <!-- Header row -->
+                        <Grid ColumnDefinitions="140,*" Padding="4,8,4,0">
+                            <Label Grid.Column="0" Text="Position" FontAttributes="Bold" />
+                            <Label Grid.Column="1" Text="Camera" FontAttributes="Bold" />
+                        </Grid>
+
+                        <CollectionView ItemsSource="{Binding Slots}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodel:CalibrationSlot">
+                                    <Grid ColumnDefinitions="140,*" Padding="4,4,4,4">
+                                        <Label Grid.Column="0"
+                                               VerticalOptions="Center"
+                                               Text="{Binding label}" />
+                                        <Picker Grid.Column="1"
+                                                HorizontalOptions="Fill"
+                                                ItemsSource="{Binding BindingContext.CameraOptions, Source={x:Reference CalibrationRoot}}"
+                                                ItemDisplayBinding="{Binding display}"
+                                                SelectedItem="{Binding SelectedCamera}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Button
+                            x:Name="SetCalibrationBtn"
+                            Text="Save camera positions"
+                            Style="{StaticResource GoButton}"
+                            HeightRequest="46"
+                            SemanticProperties.Hint="Save the camera positions."
+                            Command="{Binding SaveCalibrationCommand}"
+                            HorizontalOptions="Fill" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Focus calibration: one value for all cameras (the flow always selects the
+                 camera at the person's face height, so the subject distance is constant). -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="FOCUS CALIBRATION" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <Label
+                        LineBreakMode="WordWrap"
+                        FontSize="13"
+                        TextColor="#5B6B7B"
+                        Text="Have a person stand at the floor marking and press calibrate. The lights turn on, the correct camera is selected automatically, the autofocus focuses on the person, and the value is stored as the fixed focus (takes 20-30 seconds)." />
+
+                    <StackLayout Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="calibrateFocusBtn"
+                                Text="Calibrate focus"
+                                Style="{StaticResource GoButton}"
+                                HeightRequest="46"
+                                WidthRequest="200"
+                                HorizontalOptions="Start"
+                                SemanticProperties.Hint="Let the autofocus find the subject and store the value as fixed focus."
+                                IsEnabled="{Binding NotCalibrating}"
+                                Command="{Binding CalibrateFocusCommand}" />
+                        <ActivityIndicator IsRunning="{Binding Calibrating}" VerticalOptions="Center" />
+                        <Label VerticalOptions="Center"
+                               Text="{Binding CurrentFocusValue, StringFormat='Current focus: {0}'}" />
+                    </StackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

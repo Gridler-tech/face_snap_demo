@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="PhotoColumnApp.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:PhotoColumnApp"
+    x:DataType="local:AppShell"
+    xmlns:helpers="clr-namespace:PhotoColumnApp.Helpers"
+    Shell.FlyoutBehavior="Disabled">
+
+
+    <ShellContent
+        Title="Photo Column"
+        ContentTemplate="{DataTemplate local:LoginPage}"
+        Route="LoginPage" />
+
+    <!-- Image icons, not FontImageSource: custom fonts (FontAwesome) do not load in
+         unpackaged MAUI-8 Windows apps and rendered as tofu boxes. -->
+    <TabBar Route="Home">
+        <ShellContent Title="Kiosk" Route="KioskPage" ContentTemplate="{DataTemplate local:KioskPage}" Icon="tab_kiosk.png" />
+
+        <ShellContent Title="Settings" Route="SettingsPage" ContentTemplate="{DataTemplate local:SettingsPage}" Icon="tab_settings.png" />
+
+        <ShellContent Title="Camera" Route="CameraPage" ContentTemplate="{DataTemplate local:CameraPage}" Icon="tab_camera.png" />
+
+        <ShellContent Title="Calibration" Route="CalibrationPage" ContentTemplate="{DataTemplate local:CalibrationPage}" Icon="tab_calibration.png" />
+
+        <ShellContent Title="Face recognition" Route="FaceRecognitionPage" ContentTemplate="{DataTemplate local:FaceRecognitionPage}" Icon="tab_facerec.png" />
+
+        <ShellContent Title="Monitoring" Route="MonitoringPage" ContentTemplate="{DataTemplate local:MonitoringPage}" Icon="tab_monitoring.png" />
+    </TabBar>
+
+</Shell>

@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="PhotoColumnApp.KioskPage"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             x:DataType="viewmodel:KioskViewModel"
+             xmlns:helpers="clr-namespace:PhotoColumnApp.Helpers"
+             BackgroundColor="#F3F5F8"
+             Title="Photo Kiosk">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:ByteArrayToImageSourceConverter x:Key="ByteArrayToImageSourceConverter" />
+            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <!-- Card/button styles come from Resources/Styles/Styles.xaml: Card,
+                 CardTitle, CardTitleRule, GoButton, QuietButton, NumButton, RowLabel. -->
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <!-- Modern card layout (approved proposal 2026-07-13). Desktop: controls left,
+         photo + capture results right. The left pane width is set from code-behind on
+         resize (grid columns expand to desired width on this MAUI version otherwise). -->
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="Auto,Auto"
+          ColumnSpacing="14" RowSpacing="10" Padding="14,10,14,14">
+
+        <!-- Server reachability chip, always in view. -->
+        <HorizontalStackLayout x:Name="ChipRow" Grid.Row="0" Grid.Column="1" HorizontalOptions="End" Spacing="0">
+            <Border StrokeThickness="1"
+                    StrokeShape="RoundRectangle 999"
+                    Padding="11,4"
+                    Stroke="#D7DEE6"
+                    BackgroundColor="White">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding ServerOnline}" Value="True">
+                        <Setter Property="BackgroundColor" Value="#E9F2E6" />
+                        <Setter Property="Stroke" Value="#CFE3C8" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding ServerOnline}" Value="False">
+                        <Setter Property="BackgroundColor" Value="#F9E8E7" />
+                        <Setter Property="Stroke" Value="#EED2D0" />
+                    </DataTrigger>
+                </Border.Triggers>
+                <HorizontalStackLayout Spacing="7">
+                    <Ellipse WidthRequest="9" HeightRequest="9" VerticalOptions="Center" Fill="#B9C2CA">
+                        <Ellipse.Triggers>
+                            <DataTrigger TargetType="Ellipse" Binding="{Binding ServerOnline}" Value="True">
+                                <Setter Property="Fill" Value="#3E9142" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Ellipse" Binding="{Binding ServerOnline}" Value="False">
+                                <Setter Property="Fill" Value="#C6413D" />
+                            </DataTrigger>
+                        </Ellipse.Triggers>
+                    </Ellipse>
+                    <Label Text="{Binding ServerChipText}"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#33424F"
+                           VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+        </HorizontalStackLayout>
+
+        <!-- ================= LEFT: control cards ================= -->
+        <ScrollView x:Name="LeftPane" Grid.Row="1" Grid.Column="0">
+            <VerticalStackLayout Spacing="14">
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0" Text="CAPTURE" Style="{StaticResource CardTitle}" />
+                            <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <Button Grid.Column="0"
+                                    x:Name="StartAutomaticProcessBtn"
+                                    Text="Automatic"
+                                    Style="{StaticResource GoButton}"
+                                    SemanticProperties.Hint="Start the automatic kiosk process."
+                                    Command="{Binding StartAutomaticProcessCommand}" />
+                            <Button Grid.Column="1"
+                                    x:Name="StartManualProcessBtn"
+                                    Text="Manual"
+                                    Style="{StaticResource GoButton}"
+                                    SemanticProperties.Hint="Start the manual kiosk process."
+                                    Command="{Binding StartManualProcessCommand}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0" Text="LIGHTS" Style="{StaticResource CardTitle}" />
+                            <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Grid.Column="0"
+                                    x:Name="AllLightsOnBtn"
+                                    Text="All lights on"
+                                    Style="{StaticResource QuietButton}"
+                                    HorizontalOptions="Fill"
+                                    SemanticProperties.Hint="Set all lights on."
+                                    Command="{Binding AllLightsOnCommand}" />
+                            <Button Grid.Column="1"
+                                    x:Name="AllLightsOffBtn"
+                                    Text="All lights off"
+                                    Style="{StaticResource QuietButton}"
+                                    HorizontalOptions="Fill"
+                                    SemanticProperties.Hint="Set all lights off."
+                                    Command="{Binding AllLightsOffCommand}" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="92,Auto,Auto,Auto,Auto,Auto,Auto"
+                              RowDefinitions="Auto,Auto"
+                              ColumnSpacing="6" RowSpacing="6">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Lights on" Style="{StaticResource RowLabel}" />
+                            <Button Grid.Row="0" Grid.Column="1" Text="1" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 1 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="1" />
+                            <Button Grid.Row="0" Grid.Column="2" Text="2" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 2 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="2" />
+                            <Button Grid.Row="0" Grid.Column="3" Text="3" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 3 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="3" />
+                            <Button Grid.Row="0" Grid.Column="4" Text="4" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 4 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="4" />
+                            <Button Grid.Row="0" Grid.Column="5" Text="5" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 5 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="5" />
+                            <Button Grid.Row="0" Grid.Column="6" Text="6" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 6 light ON" Command="{Binding SetLightAtCameraIndexCommand}" CommandParameter="6" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="Lights off" Style="{StaticResource RowLabel}" />
+                            <Button Grid.Row="1" Grid.Column="1" Text="1" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 1 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="1" />
+                            <Button Grid.Row="1" Grid.Column="2" Text="2" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 2 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="2" />
+                            <Button Grid.Row="1" Grid.Column="3" Text="3" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 3 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="3" />
+                            <Button Grid.Row="1" Grid.Column="4" Text="4" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 4 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="4" />
+                            <Button Grid.Row="1" Grid.Column="5" Text="5" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 5 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="5" />
+                            <Button Grid.Row="1" Grid.Column="6" Text="6" Style="{StaticResource NumButton}" SemanticProperties.Hint="Cam 6 light OFF" Command="{Binding SetLightOffAtCameraIndexCommand}" CommandParameter="6" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Label Grid.Column="0" Text="DIAGNOSTICS" Style="{StaticResource CardTitle}" />
+                            <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="92,Auto,Auto,Auto,Auto,Auto,Auto"
+                              RowDefinitions="Auto,Auto"
+                              ColumnSpacing="6" RowSpacing="6">
+                            <Label Grid.Row="0" Grid.Column="0" Text="High res" Style="{StaticResource RowLabel}" />
+                            <Button Grid.Row="0" Grid.Column="1" Text="1" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 1" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="1" />
+                            <Button Grid.Row="0" Grid.Column="2" Text="2" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 2" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="2" />
+                            <Button Grid.Row="0" Grid.Column="3" Text="3" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 3" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="3" />
+                            <Button Grid.Row="0" Grid.Column="4" Text="4" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 4" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="4" />
+                            <Button Grid.Row="0" Grid.Column="5" Text="5" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 5" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="5" />
+                            <Button Grid.Row="0" Grid.Column="6" Text="6" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image From Camera 6" Command="{Binding GetHighResolutionImageFromCameraIndexCommand}" CommandParameter="6" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="HR + ICAO" Style="{StaticResource RowLabel}" />
+                            <Button Grid.Row="1" Grid.Column="1" Text="1" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 1" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="1" />
+                            <Button Grid.Row="1" Grid.Column="2" Text="2" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 2" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="2" />
+                            <Button Grid.Row="1" Grid.Column="3" Text="3" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 3" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="3" />
+                            <Button Grid.Row="1" Grid.Column="4" Text="4" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 4" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="4" />
+                            <Button Grid.Row="1" Grid.Column="5" Text="5" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 5" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="5" />
+                            <Button Grid.Row="1" Grid.Column="6" Text="6" Style="{StaticResource NumButton}" SemanticProperties.Hint="Get High Resolution Image with Icao checks From Camera 6" Command="{Binding GetHighResolutionImageWithIcaoChecksFromCameraIndexCommand}" CommandParameter="6" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ================= RIGHT: photo + capture results cards ================= -->
+        <Grid x:Name="RightPane" Grid.Row="1" Grid.Column="1"
+              RowDefinitions="*,300" RowSpacing="14">
+
+            <Border Grid.Row="0" Style="{StaticResource Card}">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="PHOTO" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <!-- Placeholder (passport aspect ratio) until a capture delivers a photo. -->
+                    <Border Grid.Row="1"
+                            IsVisible="{Binding ShowPhotoPlaceholder}"
+                            BackgroundColor="#F3F6F9"
+                            Stroke="#C8D2DC"
+                            StrokeThickness="1"
+                            StrokeDashArray="4,4"
+                            StrokeShape="RoundRectangle 10"
+                            WidthRequest="224"
+                            HeightRequest="288"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            Padding="0">
+                        <VerticalStackLayout Spacing="14" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Grid WidthRequest="96" HeightRequest="88" HorizontalOptions="Center">
+                                <Ellipse Fill="#C3CDD6"
+                                         WidthRequest="38" HeightRequest="38"
+                                         HorizontalOptions="Center" VerticalOptions="Start" />
+                                <Border BackgroundColor="#C3CDD6"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 32,32,8,8"
+                                        WidthRequest="76" HeightRequest="42"
+                                        HorizontalOptions="Center" VerticalOptions="End" />
+                            </Grid>
+                            <Label Text="The captured photo appears here"
+                                   FontSize="12"
+                                   TextColor="#7D8B98"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <ScrollView Grid.Row="1">
+                        <FlexLayout BindableLayout.ItemsSource="{Binding ManualPhotos}" x:Name="FlexPhotos"
+                                    Direction="Row" Margin="0,0,0,0" AlignItems="Start"
+                                    Wrap="Wrap" AlignContent="Start" JustifyContent="Center">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodel:PhotoItemViewModel">
+                                    <Frame Margin="0,2,10,2" BackgroundColor="#004EA4" CornerRadius="10">
+                                        <VerticalStackLayout Spacing="10" VerticalOptions="Start">
+                                            <Image IsVisible="{Binding showPhoto}" Aspect="AspectFit"
+                                                   HeightRequest="{Binding heightFrame}" WidthRequest="{Binding widthFrame}"
+                                                   Source="{Binding photoBytes, Mode=OneWay, Converter={StaticResource ByteArrayToImageSourceConverter}}" />
+                                            <Image IsVisible="{Binding showError}" Aspect="AspectFit" HeightRequest="290"
+                                                   WidthRequest="400" IsAnimationPlaying="True" Source="noface.png" />
+
+                                            <Grid IsVisible="{Binding showPhoto}">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="50" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="1*" />
+                                                    <ColumnDefinition Width="1*" />
+                                                    <ColumnDefinition Width="1*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button Grid.Column="0" x:Name="OnEnlargePhotoBtn"
+                                                        SemanticProperties.Hint="Show the photo enlarged."
+                                                        Command="{Binding ShowPhotoCommand}" Padding="10,0,0,0"
+                                                        VerticalOptions="Center" HorizontalOptions="Fill" BackgroundColor="#7DB43D">
+                                                    <Button.ImageSource>
+                                                        <FontImageSource FontFamily="FontAwesomeSolid"
+                                                                         Glyph="{x:Static helpers:FontAwesomeIcons.UpRightAndDownLeftFromCenter}"
+                                                                         Color="White" Size="20" />
+                                                    </Button.ImageSource>
+                                                </Button>
+
+                                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center"
+                                                                     HorizontalOptions="CenterAndExpand">
+                                                    <Label TextColor="White"
+                                                           FontSize="{OnPlatform iOS='Micro', Android='Micro', WinUI='Small', MacCatalyst='Small'}"
+                                                           Text="{Binding width, StringFormat= 'Width: {0}'}"
+                                                           HorizontalOptions="CenterAndExpand" VerticalOptions="Center" />
+                                                    <Label TextColor="White"
+                                                           FontSize="{OnPlatform iOS='Micro', Android='Micro', WinUI='Small', MacCatalyst='Small'}"
+                                                           Text="{Binding height, StringFormat= 'Height: {0}'}"
+                                                           HorizontalOptions="CenterAndExpand" VerticalOptions="Center" />
+                                                </VerticalStackLayout>
+
+                                                <Button Grid.Column="2" x:Name="OnSavePhotoBtn" Text="Save photo"
+                                                        SemanticProperties.Hint="Save the photo."
+                                                        Command="{Binding SavePhotoCommand}" VerticalOptions="Center"
+                                                        HorizontalOptions="Fill" BackgroundColor="#7DB43D" />
+
+                                            </Grid>
+
+                                        </VerticalStackLayout>
+                                    </Frame>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Style="{StaticResource Card}">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="CAPTURE RESULTS" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <ScrollView Grid.Row="1">
+                        <VerticalStackLayout
+                            x:Name="listx"
+                            BindableLayout.ItemsSource="{Binding StatusItems}"
+                            Spacing="5">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate
+                                    x:DataType="viewmodel:StatusItem">
+                                    <Border BackgroundColor="{Binding TintColor}"
+                                            Stroke="#E2E8EF"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 8"
+                                            Padding="9,5">
+                                        <StackLayout Orientation="Horizontal"
+                                                     Spacing="9"
+                                                     HorizontalOptions="FillAndExpand">
+                                            <Border BackgroundColor="{Binding Color}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 999"
+                                                    WidthRequest="17"
+                                                    HeightRequest="17"
+                                                    Padding="0"
+                                                    VerticalOptions="Center"
+                                                    HorizontalOptions="Start">
+                                                <Label Text="{Binding Status}"
+                                                       FontSize="10"
+                                                       FontAttributes="Bold"
+                                                       TextColor="White"
+                                                       Padding="0"
+                                                       HorizontalTextAlignment="Center"
+                                                       VerticalTextAlignment="Center"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center" />
+                                            </Border>
+                                            <Label
+                                                Text="{Binding Description}"
+                                                FontSize="12"
+                                                LineBreakMode="TailTruncation"
+                                                TextColor="#22303B"
+                                                VerticalOptions="Center"
+                                                HorizontalOptions="StartAndExpand" />
+                                        </StackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

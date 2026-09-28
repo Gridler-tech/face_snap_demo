@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:DataType="viewmodel:CameraViewModel"
+             x:Class="PhotoColumnApp.CameraPage"
+             BackgroundColor="#F3F5F8"
+             Title="Camera settings">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <toolkit:ByteArrayToImageSourceConverter x:Key="ByteArrayToImageSourceConverter"/>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="14" VerticalOptions="Start">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="CameraResolutionLabel" Grid.Column="0" Text="CAMERA RESOLUTION" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <Picker x:Name="resolutionPicker"
+                            Title="Select resolution"
+                            HorizontalOptions="Fill"
+                            ItemsSource="{Binding CameraResolutions}"
+                            ItemDisplayBinding="{Binding description}"
+                            SelectedItem="{Binding SelectedResolution}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="CameraOtherLabel" Grid.Column="0" Text="OTHER CAMERA SETTINGS" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowBrightness}">
+                        <Label x:Name="brightnessLabel"
+                               Text="{Binding Brightness, StringFormat= 'Brightness {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="brightnessSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding BrightnessMin}"
+                                Maximum="{Binding BrightnessMax}"
+                                Value="{ Binding Brightness }"
+                                DragCompletedCommand="{Binding BrightnessDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowContrast}">
+                        <Label x:Name="contrastLabel"
+                               Text="{Binding Contrast, StringFormat= 'Contrast {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="contrastSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding ContrastMin}"
+                                Maximum="{Binding ContrastMax}"
+                                Value="{ Binding Contrast}"
+                                DragCompletedCommand="{Binding ContrastDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowSaturation}">
+                        <Label x:Name="saturationLabel"
+                               Text="{Binding Saturation, StringFormat= 'Saturation {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="saturationSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding SaturationMin}"
+                                Maximum="{Binding SaturationMax}"
+                                Value="{ Binding Saturation}"
+                                DragCompletedCommand="{Binding SaturationDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowHue}">
+                        <Label x:Name="hueLabel"
+                               Text="{Binding Hue, StringFormat= 'Hue {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="hueSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding HueMin}"
+                                Maximum="{Binding HueMax}"
+                                Value="{ Binding Hue}"
+                                DragCompletedCommand="{Binding HueDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowGamma}">
+                        <Label x:Name="gammaLabel"
+                               Text="{Binding Gamma, StringFormat= 'Gamma {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="gammaSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding GammaMin}"
+                                Maximum="{Binding GammaMax}"
+                                Value="{ Binding Gamma}"
+                                DragCompletedCommand="{Binding GammaDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowGain}">
+                        <Label x:Name="gainLabel"
+                               Text="{Binding Gain, StringFormat= 'Gain {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="gainSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding GainMin}"
+                                Maximum="{Binding GainMax}"
+                                Value="{ Binding Gain}"
+                                DragCompletedCommand="{Binding GainDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <HorizontalStackLayout Padding="0,4,0,4">
+                        <Switch x:Name="whiteBalanceTemperatureAutoToggle"
+                                IsEnabled="True"
+                                IsToggled="{ Binding WhiteBalanceTemperatureAuto}"/>
+                        <Label x:Name="whiteBalanceTemperatureAutoLabel"
+                               Text="{Binding WhiteBalanceTemperatureAuto, StringFormat= 'White balance temperature auto'}"
+                               Margin="10,0,0,0"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowWhiteBalanceTemperature}">
+                        <Label x:Name="whiteBalanceTemperatureLabel"
+                               Text="{Binding WhiteBalanceTemperature, StringFormat= 'White balance temperature {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="whiteBalanceTemperatureSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding WhiteBalanceTemperatureMin}"
+                                Maximum="{Binding WhiteBalanceTemperatureMax}"
+                                Value="{ Binding WhiteBalanceTemperature}"
+                                DragCompletedCommand="{Binding WhiteBalanceTemperatureDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowSharpness}">
+                        <Label x:Name="sharpnessLabel"
+                               Text="{Binding Sharpness, StringFormat= 'Sharpness {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="sharpnessSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding SharpnessMin}"
+                                Maximum="{Binding SharpnessMax}"
+                                Value="{ Binding Sharpness}"
+                                DragCompletedCommand="{Binding SharpnessDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowBacklightCompensation}">
+                        <Label x:Name="backlightCompensationLabel"
+                               Text="{Binding BacklightCompensation, StringFormat= 'Backlight compensation {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="backlightCompensationSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding BacklightCompensationMin}"
+                                Maximum="{Binding BacklightCompensationMax}"
+                                Value="{ Binding BacklightCompensation}"
+                                DragCompletedCommand="{Binding BacklightCompensationDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowPanAbsolute}">
+                        <Label x:Name="panAbsoluteLabel"
+                               Text="{Binding PanAbsolute, StringFormat= 'Pan absolute {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="panAbsoluteSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding PanAbsoluteMin}"
+                                Maximum="{Binding PanAbsoluteMax}"
+                                Value="{ Binding PanAbsolute}"
+                                DragCompletedCommand="{Binding PanAbsoluteDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowTiltAbsolute}">
+                        <Label x:Name="tiltAbsoluteLabel"
+                               Text="{Binding TiltAbsolute, StringFormat= 'Tilt absolute {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="tiltAbsoluteSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding TiltAbsoluteMin}"
+                                Maximum="{Binding TiltAbsoluteMax}"
+                                Value="{ Binding TiltAbsolute}"
+                                DragCompletedCommand="{Binding TiltAbsoluteDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowZoomAbsolute}">
+                        <Label x:Name="zoomAbsoluteLabel"
+                               Text="{Binding ZoomAbsolute, StringFormat= 'Zoom absolute {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="zoomAbsoluteSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding ZoomAbsoluteMin}"
+                                Maximum="{Binding ZoomAbsoluteMax}"
+                                Value="{ Binding ZoomAbsolute}"
+                                DragCompletedCommand="{Binding ZoomAbsoluteDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <HorizontalStackLayout Padding="0,4,0,4">
+                        <Switch x:Name="exposureAutoPriorityToggle"
+                                IsEnabled="True"
+                                IsToggled="{ Binding ExposureAutoPriority}"/>
+                        <Label x:Name="exposureAutoPriorityLabel"
+                               Text="{Binding ExposureAutoPriority, StringFormat= 'Exposure auto priority'}"
+                               Margin="10,0,0,0"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Padding="0,4,0,4">
+                        <Switch x:Name="autofocusToggle"
+                                IsEnabled="True"
+                                IsToggled="{ Binding Autofocus}"/>
+                        <Label x:Name="autofocusLabel"
+                               Text="{Binding Autofocus, StringFormat= 'Autofocus'}"
+                               Margin="10,0,0,0"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout IsVisible="{Binding ShowFocusAbsolute}">
+                        <Label x:Name="focusAbsoluteLabel"
+                               Text="{Binding FocusAbsolute, StringFormat= 'Focus (manual, used when autofocus is off): {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="focusAbsoluteSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="{Binding FocusAbsoluteMin}"
+                                Maximum="{Binding FocusAbsoluteMax}"
+                                Value="{ Binding FocusAbsolute}"
+                                DragCompletedCommand="{Binding FocusAbsoluteDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout>
+                        <Label x:Name="exposureAbsoluteLabel"
+                               Text="{Binding ExposureAbsolute, StringFormat= 'Exposure absolute {0}'}"
+                               HorizontalOptions="Start"
+                               VerticalOptions="Center"/>
+                        <Slider x:Name="exposureAbsoluteSlider"
+                                HorizontalOptions="Fill"
+                                Minimum="10"
+                                Maximum="1250"
+                                Value="{ Binding ExposureAbsolute}"
+                                DragCompletedCommand="{Binding ExposureAbsoluteDragCompletedCommand}"/>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

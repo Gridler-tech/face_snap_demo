@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             xmlns:helpers="clr-namespace:PhotoColumnApp.Helpers"
+             x:DataType="viewmodel:SettingsViewModel"
+             x:Class="PhotoColumnApp.SettingsPage"
+             BackgroundColor="#F3F5F8"
+             Title="Settings">
+
+    <ContentPage.Resources>
+        <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+        <toolkit:IsStringNotNullOrEmptyConverter x:Key="IsStringNotNullOrEmptyConverter" />
+        <helpers:HexColorConverter x:Key="HexColorConverter" />
+        <Style x:Key="InvalidEntryStyle" TargetType="Entry">
+            <Setter Property="TextColor" Value="White" />
+        </Style>
+        <Style x:Key="ValidEntryStyle" TargetType="Entry">
+            <Setter Property="TextColor" Value="Green" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="14" VerticalOptions="Start">
+
+            <!-- Server lifecycle: local co-located deployments only (Windows kiosk). -->
+            <Border Style="{StaticResource Card}" IsVisible="{OnPlatform Default=False, WinUI=True}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="serverLabel" Grid.Column="0" Text="SERVER" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal" Spacing="15">
+                        <Label
+                            Text="{Binding ServerStatusText}"
+                            VerticalTextAlignment="Center"
+                            WidthRequest="280" />
+                        <Button
+                            x:Name="toggleServerBtn"
+                            Text="{Binding ServerActionText}"
+                            Style="{StaticResource QuietButton}"
+                            WidthRequest="160"
+                            IsEnabled="{Binding ServerBusy, Converter={StaticResource InvertedBoolConverter}}"
+                            SemanticProperties.Hint="Start or stop the photo kiosk server."
+                            Command="{Binding ToggleServerCommand}" />
+                        <ActivityIndicator IsRunning="{Binding ServerBusy}"
+                                           VerticalOptions="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <Switch x:Name="startAtLogonSwitch"
+                                IsToggled="{Binding StartAtLogon}"
+                                VerticalOptions="Center" />
+                        <Label
+                            HorizontalOptions="StartAndExpand"
+                            InputTransparent="True"
+                            Text="Start the server automatically at logon"
+                            Margin="10,0,0,0"
+                            VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <Label
+                        Text="{Binding ServerMessage}"
+                        TextColor="#C6413D"
+                        FontSize="13"
+                        IsVisible="{Binding ServerMessage, Converter={StaticResource IsStringNotNullOrEmptyConverter}}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="IPAddressLabel" Grid.Column="0" Text="CONNECTION" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="{OnPlatform Default=Vertical, WinUI=Horizontal, MacCatalyst=Horizontal}"
+                                 Spacing="{OnPlatform Default=8, WinUI=18, MacCatalyst=18}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Server IP address" Style="{StaticResource RowLabel}" />
+                            <Entry x:Name="serverHost"
+                                   Text="{Binding ServerHost}"
+                                   Placeholder="localhost or 192.168.1.10"
+                                   WidthRequest="280"
+                                   HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Port" Style="{StaticResource RowLabel}" />
+                            <Entry x:Name="serverPort"
+                                   Text="{Binding ServerPort}"
+                                   Placeholder="50051"
+                                   Keyboard="Numeric"
+                                   MaxLength="5"
+                                   WidthRequest="100"
+                                   HorizontalOptions="Start">
+                                <Entry.Behaviors>
+                                    <toolkit:NumericValidationBehavior
+                                        InvalidStyle="{StaticResource InvalidEntryStyle}"
+                                        ValidStyle="{StaticResource ValidEntryStyle}"
+                                        Flags="ValidateOnValueChanged"
+                                        MinimumValue="1"
+                                        MaximumValue="65535"
+                                        MaximumDecimalPlaces="0" />
+                                </Entry.Behaviors>
+                            </Entry>
+                        </VerticalStackLayout>
+                    </StackLayout>
+                    <Button
+                        x:Name="SaveIpAddressBtn"
+                        Text="Save server address"
+                        Style="{StaticResource QuietButton}"
+                        WidthRequest="220"
+                        SemanticProperties.Hint="Save the server ip address and port."
+                        Command="{Binding SaveIpAddressCommand}" />
+                    <Label
+                        FontSize="12"
+                        TextColor="#7D8B98"
+                        Text="A saved address is applied immediately." />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="photoAdjustmentLabel" Grid.Column="0" Text="PHOTO ADJUSTMENT" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="cropCheckbox"
+                            IsChecked="{ Binding Crop}"/>
+                        <Label
+                            x:Name="cropLabel"
+                            HorizontalOptions="StartAndExpand"
+                            InputTransparent="True"
+                            Text="Crop photo"
+                            VerticalTextAlignment="Center"/>
+                    </StackLayout>
+
+                    <!-- Photo format + crop sizes: one line on desktop, stacked on mobile. -->
+                    <StackLayout Orientation="{OnPlatform Default=Vertical, WinUI=Horizontal, MacCatalyst=Horizontal}"
+                                 Spacing="{OnPlatform Default=8, WinUI=24, MacCatalyst=24}"
+                                 Padding="0,5,0,0">
+                        <StackLayout Orientation="Horizontal">
+                            <Label
+                            Text="Photo format"
+                            VerticalTextAlignment="Center" />
+                            <Picker
+                                x:Name="photoFormatPicker"
+                                WidthRequest="280"
+                                Margin="10,0,0,0"
+                                ItemsSource="{Binding PhotoFormats}"
+                                ItemDisplayBinding="{Binding display}"
+                                SelectedItem="{Binding SelectedPhotoFormat}" />
+                        </StackLayout>
+
+                        <StackLayout Orientation="Horizontal">
+                            <Entry
+                                x:Name="cropWidth"
+                                MaxLength="4"
+                                Text="{Binding CropWidth}"
+                                Keyboard="Numeric">
+                                <Entry.Behaviors>
+                                    <toolkit:NumericValidationBehavior
+                                        InvalidStyle="{StaticResource InvalidEntryStyle}"
+                                        ValidStyle="{StaticResource ValidEntryStyle}"
+                                        Flags="ValidateOnValueChanged"
+                                        MinimumValue="100.0"
+                                        MaximumValue="3000.0"
+                                        MaximumDecimalPlaces="0" />
+                                </Entry.Behaviors>
+                            </Entry>
+                            <Label
+                                x:Name="cropWidthLabel"
+                                Text="Crop width size"
+                                Margin="10,0,0,0"
+                                VerticalTextAlignment="Center"/>
+                        </StackLayout>
+
+                        <StackLayout Orientation="Horizontal">
+                            <Entry
+                                x:Name="cropHeight"
+                                Text="{Binding CropHeight}"
+                                MaxLength="4"
+                                IsReadOnly="True">
+                            </Entry>
+                            <Label
+                                x:Name="cropHeightLabel"
+                                Text="Crop height size"
+                                Margin="10,0,0,0"
+                                VerticalTextAlignment="Center"/>
+                        </StackLayout>
+                    </StackLayout>
+
+                    <!-- Background erasing + colour: one line on desktop, stacked on mobile. -->
+                    <StackLayout Orientation="{OnPlatform Default=Vertical, WinUI=Horizontal, MacCatalyst=Horizontal}"
+                                 Spacing="{OnPlatform Default=8, WinUI=24, MacCatalyst=24}"
+                                 Padding="0,5,0,5">
+                        <StackLayout Orientation="Horizontal">
+                            <Label
+                            Text="Background erasing"
+                            VerticalTextAlignment="Center" />
+                            <Picker
+                                x:Name="backgroundMethodPicker"
+                                WidthRequest="260"
+                                Margin="10,0,0,0"
+                                ItemsSource="{Binding BackgroundMethods}"
+                                ItemDisplayBinding="{Binding display}"
+                                SelectedItem="{Binding SelectedBackgroundMethod}" />
+                        </StackLayout>
+
+                        <StackLayout Orientation="Horizontal"
+                                     IsVisible="{Binding ShowBackgroundColor}"
+                                     Spacing="10">
+                            <Label
+                            Text="Color (hex)"
+                            VerticalTextAlignment="Center" />
+                            <Entry
+                                x:Name="backgroundColorEntry"
+                                Text="{Binding BackgroundColor}"
+                                Placeholder="FFFFFF"
+                                MaxLength="6"
+                                WidthRequest="120"
+                                ReturnCommand="{Binding ApplyBackgroundColorCommand}" />
+                            <!-- Live swatch of the entered colour. -->
+                            <Border BackgroundColor="{Binding BackgroundColor, Converter={StaticResource HexColorConverter}}"
+                                    Stroke="#CFD8E0"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 6"
+                                    WidthRequest="28"
+                                    HeightRequest="28"
+                                    VerticalOptions="Center" />
+                        </StackLayout>
+                    </StackLayout>
+
+                    <Label
+                        HorizontalOptions="Start"
+                        InputTransparent="True"
+                        Margin="0,6,0,0"
+                        Text="{Binding JpegQuality, StringFormat='JPEG quality {0} (100 = best, larger files)'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="jpegQualitySlider"
+                        HorizontalOptions="Fill"
+                        Minimum="50"
+                        Maximum="100"
+                        Value="{ Binding JpegQuality }"
+                        DragCompletedCommand="{Binding JpegQualityDragCompletedCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="kioskLightingLabel" Grid.Column="0" Text="KIOSK LIGHTING" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="lightingCheckbox"
+                            IsChecked="{ Binding Lighting}"/>
+                        <Label
+                            HorizontalOptions="StartAndExpand"
+                            InputTransparent="True"
+                            Text="Lighting"
+                            VerticalTextAlignment="Center"/>
+                    </StackLayout>
+
+                    <Label
+                        HorizontalOptions="Start"
+                        InputTransparent="True"
+                        Text="{Binding IntensityRed, StringFormat= 'Intensity Red {0}'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="intensitySliderRed"
+                        HorizontalOptions="Fill"
+                        Minimum="0"
+                        Maximum="200"
+                        Value="{ Binding IntensityRed }"
+                        DragCompletedCommand="{Binding IntensityRedDragCompletedCommand}"/>
+                    <Label
+                        HorizontalOptions="Start"
+                        InputTransparent="True"
+                        Text="{Binding IntensityGreen, StringFormat= 'Intensity Green {0}'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="intensitySliderGreen"
+                        HorizontalOptions="Fill"
+                        Minimum="0"
+                        Maximum="200"
+                        Value="{ Binding IntensityGreen }"
+                        DragCompletedCommand="{Binding IntensityGreenDragCompletedCommand}"/>
+                    <Label
+                        HorizontalOptions="Start"
+                        InputTransparent="True"
+                        Text="{Binding IntensityBlue, StringFormat= 'Intensity Blue {0}'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="intensitySliderBlue"
+                        HorizontalOptions="Fill"
+                        Minimum="0"
+                        Maximum="200"
+                        Value="{ Binding IntensityBlue }"
+                        DragCompletedCommand="{Binding IntensityBlueDragCompletedCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="kioskDistanceLabel" Grid.Column="0" Text="KIOSK DISTANCE" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="{Binding DistanceMin, StringFormat= 'Minimal distance {0}'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="distanceMinSlider"
+                        HorizontalOptions="Fill"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="{ Binding DistanceMin }"
+                        DragCompletedCommand="{Binding DistanceMinDragCompletedCommand}"/>
+
+                    <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="{Binding DistanceMax, StringFormat= 'Maximal distance {0}'}"
+                        VerticalTextAlignment="Center"/>
+                    <Slider x:Name="distanceMaxSlider"
+                        HorizontalOptions="Fill"
+                        Minimum="100"
+                        Maximum="400"
+                        Value="{ Binding DistanceMax }"
+                        DragCompletedCommand="{Binding DistanceMaxDragCompletedCommand}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                        <Label x:Name="qualityLabel" Grid.Column="0" Text="QUALITY CHECKS" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="eyesCheckbox"
+                            IsChecked="{ Binding EyesCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Eyes check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="lipsCheckbox"
+                            IsChecked="{ Binding LipsCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Lips check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="eyeGlassesCheckbox"
+                            IsChecked="{ Binding EyeGlassesCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Eye glasses check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="headPoseCheckbox"
+                            IsChecked="{ Binding HeadPoseCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Head pose (frontal) check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="sharpnessCheckbox"
+                            IsChecked="{ Binding SharpnessCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Sharpness (focus) check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="headSizeCheckbox"
+                            IsChecked="{ Binding HeadSizeCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Head size/position check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="expressionCheckbox"
+                            IsChecked="{ Binding ExpressionCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Neutral expression check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="gazeCheckbox"
+                            IsChecked="{ Binding GazeCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Gaze direction check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="lightingEvennessCheckbox"
+                            IsChecked="{ Binding LightingEvennessCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Lighting evenness check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="redEyeDetectionCheckbox"
+                            IsChecked="{ Binding RedEyeDetectionCheck}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Red eye detection check"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Media Foundation is a Windows-only backend, so this section only applies there. -->
+            <Border Style="{StaticResource Card}" IsVisible="{OnPlatform Default=False, WinUI=True}">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label x:Name="cameraLabel" Grid.Column="0" Text="CAMERA" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout Orientation="Horizontal">
+                        <CheckBox
+                            x:Name="msmfSelectionCheckbox"
+                            IsChecked="{ Binding MsmfSelection}"/>
+                        <Label
+                        HorizontalOptions="StartAndExpand"
+                        InputTransparent="True"
+                        Text="Fast camera selection (Media Foundation)"
+                        VerticalTextAlignment="Center" />
+                    </StackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

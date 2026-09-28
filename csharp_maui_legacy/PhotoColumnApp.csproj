@@ -1,0 +1,279 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
+        <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
+        <!-- <TargetFrameworks>$(TargetFrameworks);net8.0-tizen</TargetFrameworks> -->
+        <OutputType>Exe</OutputType>
+        <RootNamespace>PhotoColumnApp</RootNamespace>
+        <!-- Unpackaged on Windows: the exe in bin/ can be started directly (no MSIX
+             deployment needed), same as the face_snap_kiosk app. -->
+        <WindowsPackageType>None</WindowsPackageType>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+
+        <!-- Specify the Android SDK -->
+        <AndroidSdkDirectory>$(ANDROID_HOME)</AndroidSdkDirectory>
+
+        <!-- Display name -->
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+
+        <!-- App Identifier -->
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+        <ApplicationIdGuid>f51a5744-b85d-446f-8964-1c724ebd54cf</ApplicationIdGuid>
+
+        <!-- Versions -->
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <ApplicationVersion>1</ApplicationVersion>
+
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">33.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+        <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+        <AndroidSigningKeyStore>facesnap.keystore</AndroidSigningKeyStore>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-ios|AnyCPU'">
+        <CreatePackage>false</CreatePackage>
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-android|AnyCPU'">
+        <EmbedAssembliesIntoApk>False</EmbedAssembliesIntoApk>
+        <AndroidPackageFormat>aab</AndroidPackageFormat>
+        <AndroidUseAapt2>True</AndroidUseAapt2>
+        <AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
+        <DebugSymbols>True</DebugSymbols>
+        <AndroidKeyStore>True</AndroidKeyStore>
+        <AndroidSigningStorePass>mam300866</AndroidSigningStorePass>
+        <AndroidSigningKeyAlias>key0</AndroidSigningKeyAlias>
+        <AndroidSigningKeyPass>mam300866</AndroidSigningKeyPass>
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-android|AnyCPU'">
+        <RunAOTCompilation>True</RunAOTCompilation>
+        <AndroidKeyStore>True</AndroidKeyStore>
+        <AndroidSigningStorePass>mam300866</AndroidSigningStorePass>
+        <AndroidSigningKeyAlias>key0</AndroidSigningKeyAlias>
+        <AndroidSigningKeyPass>mam300866</AndroidSigningKeyPass>
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+        <DebugSymbols>False</DebugSymbols>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-ios|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+        <CreatePackage>false</CreatePackage>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-maccatalyst|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-maccatalyst|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-windows10.0.19041.0|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-windows10.0.19041.0|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
+        <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+        <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+        <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+        <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
+        <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+        <GenerateTestArtifacts>True</GenerateTestArtifacts>
+        <AppInstallerUri>https://www.dropbox.com/home/Gridler/Facesnsp_app</AppInstallerUri>
+        <HoursBetweenUpdateChecks>24</HoursBetweenUpdateChecks>
+        <PackageCertificateThumbprint>BC2D8EFD680E5E89C463F9EA649C63A308B2F9DC</PackageCertificateThumbprint>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-android33.0|AnyCPU'">
+        <RunAOTCompilation>True</RunAOTCompilation>
+        <PublishTrimmed>True</PublishTrimmed>
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-android33.0|AnyCPU'">
+        <ApplicationTitle>FaceSnap</ApplicationTitle>
+        <ApplicationId>com.gridler.facesnap</ApplicationId>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- App Icon -->
+        <MauiIcon Include="Resources\AppIcon\appicon.svg" />
+        <MauiIcon Include="Resources\AppIcon\appicon1.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+
+        <!-- Images -->
+        <MauiFont Include="Resources\Fonts\*" />
+
+        <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.92" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+        <PackageReference Include="CommunityToolkit.Maui" Version="9.1.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Resources\AppIcon\appicon.svg" />
+        <None Remove="Resources\Fonts\logo_gridler.png" />
+        <None Remove="Resources\Images\bg_login_text.png" />
+        <None Remove="Resources\Images\dotnet_bot.svg" />
+        <None Remove="CommunityToolkit.Maui" />
+        <None Remove="CommunityToolkit.Mvvm" />
+        <None Remove="Resources\Images\face_kiosk.jpg" />
+        <None Remove="Resources\Images\login_page_kiosk.png" />
+        <None Remove="Resources\Images\logo_gridler.png" />
+        <None Remove="Resources\Images\noface.png" />
+        <None Remove="Resources\Splash\splash.svg" />
+        <None Remove="ViewModels\" />
+        <None Remove="Services\" />
+        <None Remove="Resources\Images\Face kiosk.png" />
+        <None Remove="Resources\Fonts\Font Awesome 6 Free-Solid-900.otf" />
+        <None Remove="Resources\Fonts\Font Awesome 6 Free-Regular-400.otf" />
+        <None Remove="Resources\Fonts\Font Awesome 6 Brands-Regular-400.otf" />
+        <None Remove="Helpers\" />
+        <None Remove="Globals\" />
+        <None Remove="Resources\Images\logo_gridler_small.png" />
+        <None Remove="library\" />
+    </ItemGroup>
+    <ItemGroup>
+        <MauiImage Include="Resources\Images\bg_login_text.png" />
+        <MauiImage Include="Resources\Images\dotnet_bot.svg">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </MauiImage>
+        <MauiImage Include="Resources\Images\face_kiosk.jpg">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </MauiImage>
+        <MauiImage Include="Resources\Images\login_page_kiosk.png" />
+        <MauiImage Include="Resources\Images\logo_gridler.png" />
+        <MauiImage Include="Resources\Images\logo_gridler_small.png" />
+        <MauiImage Include="Resources\Images\noface.png" />
+        <MauiImage Include="Resources\Images\oops.png" />
+        <MauiImage Include="Resources\Images\giphy.gif" />
+        <!-- Tab-bar icons: plain images because custom fonts (FontAwesome) never load
+             in unpackaged MAUI-8 Windows apps and rendered as tofu boxes. -->
+        <MauiImage Include="Resources\Images\tab_kiosk.svg" />
+        <MauiImage Include="Resources\Images\tab_settings.svg" />
+        <MauiImage Include="Resources\Images\tab_camera.svg" />
+        <MauiImage Include="Resources\Images\tab_calibration.svg" />
+        <MauiImage Include="Resources\Images\tab_facerec.svg" />
+        <MauiImage Include="Resources\Images\tab_monitoring.svg" />
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="ViewModels\" />
+        <Folder Include="Services\" />
+        <Folder Include="Helpers\" />
+        <Folder Include="Globals\" />
+        <Folder Include="library\" />
+    </ItemGroup>
+    <ItemGroup>
+        <BundleResource Include="Resources\Fonts\Font Awesome 6 Free-Solid-900.otf" />
+        <BundleResource Include="Resources\Fonts\Font Awesome 6 Free-Regular-400.otf" />
+        <BundleResource Include="Resources\Fonts\Font Awesome 6 Brands-Regular-400.otf" />
+        <BundleResource Include="Resources\Images\logo_gridler_small.png" />
+    </ItemGroup>
+    <ItemGroup>
+        <MauiSplashScreen Include="Resources\Splash\splash.svg" />
+    </ItemGroup>
+    <ItemGroup>
+        <Reference Include="Google.Protobuf">
+            <HintPath>library\Google.Protobuf.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Core.Api">
+            <HintPath>library\Grpc.Core.Api.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Net.Client">
+            <HintPath>library\Grpc.Net.Client.dll</HintPath>
+        </Reference>
+        <Reference Include="Grpc.Net.Common">
+            <HintPath>library\Grpc.Net.Common.dll</HintPath>
+        </Reference>
+        <Reference Include="GrpcLibrary">
+            <HintPath>library\GrpcLibrary.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    <!-- <ItemGroup>
+        <ProjectReference Include="..\face_snap\client\GrpcLibrary\GrpcLibrary.csproj"/>
+    </ItemGroup> -->
+    <ItemGroup>
+        <AdditionalFiles Include="Pages\CalibrationPage.xaml" />
+        <AdditionalFiles Include="Pages\CameraPage.xaml" />
+        <AdditionalFiles Include="Pages\FaceRecognitionPage.xaml" />
+        <AdditionalFiles Include="Pages\KioskPage.xaml" />
+        <AdditionalFiles Include="Pages\LoginPage.xaml" />
+        <AdditionalFiles Include="Pages\MonitoringPage.xaml" />
+    </ItemGroup>
+    <ItemGroup>
+        <MauiXaml Update="Pages\KioskPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+        <MauiXaml Update="Pages\CalibrationPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+        <MauiXaml Update="Pages\FaceRecognitionPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+        <MauiXaml Update="Pages\CameraPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+        <MauiXaml Update="Pages\MonitoringPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+        <MauiXaml Update="Pages\LoginPage.xaml">
+            <SubType>Designer</SubType>
+        </MauiXaml>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Pages\KioskPage.xaml.cs">
+            <DependentUpon>KioskPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Pages\CalibrationPage.xaml.cs">
+            <DependentUpon>CalibrationPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Pages\FaceRecognitionPage.xaml.cs">
+            <DependentUpon>FaceRecognitionPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Pages\CameraPage.xaml.cs">
+            <DependentUpon>CameraPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Pages\MonitoringPage.xaml.cs">
+            <DependentUpon>MonitoringPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Pages\LoginPage.xaml.cs">
+            <DependentUpon>LoginPage.xaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+    </ItemGroup>
+</Project>

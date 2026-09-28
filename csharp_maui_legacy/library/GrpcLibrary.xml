@@ -1,0 +1,2483 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GrpcLibrary</name>
+    </assembly>
+    <members>
+        <member name="T:GrpcLibrary.Dto.CalibrationData">
+            <summary>
+            Calibration data
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CalibratedResponse">
+            <summary>
+            Calibrated camera
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CameraSettings">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.PropertyRange">
+            <summary>
+            Capability and limits of a single camera property, probed at runtime by the server.
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Brightness">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Contrast">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Saturation">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Hue">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.WhiteBalanceTemperatureAuto">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Gamma">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Gain">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.WhiteBalanceTemperature">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Sharpness">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.BacklightCompensation">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ExposureAutoPriority">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Autofocus">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.PanAbsolute">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.TiltAbsolute">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ZoomAbsolute">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.FocusAbsolute">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ExposureAbsolute">
+            <summary>
+            Camera settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CameraResolution">
+            <summary>
+            Camera resolution
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ImageData">
+            <summary>
+            Image data
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.KioskData">
+            <summary>
+            Status type
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CameraData">
+            <summary>
+            Camera data
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.FocusedCamera">
+            <summary>
+            Focused camera
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.KioskInfo">
+            <summary>
+            Kiosk information
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.FaceRecognitionRequest">
+            <summary>
+            Face recognition request
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.FaceRecognitionResponse">
+            <summary>
+            Face recognition response
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.KioskSettingsDto">
+            <summary>
+            Kiosk settings
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Resolution">
+            <summary>
+            Camera resolution
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Crop">
+            <summary>
+            Crop
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.EyesCheck">
+            <summary>
+            Eyes check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.LipsCheck">
+            <summary>
+            Lips check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Lighting">
+            <summary>
+            Lighting
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.BlurBackground">
+            <summary>
+            Blur background
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.EyeGlassesCheck">
+            <summary>
+            Eye glasses check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.HeadPoseCheck">
+            <summary>
+            Frontal head-pose check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.SharpnessCheck">
+            <summary>
+            Sharpness / focus check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.HeadSizeCheck">
+            <summary>
+            Head-size/position check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ExpressionCheck">
+            <summary>
+            Neutral-expression check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.GazeCheck">
+            <summary>
+            Gaze-direction check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.LightingEvennessCheck">
+            <summary>
+            Lighting-evenness check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.PhotoFormat">
+            <summary>
+            Photo format: the accepted key and the crop height the server derived from the
+            stored crop width and the format's aspect ratio.
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.RedEyeDetectionCheck">
+            <summary>
+            Red eye detection check
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CameraOrderingMode">
+            <summary>
+            Camera ordering mode (true = automatic from USB port, false = manual calibration)
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.MsmfSelection">
+            <summary>
+            MSMF selection (true = faster Media Foundation backend for the selection scan)
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.BackgroundMethod">
+            <summary>
+            Background erasing method ("none"/"mediapipe"/"rembg"/"modnet")
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.BackgroundColor">
+            <summary>
+            Background fill colour (RRGGBB hex)
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Intensity">
+            <summary>
+            Intensity
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Distance">
+            <summary>
+            Distance
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Usage">
+            <summary>
+            Monitoring data
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.Status">
+            <summary>
+            Process status
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.ProcessStatus">
+            <summary>
+            Process status
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.CalibrationProcessor">
+            <summary>
+            The CalibrationProcessor class used to calibrate the kiosk cameras.
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.CalibrationProcessor.#ctor(System.String)">
+            <summary>
+            CalibrationProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.CalibrationProcessor.GetCalibration">
+            <summary>
+            This method gets the calibration settings per camera
+            Calibration is used to determine the correct psychical camera with each camera index
+            So after calibration each camera has an index, usb code and color (for kiosk leds)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:GrpcLibrary.CalibrationProcessor.SetCalibration(System.Collections.Generic.List{GrpcLibrary.Dto.CalibrationData})">
+            <summary>
+            This method sends a list of CalibrateType data to the server. For example:
+            A structure containing the camera serial number, the linux camera index and the calibrated index.
+            Per camera.
+            </summary>
+            <param name="calibrationData"></param>
+            <returns>
+            a CalibratedResponse object containing the success and message of the request
+            </returns>
+        </member>
+        <member name="T:GrpcLibrary.CameraProcessor">
+            <summary>
+            The CameraProcessor class used to set camera properties.
+            Not all properties will be available depending on camera brand / model.
+            When a property is set then that property is set for all camera's in the column.
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.#ctor(System.String)">
+            <summary>
+            CameraProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.LoadSettings">
+            <summary>
+            This method loads the camera settings from the server.
+            </summary>
+            <returns>
+            The Camera settings set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetBrightness(System.Int32)">
+            <summary>
+            This method sets the brighness of the column cameras 
+            </summary>
+            <param name="brightness">brightness value. Value range: -64 ... 64. </param>
+            <returns>Brightness integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetContrast(System.Int32)">
+            <summary>
+            This method sets the contrast of the column cameras
+            </summary>
+            <param name="contrast"></param>
+            <returns>Contrast integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetSaturation(System.Int32)">
+            <summary>
+            This method sets the saturation of the column cameras
+            </summary>
+            <param name="saturation"></param>
+            <returns>Saturation integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetHue(System.Int32)">
+            <summary>
+            This method sets the hue of the column cameras
+            </summary>
+            <param name="hue"></param>
+            <returns>Hue integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetWhiteBalanceTemperatureAuto(System.Boolean)">
+            <summary>
+            This method sets the white balance temperature auto of the column cameras
+            </summary>
+            <param name="whiteBalanceTemperatureAuto"></param>
+            <returns>White balance temperature auto boolean value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetGamma(System.Int32)">
+            <summary>
+            This method sets the gamma of the column cameras
+            </summary>
+            <param name="gamma"></param>
+            <returns>Gamma integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetGain(System.Int32)">
+            <summary>
+            This method sets the gain of the column cameras
+            </summary>
+            <param name="gain"></param>
+            <returns>Gain integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetWhiteBalanceTemperature(System.Int32)">
+            <summary>
+            This method sets the white balance temperature of the column cameras
+            </summary>
+            <param name="whiteBalanceTemperature"></param>
+            <returns>White balance temperature integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetSharpness(System.Int32)">
+            <summary>
+            This method sets the sharpness of the column cameras
+            </summary>
+            <param name="sharpness"></param>
+            <returns>Sharpness integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetBacklightCompensation(System.Int32)">
+            <summary>
+            This method sets the backlight compensation of the column cameras
+            </summary>
+            <param name="backLightCompensation"></param>
+            <returns>Backlight compensation integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetExposureAutoPriority(System.Boolean)">
+            <summary>
+            This method sets the exposure auto priority of the column cameras
+            </summary>
+            <param name="exposureAutoPriority"></param>
+            <returns>Exposure auto priority bool value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetPanAbsolute(System.Int32)">
+            <summary>
+            This method sets the pan absolute of the column cameras
+            </summary>
+            <param name="panAbsolute"></param>
+            <returns>Pan absolute integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetTiltAbsolute(System.Int32)">
+            <summary>
+            This method sets the tilt absolute of the column cameras
+            </summary>
+            <param name="tiltAbsolute"></param>
+            <returns>Tilt absolute integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetFocusAbsolute(System.Int32)">
+            <summary>
+            This method sets the manual focus position (used when autofocus is off).
+            </summary>
+            <param name="focusAbsolute">The focus position (camera-dependent range, probed at runtime).</param>
+            <returns>The focus value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetZoomAbsolute(System.Int32)">
+            <summary>
+            This method sets the zoom absolute of the column cameras
+            </summary>
+            <param name="zoomAbsolute"></param>
+            <returns>Zoom absolute integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetExposureAbsolute(System.Int32)">
+            <summary>
+            This method sets the exposure absolute of the column cameras
+            </summary>
+            <param name="exposureAbsolute"></param>
+            <returns>Exposure absolute integer value set by server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.CameraProcessor.SetAutofocus(System.Boolean)">
+            <summary>
+            This method switches autofocus on or off for the column cameras.
+            Off (false) gives a fixed focus for consistent ICAO photos (no focus hunting).
+            </summary>
+            <param name="autofocus">true = autofocus on, false = off (fixed focus).</param>
+            <returns>Autofocus bool value set by server.</returns>
+        </member>
+        <member name="T:GrpcLibrary.KioskProcessor">
+            <summary>
+            The KioskProcessor class used to start the automatic or manual flow on the server.
+            The automatic flow first determines the best kiosk camera based on face recognition.
+            It can do quality checks e.g. eyes open, distance etc.
+            The automatic flow returns 1 photo.
+            The manual flow returns a photo per camera, does not do facial recognition, croppimg or any other quality checks.
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.#ctor(System.String)">
+            <summary>
+            KioskProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess">
+            <summary>
+            This method starts the automatic flow on the server. 
+            </summary>
+            <returns>
+            Before the photo is returned from the server a number of statusses are return.
+            E.g. selected camera, face distance, cropping on/off etc.
+            Finally the photo is returned in several chucks of data (stream).
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.StartManualProcess">
+            <summary>
+            This method starts the manual flow on the server.
+            </summary>
+            <returns>
+            For each camera a photo is returned.
+            The flow does not use facial recognition, cropping etc.
+            Each photo is returned in several chucks of data (stream).
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetFocusedCameraIndex(System.Int32)">
+            <summary>
+            This method requests the focused Camera index (where the user is best positioned in front of).
+            </summary>
+            <param name="timeout">The timeout in milliseconds</param>
+            <returns>
+            The focused camera index and status. Status can be Ok, Error or Timeout.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageFromCameraIndex(System.Int32,System.Int32)">
+            <summary>
+            This method requests a high resolution image from a specific camera index.
+            </summary>
+            <param name="index">The camera index</param>
+            <param name="timeout">The timeout in milliseconds</param>
+            <returns>
+            The high resolution image data. The ImageData contains the index, width, height, format and the image data in bytes.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex(System.Int32,System.Int32,System.Boolean,System.Boolean)">
+            <summary>
+            This method requests a high resolution image from a specific camera index with ICAO checks.
+            </summary>
+            <param name="index">The camera index</param>
+            <param name="timeout">The timeout in milliseconds</param>
+            <param name="eyesCheck">Eyes check on/off</param>
+            <param name="lipsCheck">Lips check on/off</param>
+            <returns>
+            The high resolution image data. The ImageData contains the index, width, height, format and the image data in bytes.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetKioskInfo">
+            <summary>
+            This method requests the kiosk information.
+            </summary>
+            <returns>
+            The kiosk information, containing the server IP address, port, number of cameras and camera data.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.FaceRecognition(GrpcLibrary.Dto.FaceRecognitionRequest)">
+            <summary>
+            Compares two photos using face recognition and returns the result.
+            </summary>
+            <returns>
+            The result of the comparison, including the verification status, distance, threshold, model, similarity metric, 
+            processing time, and overall status (e.g., success or error).
+            </returns>
+            <remarks>
+            <b>image1</b><br />The first photo to compare, represented as a byte array.<br />
+            <b>image2</b><br />The second photo to compare, represented as a byte array.<br />
+            <b>threshold</b><br />The threshold value used to determine whether the photos represent the same person or different individuals. 
+            If not set, default values based on the model and distance metric will be applied.<br />
+            <b>model</b><br />The face recognition model to use. Options: VGG-Face, ArcFace, Dlib (default is Dlib).<br />
+            <b>similarity_metric</b><br />The similarity metric used for comparison. Options: 'cosine', 'euclidean', 'euclidean_l2' (default is cosine).<br /><br />
+            Default threshold values for the supported models (also differ per metric):<br />
+            <b>VGG-Face:</b><br />
+            Threshold values:<br />
+            - cosine: 0.68<br />
+            - euclidean: 1.17<br />
+            - euclidean_l2: 1.17<br /><br />
+            <b>ArcFace:</b><br />
+            Threshold values:<br />
+            - cosine: 0.68<br />
+            - euclidean: 4.15<br />
+            - euclidean_l2: 1.13<br /><br />
+            <b>Dlib:</b><br />
+            Threshold values:<br />
+            - cosine: 0.07<br />
+            - euclidean: 0.60<br />
+            - euclidean_l2: 0.40<br />
+            </remarks>
+        </member>
+        <member name="T:GrpcLibrary.LightProcessor">
+            <summary>
+            The LightProcessor class used to perform operations on the LEDs
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.#ctor(System.String)">
+            <summary>
+            LightProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.SetAllLights(System.Boolean)">
+            <summary>
+            This method sets all column lights
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.SetLightAtCameraIndex(System.Int32)">
+            <summary>
+            This method sets a light at given camera index
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.SetLightOffAtCameraIndex(System.Int32)">
+            <summary>
+            This method switch a light off at given camera index
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:GrpcLibrary.MonitoringProcessor">
+            <summary>
+            The MonitoringProcessor class used to monitor the health of the kiosk server.
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.MonitoringProcessor.#ctor(System.String)">
+            <summary>
+            MonitoringProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.MonitoringProcessor.GetKioskStatus">
+            <summary>
+            This method retrieves health statusses from the server as a stream
+            </summary>
+            <returns>
+            A typle containing the status deswcription and a status
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.MonitoringProcessor.OdroidUsage">
+            <summary>
+            This method returns information about the server's usage of memory, network and cpu consumption
+            </summary>
+            <returns>
+            The usage numbers for cpu etc.
+            </returns>
+        </member>
+        <member name="T:GrpcLibrary.ServerProcessManager">
+             <summary>
+             Launches and stops the local face_snap server executable, for co-located
+             deployments where the client owns the server's lifecycle.
+            
+             It intentionally does nothing when:
+              - the configured server address is remote (the server runs on another machine),
+              - the server is already listening (development, or a previous instance),
+              - the executable cannot be found (server started/managed some other way).
+             Only a process this manager started is stopped.
+             </summary>
+        </member>
+        <member name="M:GrpcLibrary.ServerProcessManager.#ctor(System.String,System.String)">
+            <param name="serverAddress">The gRPC address the client connects to, e.g. "http://localhost:50051".</param>
+            <param name="executablePath">Full path to face_snap_server.exe.</param>
+        </member>
+        <member name="M:GrpcLibrary.ServerProcessManager.EnsureRunningAsync(System.TimeSpan)">
+            <summary>
+            Ensure the local server is running. Returns true once the gRPC port is reachable
+            (or immediately, for a remote/already-running server).
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.ServerProcessManager.Stop">
+            <summary>Stop the server, but only if this manager launched it.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SettingsProcessor">
+            <summary>
+            The SettingsProcessor class used to set kiosk properties.
+            E.g use quality settings, cropping, check distance etc.
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.#ctor(System.String)">
+            <summary>
+            SettingsProcessor constructor
+            </summary>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SaveSettings(System.Int32,System.Int32,System.Boolean,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Boolean,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            This method saves the settings to the server.
+            </summary>
+            <param name="width"></param>
+            <param name="height"></param>
+            <param name="crop"></param>
+            <param name="cropWidth"></param>
+            <param name="cropHeight"></param>
+            <param name="eyesCheck"></param>
+            <param name="lipsCheck"></param>
+            <param name="lighting"></param>
+            <param name="intensityRed"></param>
+            <param name="intensityGreen"></param>
+            <param name="intensityBlue"></param>
+            <param name="distanceMin"></param>
+            <param name="distanceMax"></param>
+            <param name="blurBackground"></param>
+            <param name="eyeGlassesCheck"></param>
+            <param name="redEyeDetectionCheck"></param>
+            <returns>
+            The settings set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.LoadSettings">
+            <summary>
+            This method loads the kiosk settings from the server.
+            </summary>
+            <returns>
+            The settings set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetResolution(System.Int32,System.Int32)">
+            <summary>
+            This method sets the camera resolution for all kiosk cameras.
+            </summary>
+            <param name="width"></param>
+            <param name="height"></param>
+            <returns>
+            The camera resolution set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetCropResolution(System.Int32,System.Int32)">
+            <summary>
+            This method sets photo cropping resolution.
+            </summary>
+            <param name="width"></param>
+            <param name="height"></param>
+            <returns>The photo cropping resolution set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetCrop(System.Boolean)">
+            <summary>
+            This method sets photo cropping on or off.
+            </summary>
+            <param name="crop"></param>
+            <returns>
+            The cropping value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetEyesCheck(System.Boolean)">
+            <summary>
+            This method sets the eye check on or off.
+            </summary>
+            <param name="eyesCheck"></param>
+            <returns>
+            The eye check value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetLipsCheck(System.Boolean)">
+            <summary>
+            This method sets the lips check on or off.
+            </summary>
+            <param name="lipsCheck"></param>
+            <returns>
+            The lips check value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetLighting(System.Boolean)">
+            <summary>
+            This method sets the led lighting on or off.
+            </summary>
+            <param name="lighting"></param>
+            <returns>
+            The lighting value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetBlurBackground(System.Boolean)">
+            <summary>
+            This method sets the blur background on or off.
+            </summary>
+            <param name="blurbackground"></param>
+            <returns>
+            The blur background value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetEyeGlassesCheck(System.Boolean)">
+            <summary>
+            This method sets the eye glasses check on or off.
+            </summary>
+            <param name="eyeGlassesCheck"></param>
+            <returns>
+            The eye glasses value (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetExpressionCheck(System.Boolean)">
+            <summary>
+            This method turns the neutral-expression ICAO check on or off (informational).
+            </summary>
+            <param name="expressionCheck">true = on, false = off.</param>
+            <returns>The expression check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetPhotoFormat(System.String)">
+            <summary>
+            This method selects the photo format ("icao_35x45"/"us_2x2"/"ca_50x70"), which
+            decides the aspect ratio and the face framing of the final image.
+            </summary>
+            <param name="photoFormat">The format key.</param>
+            <returns>The accepted format key and the crop height derived by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetLightingEvennessCheck(System.Boolean)">
+            <summary>
+            This method turns the lighting-evenness ICAO check on or off (informational).
+            </summary>
+            <param name="lightingEvennessCheck">true = on, false = off.</param>
+            <returns>The lighting-evenness check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetGazeCheck(System.Boolean)">
+            <summary>
+            This method turns the gaze-direction ICAO check on or off (informational).
+            </summary>
+            <param name="gazeCheck">true = on, false = off.</param>
+            <returns>The gaze check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetHeadSizeCheck(System.Boolean)">
+            <summary>
+            This method turns the head-size/position ICAO check on or off (informational).
+            </summary>
+            <param name="headSizeCheck">true = on, false = off.</param>
+            <returns>The head-size check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetHeadPoseCheck(System.Boolean)">
+            <summary>
+            This method turns the frontal head-pose ICAO check on or off (informational).
+            </summary>
+            <param name="headPoseCheck">true = on, false = off.</param>
+            <returns>The head-pose check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetSharpnessCheck(System.Boolean)">
+            <summary>
+            This method turns the sharpness/focus ICAO check on or off (informational).
+            </summary>
+            <param name="sharpnessCheck">true = on, false = off.</param>
+            <returns>The sharpness check value set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetRedEyeDetectionCheck(System.Boolean)">
+            <summary>
+            This method sets the red eye detection check on or off.
+            </summary>
+            <param name="redEyeDetectionCheck"></param>
+            <returns>
+            The red eye detection check (on/off) set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetIntensityRed(System.Int32)">
+            <summary>
+            This method sets the kiosks leds red led intensity.
+            </summary>
+            <param name="intensity"></param>
+            <returns>
+            The red led intensity set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetIntensityGreen(System.Int32)">
+            <summary>
+            This method sets the kiosks leds green led intensity.
+            </summary>
+            <param name="intensity"></param>
+            <returns>
+            The green led intensity set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetIntensityBlue(System.Int32)">
+            <summary>
+            This method sets the kiosks leds blue led intensity.
+            </summary>
+            <param name="intensity"></param>
+            <returns>
+            The blue led intensity set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetDistanceMin(System.Int32)">
+            <summary>
+            This method sets the minimum distance from the kiosk camera in cm.
+            </summary>
+            <param name="distanceMin"></param>
+            <returns>
+            The minimum distance set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetDistanceMax(System.Int32)">
+            <summary>
+            This method sets the maximum distance from the kiosk camera in cm.
+            </summary>
+            <param name="distanceMax"></param>
+            <returns>
+            The maximum distance set by the server.
+            </returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetCameraOrderingMode(System.Boolean)">
+            <summary>
+            This method sets how the kiosk decides each camera's position.
+            true = automatic (positions derived from the physical USB port via the standard-hub
+            map, no calibration needed); false = manual calibration.
+            </summary>
+            <param name="automatic">true = automatic ordering, false = manual calibration.</param>
+            <returns>The camera ordering mode set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetMsmfSelection(System.Boolean)">
+            <summary>
+            This method sets whether the best-camera selection scan uses the faster Media
+            Foundation backend (Windows). The photo is always captured through DirectShow.
+            </summary>
+            <param name="enabled">true = use MSMF for selection, false = use DirectShow.</param>
+            <returns>The MSMF selection setting set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetBackgroundMethod(System.String)">
+            <summary>
+            This method sets how the photo background is erased and filled with the
+            configured colour: "none" (keep original), "mediapipe" (fast), "rembg"
+            (best quality) or "modnet" (portrait matting).
+            </summary>
+            <param name="method">One of "none", "mediapipe", "rembg", "modnet".</param>
+            <returns>The background method set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetBackgroundColor(System.String)">
+            <summary>
+            This method sets the background fill colour (RRGGBB hex) used when background
+            replacement is on.
+            </summary>
+            <param name="color">The colour as an RRGGBB hex string, e.g. "FFFFFF".</param>
+            <returns>The background colour set by the server.</returns>
+        </member>
+        <member name="T:GrpcLibrary.CameraReflection">
+            <summary>Holder for reflection information generated from Protos/camera.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.CameraReflection.Descriptor">
+            <summary>File descriptor for Protos/camera.proto</summary>
+        </member>
+        <member name="T:GrpcLibrary.LoadCameraSettingsResponse">
+            <summary>
+            The response message containing the camera settings.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.BrightnessFieldNumber">
+            <summary>Field number for the "brightness" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.ContrastFieldNumber">
+            <summary>Field number for the "contrast" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.SaturationFieldNumber">
+            <summary>Field number for the "saturation" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.HueFieldNumber">
+            <summary>Field number for the "hue" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.WhiteBalanceTemperatureAutoFieldNumber">
+            <summary>Field number for the "white_balance_temperature_auto" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.GammaFieldNumber">
+            <summary>Field number for the "gamma" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.GainFieldNumber">
+            <summary>Field number for the "gain" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.WhiteBalanceTemperatureFieldNumber">
+            <summary>Field number for the "white_balance_temperature" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.SharpnessFieldNumber">
+            <summary>Field number for the "sharpness" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.BacklightCompensationFieldNumber">
+            <summary>Field number for the "backlight_compensation" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.ExposureAutoPriorityFieldNumber">
+            <summary>Field number for the "exposure_auto_priority" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.PanAbsoluteFieldNumber">
+            <summary>Field number for the "pan_absolute" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.TiltAbsoluteFieldNumber">
+            <summary>Field number for the "tilt_absolute" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.ZoomAbsoluteFieldNumber">
+            <summary>Field number for the "zoom_absolute" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.ExposureAbsoluteFieldNumber">
+            <summary>Field number for the "exposure_absolute" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.AutofocusFieldNumber">
+            <summary>Field number for the "autofocus" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.UnsupportedPropertiesFieldNumber">
+            <summary>Field number for the "unsupported_properties" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadCameraSettingsResponse.UnsupportedProperties">
+            <summary>
+            Setting names the camera/back-end does not support (read back as unsupported),
+            so the client can hide the controls that would silently do nothing.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.PropertyRangesFieldNumber">
+            <summary>Field number for the "property_ranges" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadCameraSettingsResponse.PropertyRanges">
+            <summary>
+            Per-property capability + limits probed from the actual camera at runtime, so the
+            client can size each slider (min/max/step) to what this camera really accepts
+            instead of hard-coded ranges. Properties not listed here fall back to client
+            defaults. A range with supported=false means the camera has no such control.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadCameraSettingsResponse.FocusAbsoluteFieldNumber">
+            <summary>Field number for the "focus_absolute" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadCameraSettingsResponse.FocusAbsolute">
+            <summary>
+            Manual focus position, applied only when autofocus is off (fixed focus gives
+            repeatable sharpness at the kiosk's fixed subject distance).
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.CameraPropertyRange">
+            <summary>
+            Capability and limits of a single camera property, probed at runtime.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.NameFieldNumber">
+            <summary>Field number for the "name" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CameraPropertyRange.Name">
+            <summary>
+            setting name, e.g. "brightness"
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.MinFieldNumber">
+            <summary>Field number for the "min" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.MaxFieldNumber">
+            <summary>Field number for the "max" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.StepFieldNumber">
+            <summary>Field number for the "step" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.DefaultValueFieldNumber">
+            <summary>Field number for the "default_value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraPropertyRange.SupportedFieldNumber">
+            <summary>Field number for the "supported" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CameraPropertyRange.Supported">
+            <summary>
+            false = the camera does not implement this property
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.BrightnessRequest">
+            <summary>
+            The request message containing the brightness.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BrightnessRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BrightnessResponse">
+            <summary>
+            The response message containing the brightness.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BrightnessResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ContrastRequest">
+            <summary>
+            The request message containing the contrast.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ContrastRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ContrastResponse">
+            <summary>
+            The response message containing the contrast.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ContrastResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SaturationRequest">
+            <summary>
+            The request message containing the saturation.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.SaturationRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SaturationResponse">
+            <summary>
+            The response message containing the saturation.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.SaturationResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.HueRequest">
+            <summary>
+            The request message containing the hue.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.HueRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.HueResponse">
+            <summary>
+            The response message containing the hue.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.HueResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.WhiteBalanceTemperatureAutoRequest">
+            <summary>
+            The request message containing the white balance temperature auto.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.WhiteBalanceTemperatureAutoRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.WhiteBalanceTemperatureAutoResponse">
+            <summary>
+            The response message containing the white balance temperature auto.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.WhiteBalanceTemperatureAutoResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.GammaRequest">
+            <summary>
+            The request message containing the gamma.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.GammaRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.GammaResponse">
+            <summary>
+            The response message containing the gamma.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.GammaResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.GainRequest">
+            <summary>
+            The request message containing the gain.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.GainRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.GainResponse">
+            <summary>
+            The response message containing the gain.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.GainResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.WhiteBalanceTemperatureRequest">
+            <summary>
+            The request message containing the white balance temperature.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.WhiteBalanceTemperatureRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.WhiteBalanceTemperatureResponse">
+            <summary>
+            The response message containing the white balance temperature.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.WhiteBalanceTemperatureResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SharpnessRequest">
+            <summary>
+            The request message containing the sharpness.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.SharpnessRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SharpnessResponse">
+            <summary>
+            The response message containing the sharpness.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.SharpnessResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BacklightCompensationRequest">
+            <summary>
+            The request message containing the backlight compensation.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightCompensationRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BacklightCompensationResponse">
+            <summary>
+            The response message containing the backlight compensation.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightCompensationResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ExposureAutoPriorityRequest">
+            <summary>
+            The request message containing the exposure auto priority.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ExposureAutoPriorityRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ExposureAutoPriorityResponse">
+            <summary>
+            The response message containing the exposure auto priority.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ExposureAutoPriorityResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.PanAbsoluteRequest">
+            <summary>
+            The request message containing the pan absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PanAbsoluteRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.PanAbsoluteResponse">
+            <summary>
+            The response message containing the pan absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PanAbsoluteResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.TiltAbsoluteRequest">
+            <summary>
+            The request message containing the tilt absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.TiltAbsoluteRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.TiltAbsoluteResponse">
+            <summary>
+            The response message containing the tilt absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.TiltAbsoluteResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ZoomAbsoluteRequest">
+            <summary>
+            The request message containing the zoom absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ZoomAbsoluteRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ZoomAbsoluteResponse">
+            <summary>
+            The response message containing the zoom absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ZoomAbsoluteResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ExposureAbsoluteRequest">
+            <summary>
+            The request message containing the zoom absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ExposureAbsoluteRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ExposureAbsoluteResponse">
+            <summary>
+            The response message containing the zoom absolute.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ExposureAbsoluteResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.AutofocusRequest">
+            <summary>
+            The request message containing autofocus on/off.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.AutofocusRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.AutofocusResponse">
+            <summary>
+            The response message containing autofocus on/off.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.AutofocusResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.FocusAbsoluteRequest">
+            <summary>
+            The request message containing the manual focus position.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.FocusAbsoluteRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.FocusAbsoluteResponse">
+            <summary>
+            The response message containing the manual focus position.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.FocusAbsoluteResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Camera">
+            <summary>
+            The camera service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Camera.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Camera.CameraClient">
+            <summary>Client for Camera</summary>
+        </member>
+        <member name="M:GrpcLibrary.Camera.CameraClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Camera</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Camera.CameraClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Camera that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Camera.CameraClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Camera.CameraClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Camera.CameraClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:GrpcLibrary.KioskReflection">
+            <summary>Holder for reflection information generated from Protos/kiosk.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.KioskReflection.Descriptor">
+            <summary>File descriptor for Protos/kiosk.proto</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionRequest.Image1FieldNumber">
+            <summary>Field number for the "image1" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionRequest.Image2FieldNumber">
+            <summary>Field number for the "image2" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionRequest.ThresholdFieldNumber">
+            <summary>Field number for the "threshold" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionRequest.ModelFieldNumber">
+            <summary>Field number for the "model" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionRequest.SimilarityMetricFieldNumber">
+            <summary>Field number for the "similarity_metric" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.VerifiedFieldNumber">
+            <summary>Field number for the "verified" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.DistanceFieldNumber">
+            <summary>Field number for the "distance" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.ThresholdFieldNumber">
+            <summary>Field number for the "threshold" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.ModelFieldNumber">
+            <summary>Field number for the "model" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.SimilarityMetricFieldNumber">
+            <summary>Field number for the "similarity_metric" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.TimeFieldNumber">
+            <summary>Field number for the "time" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FaceRecognitionResponse.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskInfoResponse.KioskInfoFieldNumber">
+            <summary>Field number for the "kioskInfo" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskInfoResponse.CameraInfoFieldNumber">
+            <summary>Field number for the "cameraInfo" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskInfo.ServerIpAddressFieldNumber">
+            <summary>Field number for the "serverIpAddress" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskInfo.PortFieldNumber">
+            <summary>Field number for the "port" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskInfo.NumberOfCamerasFieldNumber">
+            <summary>Field number for the "numberOfCameras" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraInfo.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessStepStatus.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessStepStatus.DescriptionFieldNumber">
+            <summary>Field number for the "description" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessStepStatus.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessImageData.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessImageData.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessImageData.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessImageData.FormatFieldNumber">
+            <summary>Field number for the "format" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessImageData.ChunkDataFieldNumber">
+            <summary>Field number for the "chunk_data" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessAutomaticResponse.ProcessStatusFieldNumber">
+            <summary>Field number for the "processStatus" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessAutomaticResponse.ImageDataFieldNumber">
+            <summary>Field number for the "imageData" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ProcessAutomaticResponse.ResultOneofCase">
+            <summary>Enum of possible cases for the "result" oneof.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessManualResponse.ProcessStatusFieldNumber">
+            <summary>Field number for the "processStatus" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ProcessManualResponse.ImageDataFieldNumber">
+            <summary>Field number for the "imageData" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ProcessManualResponse.ResultOneofCase">
+            <summary>Enum of possible cases for the "result" oneof.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FocusedCameraRequest.TimeoutInMsFieldNumber">
+            <summary>Field number for the "timeoutInMs" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FocusedCameraResponse.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.FocusedCameraResponse.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResImageRequest.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResImageRequest.TimeoutInMsFieldNumber">
+            <summary>Field number for the "timeoutInMs" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResImageResponse.ProcessImageDataFieldNumber">
+            <summary>Field number for the "processImageData" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResImageResponse.StatusTypeFieldNumber">
+            <summary>Field number for the "statusType" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResIcaoImageRequest.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResIcaoImageRequest.TimeoutInMsFieldNumber">
+            <summary>Field number for the "timeoutInMs" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResIcaoImageRequest.EyesCheckFieldNumber">
+            <summary>Field number for the "eyesCheck" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResIcaoImageRequest.LipsCheckFieldNumber">
+            <summary>Field number for the "lipsCheck" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Kiosk">
+            <summary>
+            The kiosk service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Kiosk.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Kiosk.KioskClient">
+            <summary>Client for Kiosk</summary>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Kiosk</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Kiosk that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.StartAutomaticProcess(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Start automatic kiosk process
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.StartAutomaticProcess(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Start automatic kiosk process
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.StartManualProcess(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Start manual kiosk process
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.StartManualProcess(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Start manual kiosk process
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetFocusedCameraIndex(GrpcLibrary.FocusedCameraRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get focused camera index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetFocusedCameraIndex(GrpcLibrary.FocusedCameraRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Get focused camera index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetFocusedCameraIndexAsync(GrpcLibrary.FocusedCameraRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get focused camera index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetFocusedCameraIndexAsync(GrpcLibrary.FocusedCameraRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Get focused camera index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetHighResolutionImageFromCameraIndex(GrpcLibrary.HighResImageRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Request a high resolution image from the camera at the given index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetHighResolutionImageFromCameraIndex(GrpcLibrary.HighResImageRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Request a high resolution image from the camera at the given index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetHighResolutionImageWithIcaoChecksFromCameraIndex(GrpcLibrary.HighResIcaoImageRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Request a high resolution image with icao checks at the given index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetHighResolutionImageWithIcaoChecksFromCameraIndex(GrpcLibrary.HighResIcaoImageRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Request a high resolution image with icao checks at the given index
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetKioskInfo(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get kiosk info
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetKioskInfo(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get kiosk info
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetKioskInfoAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get kiosk info
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.GetKioskInfoAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get kiosk info
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.FaceRecognition(GrpcLibrary.FaceRecognitionRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Face recognition
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.FaceRecognition(GrpcLibrary.FaceRecognitionRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Face recognition
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.FaceRecognitionAsync(GrpcLibrary.FaceRecognitionRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Face recognition
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.FaceRecognitionAsync(GrpcLibrary.FaceRecognitionRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Face recognition
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Kiosk.KioskClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:GrpcLibrary.MonitoringReflection">
+            <summary>Holder for reflection information generated from Protos/monitoring.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.MonitoringReflection.Descriptor">
+            <summary>File descriptor for Protos/monitoring.proto</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskStatusResponse.DescriptionFieldNumber">
+            <summary>Field number for the "description" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.KioskStatusResponse.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.UsageResponse.UsageTypeFieldNumber">
+            <summary>Field number for the "usage_type" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.UsageResponse.UsageFieldNumber">
+            <summary>Field number for the "usage" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Monitoring">
+            <summary>
+            The Usage service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Monitoring.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Monitoring.MonitoringClient">
+            <summary>Client for Monitoring</summary>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Monitoring</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Monitoring that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.GetKioskStatus(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get kiosk status
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.GetKioskStatus(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get kiosk status
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.OdroidUsage(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get system usage data fro server
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.OdroidUsage(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get system usage data fro server
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Monitoring.MonitoringClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SettingsReflection">
+            <summary>Holder for reflection information generated from Protos/settings.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.SettingsReflection.Descriptor">
+            <summary>File descriptor for Protos/settings.proto</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraResolution.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraResolution.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.CropFieldNumber">
+            <summary>Field number for the "crop" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.CropWidthFieldNumber">
+            <summary>Field number for the "crop_width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.CropHeightFieldNumber">
+            <summary>Field number for the "crop_height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.EyesCheckFieldNumber">
+            <summary>Field number for the "eyes_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.LipsCheckFieldNumber">
+            <summary>Field number for the "lips_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.LightingFieldNumber">
+            <summary>Field number for the "lighting" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.IntensityRedFieldNumber">
+            <summary>Field number for the "intensity_red" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.IntensityGreenFieldNumber">
+            <summary>Field number for the "intensity_green" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.IntensityBlueFieldNumber">
+            <summary>Field number for the "intensity_blue" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.DistanceMinFieldNumber">
+            <summary>Field number for the "distance_min" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.DistanceMaxFieldNumber">
+            <summary>Field number for the "distance_max" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsRequest.BlurBackgroundFieldNumber">
+            <summary>Field number for the "blur_background" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.CropFieldNumber">
+            <summary>Field number for the "crop" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.CropWidthFieldNumber">
+            <summary>Field number for the "crop_width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.CropHeightFieldNumber">
+            <summary>Field number for the "crop_height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.EyesCheckFieldNumber">
+            <summary>Field number for the "eyes_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.LipsCheckFieldNumber">
+            <summary>Field number for the "lips_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.LightingFieldNumber">
+            <summary>Field number for the "lighting" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.IntensityRedFieldNumber">
+            <summary>Field number for the "intensity_red" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.IntensityGreenFieldNumber">
+            <summary>Field number for the "intensity_green" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.IntensityBlueFieldNumber">
+            <summary>Field number for the "intensity_blue" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.DistanceMinFieldNumber">
+            <summary>Field number for the "distance_min" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.DistanceMaxFieldNumber">
+            <summary>Field number for the "distance_max" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SaveSettingsResponse.BlurBackgroundFieldNumber">
+            <summary>Field number for the "blur_background" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CropFieldNumber">
+            <summary>Field number for the "crop" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CropWidthFieldNumber">
+            <summary>Field number for the "crop_width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CropHeightFieldNumber">
+            <summary>Field number for the "crop_height" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.EyesCheckFieldNumber">
+            <summary>Field number for the "eyes_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LipsCheckFieldNumber">
+            <summary>Field number for the "lips_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LightingFieldNumber">
+            <summary>Field number for the "lighting" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.IntensityRedFieldNumber">
+            <summary>Field number for the "intensity_red" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.IntensityGreenFieldNumber">
+            <summary>Field number for the "intensity_green" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.IntensityBlueFieldNumber">
+            <summary>Field number for the "intensity_blue" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.DistanceMinFieldNumber">
+            <summary>Field number for the "distance_min" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.DistanceMaxFieldNumber">
+            <summary>Field number for the "distance_max" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.BlurBackgroundFieldNumber">
+            <summary>Field number for the "blur_background" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CameraResolutionsFieldNumber">
+            <summary>Field number for the "camera_resolutions" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CameraOrderingAutomaticFieldNumber">
+            <summary>Field number for the "camera_ordering_automatic" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.CameraOrderingAutomatic">
+            <summary>
+            true = automatic camera ordering (positions from USB port via the standard-hub map);
+            false = manual calibration.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.MsmfSelectionFieldNumber">
+            <summary>Field number for the "msmf_selection" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.MsmfSelection">
+            <summary>
+            true = use the faster Media Foundation backend for the selection scan (Windows).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.BackgroundColorFieldNumber">
+            <summary>Field number for the "background_color" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.BackgroundMethodFieldNumber">
+            <summary>Field number for the "background_method" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.EyeGlassesCheckFieldNumber">
+            <summary>Field number for the "eye_glasses_check" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.EyeGlassesCheck">
+            <summary>
+            Extra ICAO checks on/off (informational).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.HeadPoseCheckFieldNumber">
+            <summary>Field number for the "head_pose_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.SharpnessCheckFieldNumber">
+            <summary>Field number for the "sharpness_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.RedEyeDetectionCheckFieldNumber">
+            <summary>Field number for the "red_eye_detection_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.HeadSizeCheckFieldNumber">
+            <summary>Field number for the "head_size_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.ExpressionCheckFieldNumber">
+            <summary>Field number for the "expression_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.GazeCheckFieldNumber">
+            <summary>Field number for the "gaze_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LightingEvennessCheckFieldNumber">
+            <summary>Field number for the "lighting_evenness_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.PhotoFormatFieldNumber">
+            <summary>Field number for the "photo_format" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.PhotoFormat">
+            <summary>
+            Photo format key ("icao_35x45"/"us_2x2"/"ca_50x70"): decides the aspect ratio and
+            the face framing/head-size bands.
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.ResolutionRequest">
+            <summary>
+            The request message containing the resolution value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ResolutionRequest.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ResolutionRequest.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ResolutionResponse">
+            <summary>
+            The response message containing the resolution value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ResolutionResponse.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ResolutionResponse.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CropResolutionRequest">
+            <summary>
+            The request message containing the crop resolution value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CropResolutionRequest.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CropResolutionRequest.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CropResolutionResponse">
+            <summary>
+            The response message containing the crop resolution value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CropResolutionResponse.WidthFieldNumber">
+            <summary>Field number for the "width" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CropResolutionResponse.HeightFieldNumber">
+            <summary>Field number for the "height" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CropRequest">
+            <summary>
+            The request message containing the crop value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CropRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CropResponse">
+            <summary>
+            The response message containing the crop value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CropResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.EyesCheckRequest">
+            <summary>
+            The request message containing the eyes check value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.EyesCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.EyesCheckResponse">
+            <summary>
+            The response message containing the eyes check value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.EyesCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LipsCheckRequest">
+            <summary>
+            The request message containing the lips check value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LipsCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LipsCheckResponse">
+            <summary>
+            The response message containing the lips check value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LipsCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LightingRequest">
+            <summary>
+            The request message containing the lighting value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LightingRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LightingResponse">
+            <summary>
+            The response message containing the lighting value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LightingResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.IntensityRequest">
+            <summary>
+            The request message containing the intensity value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.IntensityRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.IntensityResponse">
+            <summary>
+            The response message containing the intensity value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.IntensityResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.DistanceMinRequest">
+            <summary>
+            The request message containing the distance min value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.DistanceMinRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.DistanceMinResponse">
+            <summary>
+            The response message containing the distance min value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.DistanceMinResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.DistanceMaxRequest">
+            <summary>
+            The request message containing the distance max value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.DistanceMaxRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.DistanceMaxResponse">
+            <summary>
+            The response message containing the distance max value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.DistanceMaxResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BlurBackgroundRequest">
+            <summary>
+            The request message containing the blur bg value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BlurBackgroundRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CameraOrderingModeRequest">
+            <summary>
+            The request message containing the camera ordering mode.
+            true = automatic (derive positions from USB ports); false = manual calibration.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraOrderingModeRequest.AutomaticFieldNumber">
+            <summary>Field number for the "automatic" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CameraOrderingModeResponse">
+            <summary>
+            The response message containing the camera ordering mode.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraOrderingModeResponse.AutomaticFieldNumber">
+            <summary>Field number for the "automatic" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.MsmfSelectionRequest">
+            <summary>
+            The request message containing whether MSMF is used for the selection scan.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.MsmfSelectionRequest.EnabledFieldNumber">
+            <summary>Field number for the "enabled" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.MsmfSelectionResponse">
+            <summary>
+            The response message containing whether MSMF is used for the selection scan.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.MsmfSelectionResponse.EnabledFieldNumber">
+            <summary>Field number for the "enabled" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BackgroundMethodRequest">
+            <summary>
+            The request/response for the background erasing method
+            ("none"/"mediapipe"/"rembg"/"modnet").
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundMethodRequest.MethodFieldNumber">
+            <summary>Field number for the "method" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundMethodResponse.MethodFieldNumber">
+            <summary>Field number for the "method" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BackgroundColorRequest">
+            <summary>
+            The request/response for the background fill colour (RRGGBB hex).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundColorRequest.ColorFieldNumber">
+            <summary>Field number for the "color" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundColorResponse.ColorFieldNumber">
+            <summary>Field number for the "color" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.EyeGlassesCheckRequest">
+            <summary>
+            The request/response for the ICAO "no glasses" check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.EyeGlassesCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.EyeGlassesCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.HeadPoseCheckRequest">
+            <summary>
+            The request/response for the frontal head-pose check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.HeadPoseCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HeadPoseCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.SharpnessCheckRequest">
+            <summary>
+            The request/response for the sharpness/focus check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.SharpnessCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.SharpnessCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.RedEyeDetectionCheckRequest">
+            <summary>
+            The request/response for the red-eye detection check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.RedEyeDetectionCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.RedEyeDetectionCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.HeadSizeCheckRequest">
+            <summary>
+            The request/response for the head-size/position check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.HeadSizeCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HeadSizeCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.ExpressionCheckRequest">
+            <summary>
+            The request/response for the neutral-expression check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.ExpressionCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.ExpressionCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.GazeCheckRequest">
+            <summary>
+            The request/response for the gaze-direction check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.GazeCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.GazeCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LightingEvennessCheckRequest">
+            <summary>
+            The request/response for the lighting-evenness check.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LightingEvennessCheckRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LightingEvennessCheckResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.PhotoFormatRequest">
+            <summary>
+            The request/response for the photo format ("icao_35x45"/"us_2x2"/"ca_50x70").
+            The response echoes the accepted key and the crop height derived from the stored
+            crop width and the format's aspect ratio.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PhotoFormatRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PhotoFormatResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PhotoFormatResponse.CropHeightFieldNumber">
+            <summary>Field number for the "crop_height" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BlurBackgroundResponse">
+            <summary>
+            The response message containing the blur bg value.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BlurBackgroundResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Settings">
+            <summary>
+            The settings service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Settings.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Settings.SettingsClient">
+            <summary>Client for Settings</summary>
+        </member>
+        <member name="M:GrpcLibrary.Settings.SettingsClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Settings</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Settings.SettingsClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Settings that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Settings.SettingsClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Settings.SettingsClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Settings.SettingsClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CalibrationReflection">
+            <summary>Holder for reflection information generated from Protos/calibration.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.CalibrationReflection.Descriptor">
+            <summary>File descriptor for Protos/calibration.proto</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateType.IdModelIdFieldNumber">
+            <summary>Field number for the "id_model_id" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateType.LinuxCameraIndexFieldNumber">
+            <summary>Field number for the "linux_camera_index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateType.CalibratedCameraIndexFieldNumber">
+            <summary>Field number for the "calibrated_camera_index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrationSettingsResponse.CalibrateFieldNumber">
+            <summary>Field number for the "calibrate" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateRequest.CalibrateFieldNumber">
+            <summary>Field number for the "calibrate" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CalibrateResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Calibration">
+            <summary>
+            The calibration service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Calibration.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Calibration.CalibrationClient">
+            <summary>Client for Calibration</summary>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Calibration</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Calibration that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.GetCalibration(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get calibration settings for all camera's'
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.GetCalibration(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get calibration settings for all camera's'
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.GetCalibrationAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get calibration settings for all camera's'
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.GetCalibrationAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Get calibration settings for all camera's'
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.SetCalibration(GrpcLibrary.CalibrateRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Set calibration for 1 camera
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.SetCalibration(GrpcLibrary.CalibrateRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Set calibration for 1 camera
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.SetCalibrationAsync(GrpcLibrary.CalibrateRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Set calibration for 1 camera
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.SetCalibrationAsync(GrpcLibrary.CalibrateRequest,Grpc.Core.CallOptions)">
+            <summary>
+            Set calibration for 1 camera
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LightsReflection">
+            <summary>Holder for reflection information generated from Protos/lights.proto</summary>
+        </member>
+        <member name="P:GrpcLibrary.LightsReflection.Descriptor">
+            <summary>File descriptor for Protos/lights.proto</summary>
+        </member>
+        <member name="T:GrpcLibrary.AllLightsRequest">
+            <summary>
+            request which sets the lights on or off
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.AllLightsRequest.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LightIndexRequest">
+            <summary>
+            request which sets the light at a specific camera index
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LightIndexRequest.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Lights">
+            <summary>
+            The lights service definition.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Lights.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:GrpcLibrary.Lights.LightsClient">
+            <summary>Client for Lights</summary>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.#ctor(Grpc.Core.ChannelBase)">
+            <summary>Creates a new client for Lights</summary>
+            <param name="channel">The channel to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.#ctor(Grpc.Core.CallInvoker)">
+            <summary>Creates a new client for Lights that uses a custom <c>CallInvoker</c>.</summary>
+            <param name="callInvoker">The callInvoker to use to make remote calls.</param>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.#ctor">
+            <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.#ctor(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Protected constructor to allow creation of configured clients.</summary>
+            <param name="configuration">The client configuration.</param>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
+            <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
+        </member>
+        <member name="T:CommonReflection">
+            <summary>Holder for reflection information generated from Protos/common.proto</summary>
+        </member>
+        <member name="P:CommonReflection.Descriptor">
+            <summary>File descriptor for Protos/common.proto</summary>
+        </member>
+    </members>
+</doc>

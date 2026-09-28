@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Microsoft.Maui.Controls;assembly=Microsoft.Maui.Controls"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             x:DataType="viewmodel:MonitoringViewModel"
+             x:Class="PhotoColumnApp.MonitoringPage"
+             BackgroundColor="#F3F5F8"
+             Title="Monitoring">
+
+    <ContentPage.Resources>
+        <toolkit:ListToStringConverter x:Key="ListToStringConverter" Separator="," />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="14" VerticalOptions="Start">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="HARDWARE STATUS" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <HorizontalStackLayout Spacing="12">
+                        <Button
+                                x:Name="GetKioskStatusBtn"
+                                Text="Get Kiosk Status"
+                                Style="{StaticResource QuietButton}"
+                                WidthRequest="220"
+                                SemanticProperties.Hint="Get status of the kiosk hardware."
+                                Command="{Binding GetKioskStatusCommand}" />
+                        <Button
+                                x:Name="GetMonitoringUsagesBtn"
+                                Text="Get Monitoring Usages"
+                                Style="{StaticResource QuietButton}"
+                                WidthRequest="220"
+                                SemanticProperties.Hint="Get monitoring usages of the kiosk hardware."
+                                Command="{Binding GetMonitoringUsagesCommand}" />
+                    </HorizontalStackLayout>
+
+                    <ListView x:Name="listx"
+                        HeightRequest="260"
+                        ItemsSource="{Binding StatusItems}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate
+                                x:DataType="viewmodel:Item">
+                                <ViewCell>
+                                    <StackLayout Orientation="Horizontal" HorizontalOptions="FillAndExpand">
+                                        <Label Text="{Binding Description}" VerticalOptions="Center" HorizontalOptions="StartAndExpand"/>
+                                        <Image VerticalOptions="Center" HorizontalOptions="End">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{Binding Status}"
+                                                      FontFamily="FontAwesomeSolid"
+                                                      Size="25"
+                                                      Color="{Binding Color}"/>
+                                            </Image.Source>
+                                        </Image>
+                                    </StackLayout>
+                                </ViewCell>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Kiosk info: bound to the (shared) KioskViewModel, set in code-behind;
+                 refreshed automatically when the page appears. -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout
+                    x:Name="KioskInfoSection"
+                    x:DataType="viewmodel:KioskViewModel"
+                    Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                        <Label Grid.Column="0" Text="KIOSK INFO" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+                    <Label Text="{ Binding CameraCount, StringFormat= 'Cameras: {0}' }" />
+                    <Label Text="{ Binding ServerIpAddress, StringFormat= 'IP address: {0}' }" />
+                    <Label Text="{ Binding ServerPort, StringFormat= 'Port: {0}' }" />
+                    <Label Text="{ Binding CameraIndexes, StringFormat= 'Camera indexes: {0}', Converter={StaticResource ListToStringConverter} }" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,4">
+                        <Label Grid.Column="0" Text="SYSTEM USAGE" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Cpu }"/>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Memory }"/>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Cpu_count }"/>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Net_if_addrs }"/>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Net_io_counters }"/>
+                    <Label
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Start"
+                                    Text="{ Binding Boot_time}"/>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

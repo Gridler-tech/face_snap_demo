@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PhotoColumnApp.FaceRecognitionPage"
+             xmlns:viewmodel="clr-namespace:PhotoColumnApp.ViewModels"
+             x:DataType="viewmodel:KioskViewModel"
+             BackgroundColor="#F3F5F8"
+             Title="Face Recognition">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="14" Padding="14" MaximumWidthRequest="720" HorizontalOptions="Start">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="PHOTOS TO COMPARE" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <Label Text="First photo for face recognition" Style="{StaticResource RowLabel}" />
+                    <Button
+                        x:Name="PickImage1Btn"
+                        Text="{Binding PickImage1BtnText}"
+                        Style="{StaticResource QuietButton}"
+                        HorizontalOptions="Fill"
+                        SemanticProperties.Hint="Load first image for photo recognition."
+                        Command="{Binding PickImage1Command}" />
+
+                    <Label Text="Second photo for face recognition" Style="{StaticResource RowLabel}" Margin="0,6,0,0" />
+                    <Button
+                        x:Name="PickImage2Btn"
+                        Text="{Binding PickImage2BtnText}"
+                        Style="{StaticResource QuietButton}"
+                        HorizontalOptions="Fill"
+                        SemanticProperties.Hint="Load second image for photo recognition."
+                        Command="{Binding PickImage2Command}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="MODEL AND THRESHOLD" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <StackLayout
+                        BindableLayout.ItemsSource="{Binding RecognitionModels}"
+                        RadioButtonGroup.GroupName="SelectedRecognitionModel"
+                        Orientation="Horizontal"
+                        Spacing="20"
+                        RadioButtonGroup.SelectedValue="{Binding SelectedRecognitionModel, Source={RelativeSource AncestorType={x:Type viewmodel:KioskViewModel}}}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate
+                                x:DataType="viewmodel:RecognitionModel">
+                                <RadioButton
+                                    Value="{Binding recognitionModel}"
+                                    Content="{Binding modelName}" />
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </StackLayout>
+
+                    <Label Text="Threshold value (optional)" Style="{StaticResource RowLabel}" />
+                    <Entry x:Name="ThresholdValue"
+                           Placeholder="Enter threshold value here"
+                           Text="{Binding Threshold}"
+                           WidthRequest="250"
+                           HorizontalOptions="Start" />
+
+                    <Button x:Name="FaceRecognitionBtn"
+                            Margin="0,6,0,0"
+                            Text="Execute Face Recognition"
+                            Style="{StaticResource GoButton}"
+                            HeightRequest="46"
+                            SemanticProperties.Hint="Check face recognition."
+                            Command="{Binding ExecuteFaceRecognitionCommand}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="RESULT" Style="{StaticResource CardTitle}" />
+                        <BoxView Grid.Column="1" Style="{StaticResource CardTitleRule}" />
+                    </Grid>
+
+                    <Label HorizontalOptions="Start" Text="{ Binding Status, StringFormat= 'Status: {0}' }" />
+                    <Label HorizontalOptions="Start" Text="{ Binding Verified, StringFormat= 'Verified: {0}' }" />
+                    <Label HorizontalOptions="Start" Text="{ Binding Distance, StringFormat= 'Distance: {0}' }" />
+                    <Label HorizontalOptions="Start" Text="{ Binding Time, StringFormat= 'Time: {0}' }" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

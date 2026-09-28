@@ -61,6 +61,7 @@ flowchart LR
 | [`csharp_sample/`](csharp_sample) | Minimal C# console client: connect, read the kiosk info and settings, run one automatic capture, save the photo and verify it with face recognition — the getting-started guide as a runnable program |
 | [`flutter_apps/face_snap_grpc`](flutter_apps/face_snap_grpc) | The Dart client SDK: generated gRPC stubs for all six FaceSnap services, the shared channel provider and capture-stream helpers, plus small command-line examples |
 | [`flutter_apps/operator_app`](flutter_apps/operator_app) | The full Flutter operator app (Windows desktop): server discovery and control, capture, face recognition, calibration, monitoring, settings — built on `face_snap_grpc` |
+| [`csharp_maui_legacy/`](csharp_maui_legacy) | The original version-1 operator app (.NET MAUI, frozen July 2026) — legacy/unsupported, kept for customers who built on the v1 C# code; see its readme |
 
 ## Quick start (C#)
 
