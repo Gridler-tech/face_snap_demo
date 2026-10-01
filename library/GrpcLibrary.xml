@@ -915,24 +915,52 @@
         </member>
         <member name="T:GrpcLibrary.GrpcChannelProvider">
             <summary>
-            Owns the single GrpcChannel shared by all processors. The channel can be
-            swapped at runtime with SetAddress, so an IP-address change takes effect
-            immediately without restarting the application. gRPC clients are cheap
-            wrappers, so processors create a fresh client from Channel per call.
+            Owns the GrpcChannel shared by the processors. The channel can be swapped
+            at runtime with SetAddress, so an IP-address change takes effect immediately
+            without restarting the application. gRPC clients are cheap wrappers, so
+            processors create a fresh client per call.
             </summary>
+            <remarks>
+            Which server a processor talks to:
+            <list type="bullet">
+            <item>Constructed without an address (or with the default
+            "http://localhost:50051"): the shared channel, i.e. <see cref="P:GrpcLibrary.GrpcChannelProvider.Address"/>.</item>
+            <item>Constructed with another address: that address, so one application can
+            talk to several kiosks with one processor per kiosk (the 1.4 behaviour).</item>
+            <item>After <see cref="M:GrpcLibrary.GrpcChannelProvider.SetAddress(System.String)"/> is called, every processor that already
+            exists, including the ones constructed with their own address, follows the
+            shared channel.</item>
+            </list>
+            Constructing a processor never changes the shared address.
+            </remarks>
         </member>
         <member name="P:GrpcLibrary.GrpcChannelProvider.Address">
-            <summary>The address the current channel points at.</summary>
+            <summary>The address the shared channel points at.</summary>
         </member>
         <member name="P:GrpcLibrary.GrpcChannelProvider.Channel">
             <summary>The shared channel, created on first use.</summary>
         </member>
         <member name="M:GrpcLibrary.GrpcChannelProvider.SetAddress(System.String)">
             <summary>
-            Points the shared channel at a new address. A no-op when the address is
-            unchanged; otherwise the old channel is disposed (in-flight calls on it
-            will fail, which is expected when switching servers) and the next call
-            transparently uses a channel to the new address.
+            Points the shared channel at a new address, and makes every existing
+            processor use it (also the ones constructed with their own address).
+            When the address changes, the old shared channel is disposed (in-flight
+            calls on it will fail, which is expected when switching servers) and the
+            next call transparently uses a channel to the new address.
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.ChannelBinding">
+            <summary>
+            The channel choice of one processor instance; see <see cref="T:GrpcLibrary.GrpcChannelProvider"/>.
+            </summary>
+        </member>
+        <member name="T:GrpcLibrary.InterfaceDefaults">
+            <summary>
+            Default bodies for the processor-interface members added after 1.4. With a
+            default body, a class written against an older interface (an application's
+            own implementation or test double) still loads and compiles; calling the new
+            member on it throws until the class implements it. The library's processors
+            implement every member.
             </summary>
         </member>
         <member name="T:GrpcLibrary.KioskProcessor">

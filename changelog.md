@@ -2,6 +2,41 @@
 
 
 
+## Version 1.5.1, 01-10-2026
+
+A compatibility fix for applications built against GrpcLibrary 1.4 (and a fix for
+the 1.5.0 quick start). Replace `GrpcLibrary.dll` (and `GrpcLibrary.xml`); the
+assembly version stays 1.0.0.0 and the wire contract is unchanged.
+
+- **One address per processor again.** In 1.5.0 every processor constructor
+  re-pointed one process-wide channel, so an application with processors for two
+  kiosks sent every call to the kiosk constructed last, and `new KioskProcessor()`
+  reset the address to localhost (also after `GrpcChannelProvider.SetAddress`, the
+  documented quick start). Now a processor constructed with an address keeps that
+  address; one constructed without an address uses the shared channel;
+  `GrpcChannelProvider.SetAddress` re-points every existing processor; and
+  constructing a processor never changes the shared address.
+- **Older interface implementations load again.** The 24 interface members added
+  in 1.5 (`ICameraProcessor.SetAutofocus`, `ISettingsProcessor.SetPhotoFormat`, …)
+  have default bodies. An application's own implementation or test double written
+  against the 1.4 interfaces compiles and loads (1.5.0: `TypeLoadException`); it
+  throws `NotSupportedException` for a newer member until it implements it.
+- `csharp_sample` uses `GrpcChannelProvider.SetAddress` plus processors without an
+  address.
+
+Still different from 1.4 (unchanged since 1.5.0):
+
+- **Face-recognition models.** The server replaced VGG-Face and ArcFace with
+  Facenet512 and SFace under the same numbers: `Model` value 1 is `Facenet512`
+  (was `VggFace`), value 2 is `Sface` (was `ArcFace`). An application built
+  against 1.4 that asks for VGG-Face gets Facenet512, with different thresholds;
+  rebuilding against 1.5 requires the new names.
+- `SettingsProcessor.SetEyeGlassesCheck` calls the server (1.4 returned `false`
+  without a call).
+- Applications built against 1.3 or older: `CalibrationProcessor.SetCalibration`
+  takes a list of `CalibrationData` since 1.4, and 1.0's `*Request` message types
+  were replaced by `Empty` in 1.1.
+
 ## Repository note, 28-09-2026
 
 Release 1.5.0 now carries `FaceSnapOperatorSetup-1.1.11.exe`. The operator app has

@@ -20,9 +20,10 @@ var referencePath = args.Length > 1 ? args[1] : null;
 
 try
 {
-    // All processors share one channel; constructing the first one sets the
-    // address (it can be changed later with GrpcChannelProvider.SetAddress).
-    var kiosk = new KioskProcessor(address);
+    // Point the shared channel at the server; processors constructed without an
+    // address use it (and a later SetAddress re-points them all).
+    GrpcChannelProvider.SetAddress(address);
+    var kiosk = new KioskProcessor();
     var settingsProcessor = new SettingsProcessor();
 
     // 1. Kiosk info — proves the connection and shows what the server detected.
