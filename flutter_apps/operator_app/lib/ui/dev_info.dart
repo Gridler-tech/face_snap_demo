@@ -235,8 +235,9 @@ await for (final event in startAutomaticCapture()) {
     rpc: 'SettingsProcessor.SetPhotoFormat',
     summary: 'Each control is an immediate unary setter. The photo format '
         'decides the aspect ratio AND how the face is framed; background '
-        'erasing takes a method (none / mediapipe / modnet) plus a fill '
-        'colour; JPEG quality applies to delivered photos.',
+        'erasing takes a method (none / mediapipe / modnet / rembg), a fill '
+        'colour and a strength 1 (mild) - 5 (heavy), 3 = standard; JPEG '
+        'quality applies to delivered photos.',
     snippets: {
       'C# — facesnap-sdk': '''
 var settings = new SettingsProcessor();
@@ -244,12 +245,14 @@ await settings.SetPhotoFormat("icao_35x45");   // or us_2x2, ca_50x70, ...
 await settings.SetCrop(true);
 await settings.SetBackgroundMethod("modnet");
 await settings.SetBackgroundColor("FFFFFF");
+await settings.SetBackgroundStrength(3);       // 1 mild - 5 heavy
 await settings.SetJpegQuality(95);             // 50-100''',
       'Dart — face_snap_grpc': '''
 final c = SettingsClient(GrpcChannelProvider.channel);
 await c.setPhotoFormat(PhotoFormatRequest(value: 'icao_35x45'));
 await c.setBackgroundMethod(BackgroundMethodRequest(method: 'modnet'));
 await c.setBackgroundColor(BackgroundColorRequest(color: 'FFFFFF'));
+await c.setBackgroundStrength(BackgroundStrengthRequest(value: 3)); // 1-5
 await c.setJpegQuality(JpegQualityRequest(value: 95));''',
     },
     docsUrl: '$_docsBase/api/GrpcLibrary.SettingsProcessor.html',

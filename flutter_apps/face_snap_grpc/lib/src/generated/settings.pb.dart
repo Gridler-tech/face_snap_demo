@@ -539,6 +539,7 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     $core.String? focusColor,
     $core.int? focusIntensity,
     $core.int? expectedCameras,
+    $core.int? backgroundStrength,
   }) {
     final result = create();
     if (width != null) result.width = width;
@@ -580,6 +581,8 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     if (focusColor != null) result.focusColor = focusColor;
     if (focusIntensity != null) result.focusIntensity = focusIntensity;
     if (expectedCameras != null) result.expectedCameras = expectedCameras;
+    if (backgroundStrength != null)
+      result.backgroundStrength = backgroundStrength;
     return result;
   }
 
@@ -632,6 +635,7 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     ..aOS(37, _omitFieldNames ? '' : 'focusColor')
     ..aI(38, _omitFieldNames ? '' : 'focusIntensity')
     ..aI(39, _omitFieldNames ? '' : 'expectedCameras')
+    ..aI(40, _omitFieldNames ? '' : 'backgroundStrength')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -980,6 +984,18 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
   $core.bool hasExpectedCameras() => $_has(34);
   @$pb.TagNumber(39)
   void clearExpectedCameras() => $_clearField(39);
+
+  /// Background erasing strength, 1 (mild: soft edges kept) to 5 (heavy:
+  /// faint edges dropped, edge pulled in); 3 = the original behaviour.
+  /// 0 (an older server) means 3.
+  @$pb.TagNumber(40)
+  $core.int get backgroundStrength => $_getIZ(35);
+  @$pb.TagNumber(40)
+  set backgroundStrength($core.int value) => $_setSignedInt32(35, value);
+  @$pb.TagNumber(40)
+  $core.bool hasBackgroundStrength() => $_has(35);
+  @$pb.TagNumber(40)
+  void clearBackgroundStrength() => $_clearField(40);
 }
 
 /// The request message containing the resolution value.
@@ -4159,6 +4175,118 @@ class ExpectedCamerasResponse extends $pb.GeneratedMessage {
   static ExpectedCamerasResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ExpectedCamerasResponse>(create);
   static ExpectedCamerasResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get message => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set message($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessage() => $_clearField(1);
+}
+
+/// The request/response for the background erasing strength (1-5).
+class BackgroundStrengthRequest extends $pb.GeneratedMessage {
+  factory BackgroundStrengthRequest({
+    $core.int? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  BackgroundStrengthRequest._();
+
+  factory BackgroundStrengthRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BackgroundStrengthRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BackgroundStrengthRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BackgroundStrengthRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BackgroundStrengthRequest copyWith(
+          void Function(BackgroundStrengthRequest) updates) =>
+      super.copyWith((message) => updates(message as BackgroundStrengthRequest))
+          as BackgroundStrengthRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BackgroundStrengthRequest create() => BackgroundStrengthRequest._();
+  @$core.override
+  BackgroundStrengthRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BackgroundStrengthRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BackgroundStrengthRequest>(create);
+  static BackgroundStrengthRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get value => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set value($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class BackgroundStrengthResponse extends $pb.GeneratedMessage {
+  factory BackgroundStrengthResponse({
+    $core.int? message,
+  }) {
+    final result = create();
+    if (message != null) result.message = message;
+    return result;
+  }
+
+  BackgroundStrengthResponse._();
+
+  factory BackgroundStrengthResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BackgroundStrengthResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BackgroundStrengthResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BackgroundStrengthResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BackgroundStrengthResponse copyWith(
+          void Function(BackgroundStrengthResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as BackgroundStrengthResponse))
+          as BackgroundStrengthResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BackgroundStrengthResponse create() => BackgroundStrengthResponse._();
+  @$core.override
+  BackgroundStrengthResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BackgroundStrengthResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BackgroundStrengthResponse>(create);
+  static BackgroundStrengthResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get message => $_getIZ(0);

@@ -228,6 +228,10 @@ class SettingsProfile {
         return methods.contains(value)
             ? null
             : 'must be one of ${methods.join(', ')}.';
+      case 'kiosk.background_strength':
+        return value is int && value >= 1 && value <= 5
+            ? null
+            : 'must be a whole number from 1 (mild) to 5 (heavy).';
       case 'kiosk.jpeg_quality':
         return value is int && value >= 50 && value <= 100
             ? null
@@ -241,12 +245,14 @@ class SettingsProfile {
             : 'must be "manual" or "automatic".';
     }
     return 'unknown setting — a profile may only contain the camera '
-        'resolution, the quality checks, background_method, jpeg_quality, '
+        'resolution, the quality checks, background_method, '
+        'background_strength, jpeg_quality, '
         'ofiq_checks, glasses_lights_off and camera_ordering_mode.';
   }
 
   static const _labels = {
     'kiosk.background_method': 'Background removal',
+    'kiosk.background_strength': 'Background erasing strength',
     'kiosk.jpeg_quality': 'JPEG quality',
     'kiosk.ofiq_checks': 'OFIQ quality report',
     'kiosk.glasses_lights_off': 'Lights off for glasses',

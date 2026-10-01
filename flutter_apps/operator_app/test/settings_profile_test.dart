@@ -140,6 +140,18 @@ void main() {
           () => SettingsProfile.parse(
               _profile('{"kiosk": {"ofiq_checks": "yes"}}')),
           _rejects('true or false'));
+      for (final strength in ['0', '6', '"3"', '2.5']) {
+        expect(
+            () => SettingsProfile.parse(_profile(
+                '{"kiosk": {"background_strength": $strength}}')),
+            _rejects('1 (mild) to 5 (heavy)'));
+      }
+      final strength = SettingsProfile.parse(
+          _profile('{"kiosk": {"background_strength": 4}}'));
+      expect(
+          applyProfileChanges(const {}, strength.diff(const {}))['kiosk']
+              ['background_strength'],
+          4);
       expect(
           () => SettingsProfile.parse(
               _profile('{"camera": {"width": 1234, "height": 567}}')),

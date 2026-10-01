@@ -177,6 +177,13 @@ const LoadSettingsResponse$json = {
     {'1': 'focus_color', '3': 37, '4': 1, '5': 9, '10': 'focusColor'},
     {'1': 'focus_intensity', '3': 38, '4': 1, '5': 5, '10': 'focusIntensity'},
     {'1': 'expected_cameras', '3': 39, '4': 1, '5': 5, '10': 'expectedCameras'},
+    {
+      '1': 'background_strength',
+      '3': 40,
+      '4': 1,
+      '5': 5,
+      '10': 'backgroundStrength'
+    },
   ],
   '9': [
     {'1': 18, '2': 19},
@@ -212,8 +219,9 @@ final $typed_data.Uint8List loadSettingsResponseDescriptor = $convert.base64Deco
     'lnaHRzX29mZhgiIAEoCFIQZ2xhc3Nlc0xpZ2h0c09mZhIfCgtvZmlxX2NoZWNrcxgjIAEoCFIK'
     'b2ZpcUNoZWNrcxIdCgpsZWRfbGF5b3V0GCQgASgJUglsZWRMYXlvdXQSHwoLZm9jdXNfY29sb3'
     'IYJSABKAlSCmZvY3VzQ29sb3ISJwoPZm9jdXNfaW50ZW5zaXR5GCYgASgFUg5mb2N1c0ludGVu'
-    'c2l0eRIpChBleHBlY3RlZF9jYW1lcmFzGCcgASgFUg9leHBlY3RlZENhbWVyYXNKBAgSEBNKBA'
-    'gfECBKBAggECFKBAghECI=');
+    'c2l0eRIpChBleHBlY3RlZF9jYW1lcmFzGCcgASgFUg9leHBlY3RlZENhbWVyYXMSLwoTYmFja2'
+    'dyb3VuZF9zdHJlbmd0aBgoIAEoBVISYmFja2dyb3VuZFN0cmVuZ3RoSgQIEhATSgQIHxAgSgQI'
+    'IBAhSgQIIRAi');
 
 @$core.Deprecated('Use resolutionRequestDescriptor instead')
 const ResolutionRequest$json = {
@@ -935,3 +943,29 @@ const ExpectedCamerasResponse$json = {
 final $typed_data.Uint8List expectedCamerasResponseDescriptor =
     $convert.base64Decode(
         'ChdFeHBlY3RlZENhbWVyYXNSZXNwb25zZRIYCgdtZXNzYWdlGAEgASgFUgdtZXNzYWdl');
+
+@$core.Deprecated('Use backgroundStrengthRequestDescriptor instead')
+const BackgroundStrengthRequest$json = {
+  '1': 'BackgroundStrengthRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 5, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `BackgroundStrengthRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backgroundStrengthRequestDescriptor =
+    $convert.base64Decode(
+        'ChlCYWNrZ3JvdW5kU3RyZW5ndGhSZXF1ZXN0EhQKBXZhbHVlGAEgASgFUgV2YWx1ZQ==');
+
+@$core.Deprecated('Use backgroundStrengthResponseDescriptor instead')
+const BackgroundStrengthResponse$json = {
+  '1': 'BackgroundStrengthResponse',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 5, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `BackgroundStrengthResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backgroundStrengthResponseDescriptor =
+    $convert.base64Decode(
+        'ChpCYWNrZ3JvdW5kU3RyZW5ndGhSZXNwb25zZRIYCgdtZXNzYWdlGAEgASgFUgdtZXNzYWdl');

@@ -261,6 +261,13 @@ class SettingsClient extends $grpc.Client {
     return $createUnaryCall(_$setExpectedCameras, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.BackgroundStrengthResponse> setBackgroundStrength(
+    $0.BackgroundStrengthRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setBackgroundStrength, request, options: options);
+  }
+
   // method descriptors
 
   static final _$saveSettings =
@@ -422,6 +429,11 @@ class SettingsClient extends $grpc.Client {
           '/settings.Settings/SetExpectedCameras',
           ($0.ExpectedCamerasRequest value) => value.writeToBuffer(),
           $0.ExpectedCamerasResponse.fromBuffer);
+  static final _$setBackgroundStrength = $grpc.ClientMethod<
+          $0.BackgroundStrengthRequest, $0.BackgroundStrengthResponse>(
+      '/settings.Settings/SetBackgroundStrength',
+      ($0.BackgroundStrengthRequest value) => value.writeToBuffer(),
+      $0.BackgroundStrengthResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('settings.Settings')
@@ -691,6 +703,15 @@ abstract class SettingsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.ExpectedCamerasRequest.fromBuffer(value),
         ($0.ExpectedCamerasResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BackgroundStrengthRequest,
+            $0.BackgroundStrengthResponse>(
+        'SetBackgroundStrength',
+        setBackgroundStrength_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.BackgroundStrengthRequest.fromBuffer(value),
+        ($0.BackgroundStrengthResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SaveSettingsResponse> saveSettings_Pre(
@@ -973,4 +994,13 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.ExpectedCamerasResponse> setExpectedCameras(
       $grpc.ServiceCall call, $0.ExpectedCamerasRequest request);
+
+  $async.Future<$0.BackgroundStrengthResponse> setBackgroundStrength_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.BackgroundStrengthRequest> $request) async {
+    return setBackgroundStrength($call, await $request);
+  }
+
+  $async.Future<$0.BackgroundStrengthResponse> setBackgroundStrength(
+      $grpc.ServiceCall call, $0.BackgroundStrengthRequest request);
 }

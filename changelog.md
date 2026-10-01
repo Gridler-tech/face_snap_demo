@@ -2,6 +2,26 @@
 
 
 
+## Repository note, 01-10-2026 (operator app 1.1.13 sources)
+
+The operator app sources in `flutter_apps/` are now at version 1.1.13:
+
+- **Background erasing strength.** The Photo page shows an "Erasing strength" row
+  (1 Mild … 5 Heavy) whenever background erasing is switched on. 3 is the
+  existing look; 1–2 keep soft edges and fine hair, 4–5 drop faint edges and pull
+  the edge in slightly. It uses the new `SetBackgroundStrength` RPC and the
+  `background_strength` field of `LoadSettingsResponse` (field 40), both in the
+  regenerated Dart stubs in `flutter_apps/face_snap_grpc`. Servers from before
+  this change report 0, which the app shows as 3; choosing another level then
+  springs back with the server's error. Fleet settings profiles can set
+  `kiosk.background_strength` (1–5).
+- **Fast camera selection.** The Media Foundation switch on the Camera page can be
+  used again for a server running on the same PC; for a kiosk board it stays
+  disabled, with a note explaining why.
+
+Tests: `test/photo_strength_test.dart` and `test/camera_page_test.dart`, both
+against an in-process fake gRPC server (`grpc` is now a dev dependency).
+
 ## Repository note, 01-10-2026 (operator app 1.1.12)
 
 Release 1.5.0 now carries `FaceSnapOperatorSetup-1.1.12.exe`. The Updater page no

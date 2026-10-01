@@ -33,6 +33,15 @@ const _backgroundMethods = [
   ('rembg', 'rembg (best quality, slower)'),
 ];
 
+/// What each erasing strength does (shown next to the 1-5 selector).
+const _strengthHints = {
+  1: 'mildest: soft edges and fine hair kept',
+  2: 'mild: softer edges',
+  3: 'standard',
+  4: 'heavy: cleaner edges',
+  5: 'heaviest: cleanest, hardest edges',
+};
+
 class PhotoPage extends StatefulWidget {
   const PhotoPage({super.key});
 
@@ -48,6 +57,7 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
   late String _photoFormat;
   late int _cropHeight;
   late String _backgroundMethod;
+  late int _backgroundStrength;
   late double _jpegQuality;
   late Map<String, bool> _checks;
   late bool _ofiqChecks;
@@ -86,6 +96,8 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     _cropHeight = s.cropHeight;
     _backgroundMethod = s.backgroundMethod.isEmpty ? 'none' : s.backgroundMethod;
     _backgroundColor.text = s.backgroundColor;
+    // 0 = a server from before the setting existed; it erases like 3.
+    _backgroundStrength = s.backgroundStrength == 0 ? 3 : s.backgroundStrength;
     _jpegQuality = (s.jpegQuality == 0 ? 95 : s.jpegQuality).toDouble();
     _ofiqChecks = s.ofiqChecks;
     _checks = {
@@ -138,6 +150,31 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
       // unchanged-check above) see the new value.
       SettingsState.current?.backgroundColor = hex;
     });
+  }
+
+  /// Send the erasing strength; roll the selector back when the server refuses
+  /// (an older server does not know the setting).
+  Future<void> _setBackgroundStrength(int level) async {
+    final before = _backgroundStrength;
+    setState(() => _backgroundStrength = level);
+    try {
+      final r = await _client
+          .setBackgroundStrength(BackgroundStrengthRequest(value: level));
+      SettingsState.current?.backgroundStrength = r.message;
+      if (mounted) {
+        setState(() {
+          _backgroundStrength = r.message;
+          message = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _backgroundStrength = before;
+          message = 'Server call failed: ${operatorMessage(e)}';
+        });
+      }
+    }
   }
 
   Color _swatchColor() => hexToColor(
@@ -242,8 +279,12 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
           onSelected: (code) {
             if (code == null) return;
             setState(() => _backgroundMethod = code);
-            runServerCall(() => _client
-                .setBackgroundMethod(BackgroundMethodRequest(method: code)));
+            runServerCall(() async {
+              await _client
+                  .setBackgroundMethod(BackgroundMethodRequest(method: code));
+              // Keep the shared snapshot in step (pages seed from it).
+              SettingsState.current?.backgroundMethod = code;
+            });
           },
         ),
         if (_showBackgroundColor) ...[
@@ -282,6 +323,30 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
           ),
         ],
       ]),
+      if (_showBackgroundColor) ...[
+        const SizedBox(height: 12),
+        // Erasing strength 1 (mild) - 5 (heavy), for every method.
+        Row(children: [
+          const RowLabel('Erasing strength'),
+          const SizedBox(width: 10),
+          const Text('Mild', style: TextStyle(color: T.muted, fontSize: 13)),
+          const SizedBox(width: 8),
+          SegmentedButton<int>(
+            segments: [
+              for (var level = 1; level <= 5; level++)
+                ButtonSegment(value: level, label: Text('$level')),
+            ],
+            selected: {_backgroundStrength},
+            showSelectedIcon: false,
+            onSelectionChanged: (s) => _setBackgroundStrength(s.first),
+          ),
+          const SizedBox(width: 8),
+          const Text('Heavy', style: TextStyle(color: T.muted, fontSize: 13)),
+          const SizedBox(width: 16),
+          Text(_strengthHints[_backgroundStrength] ?? '',
+              style: const TextStyle(color: T.muted, fontSize: 13)),
+        ]),
+      ],
       const SizedBox(height: 8),
       RowLabel(
           'JPEG quality ${_jpegQuality.round()} (100 = best, larger files)'),

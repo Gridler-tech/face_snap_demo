@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 
+import '../services/board_server_manager.dart';
 import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
@@ -337,17 +338,54 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
     ]);
   }
 
-  // Fast camera selection stays greyed out (user request 2026-09-14; it is a
-  // Windows Media Foundation option). The automatic-ordering switch lives on
-  // the Calibration page, next to the positions it affects.
+  // Fast camera selection is a Windows Media Foundation option, read by the
+  // Windows server only. This app runs on Windows, so a server on THIS PC is a
+  // Windows server and the switch works there; a kiosk board (Linux) ignores
+  // the setting, so for a remote server it stays greyed out. The
+  // automatic-ordering switch lives on the Calibration page, next to the
+  // positions it affects.
+  bool get _windowsServer =>
+      !BoardServerManager.isRemoteHost(GrpcChannelProvider.host);
+
   Widget _buildCameraOptions() {
+    final enabled = _windowsServer;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Switch(value: _msmfSelection, onChanged: null),
+        Switch(
+            value: _msmfSelection,
+            onChanged: enabled ? _setMsmfSelection : null),
         const SizedBox(width: 8),
         const RowLabel('Fast camera selection (Media Foundation)'),
       ]),
+      if (!enabled)
+        const Text('Windows servers only (a server on this PC); kiosk boards '
+            "don't use it.",
+            style: TextStyle(color: T.muted, fontSize: 13)),
     ]);
+  }
+
+  Future<void> _setMsmfSelection(bool enabled) async {
+    final before = _msmfSelection;
+    setState(() => _msmfSelection = enabled);
+    try {
+      final r = await SettingsState.client
+          .setMsmfSelection(MsmfSelectionRequest(enabled: enabled));
+      // Keep the shared snapshot in step (pages seed from it).
+      SettingsState.current?.msmfSelection = r.enabled;
+      if (mounted) {
+        setState(() {
+          _msmfSelection = r.enabled;
+          message = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _msmfSelection = before;
+          message = 'Server call failed: ${operatorMessage(e)}';
+        });
+      }
+    }
   }
 
   Widget _buildPreview() {
