@@ -49,6 +49,46 @@ final kServerReadyMarker = RegExp(
 final kLedBoardConnectedMarker = RegExp(
     r'Plasma LED board connected|Successfully communicated with plasma');
 
+/// Server-log lines that only say the kiosk hardware is not attached: no
+/// Plasma LED board (the current servers, and the first-generation server's
+/// mpremote calls that find no device) or no cameras. An update may well run
+/// on a board that is not built into a kiosk yet, so these never fail the
+/// verification; the report shows "LED board: NOT detected" / "Cameras
+/// found: 0" as a warning instead. Only pure absence belongs here: any other
+/// LED-board or camera error still fails the update.
+final kHardwareAbsentRe = RegExp(r'Plasma LED board not connected'
+    r'|mpremote: no device found'
+    r'|No cameras available to probe resolutions');
+
+// Log noise that is expected on the Odroid and must not fail verification
+// (onnxruntime probing ARM SVE on the old 4.9 kernel, GPU discovery).
+final _benignLogRe = RegExp(
+    r'device_discovery|GetGpuDevices|drm/card|PR_SVE_GET_VL|cpuinfo|'
+    r'inference_feedback_manager|InitializeLog|XNNPACK');
+final _hardErrorRe = RegExp(r'\[(ERROR|CRITICAL)\]|Traceback \(most recent');
+final _looseErrorRe = RegExp(r'error|exception', caseSensitive: false);
+final _pythonLevelRe = RegExp(r'\[(INFO|DEBUG|WARNING)\]');
+final _dotnetLevelRe = RegExp(r'^\s*(info|dbug|warn|trce):');
+
+/// The lines of a freshly started server's log that make an update fail its
+/// verification (all server generations). Real problems are [ERROR] /
+/// [CRITICAL] lines and tracebacks. Lines at INFO/DEBUG/WARNING level are
+/// never failures even when they contain words like "error" (e.g. the
+/// settings manager's routine "…or JSONDecodeError" message on a first
+/// install); Server 2.0 (.NET) prefixes levels as "info:"/"dbug:"/"warn:" and
+/// those lines are informational too. Known board noise and missing kiosk
+/// hardware ([kHardwareAbsentRe]) are not failures either.
+List<String> serverLogErrors(String log) => log
+    .split('\n')
+    .where((l) =>
+        _hardErrorRe.hasMatch(l) ||
+        (_looseErrorRe.hasMatch(l) &&
+            !_pythonLevelRe.hasMatch(l) &&
+            !_dotnetLevelRe.hasMatch(l)))
+    .where((l) => !_benignLogRe.hasMatch(l) && !kHardwareAbsentRe.hasMatch(l))
+    .where((l) => l.trim().isNotEmpty)
+    .toList();
+
 /// True when a light_settings.json (the camera calibration) assigns at least
 /// one camera a position. A never-calibrated board — typically one upgraded
 /// from the first generation — carries rows whose position is null; Server 2.0

@@ -2,6 +2,17 @@
 
 
 
+## Repository note, 01-10-2026 (operator app 1.1.12)
+
+Release 1.5.0 now carries `FaceSnapOperatorSetup-1.1.12.exe`. The Updater page no
+longer rolls an update back when the board has no LED board or cameras attached:
+boards are often updated before they are built into a kiosk, so missing hardware is
+reported as a warning ("LED board: NOT detected"). Any other LED-board or camera
+error in the new server's log still rolls the update back. The log check is
+`serverLogErrors()` / `kHardwareAbsentRe` in
+`flutter_apps/operator_app/lib/updater/kiosk.dart`, tested in
+`test/server_log_check_test.dart`.
+
 ## Version 1.5.1, 01-10-2026
 
 A compatibility fix for applications built against GrpcLibrary 1.4 (and a fix for

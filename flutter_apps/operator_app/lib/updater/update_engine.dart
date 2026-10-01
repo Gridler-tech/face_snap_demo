@@ -36,19 +36,6 @@ class UpdateEngine extends KioskEngine {
   final SettingsProfile? profile;
   final Set<String>? profileRowIds;
 
-  // Log noise that is expected on the Odroid and must not fail verification
-  // (onnxruntime probing ARM SVE on the old 4.9 kernel, GPU discovery).
-  static const _benignLogPatterns =
-      'device_discovery|GetGpuDevices|drm/card|PR_SVE_GET_VL|cpuinfo|'
-      'inference_feedback_manager|InitializeLog|XNNPACK';
-
-  static final _benignRe = RegExp(_benignLogPatterns);
-  static final _hardErrorRe =
-      RegExp(r'\[(ERROR|CRITICAL)\]|Traceback \(most recent');
-  static final _looseErrorRe =
-      RegExp(r'error|exception', caseSensitive: false);
-  static final _pythonLevelRe = RegExp(r'\[(INFO|DEBUG|WARNING)\]');
-  static final _dotnetLevelRe = RegExp(r'^\s*(info|dbug|warn|trce):');
   static final _tarVersionRe = RegExp(r'face_snap-(.+?)\.tar$');
 
   /// The pipeline's step titles (also used by the GUI's idle view).
@@ -745,21 +732,12 @@ class UpdateEngine extends KioskEngine {
         'docker logs --tail 600 \$(docker ps -q $kContainerFilter) 2>&1');
     text = logs.stdout;
 
-    // Real problems are [ERROR]/[CRITICAL] log lines and tracebacks. Lines at
-    // INFO/DEBUG/WARNING level are never failures even when they contain words
-    // like "error" (e.g. the settings manager's routine "…or JSONDecodeError"
-    // message on a first install). Server 2.0 (.NET) prefixes levels as
-    // "info:"/"dbug:"/"warn:" — those lines are informational too.
-    final errors = text
-        .split('\n')
-        .where((l) =>
-            _hardErrorRe.hasMatch(l) ||
-            (_looseErrorRe.hasMatch(l) &&
-                !_pythonLevelRe.hasMatch(l) &&
-                !_dotnetLevelRe.hasMatch(l)))
-        .where((l) => !_benignRe.hasMatch(l))
-        .where((l) => l.trim().isNotEmpty)
-        .toList();
+    // Real problems fail the update (see serverLogErrors). Missing kiosk
+    // hardware does not: a board is often updated before it is built into a
+    // kiosk, so no LED board / cameras is reported as a warning below.
+    final errors = serverLogErrors(text);
+    final hardwareAbsent =
+        text.split('\n').where(kHardwareAbsentRe.hasMatch).length;
 
     // Server 2.0 does not enumerate cameras at startup (they are opened
     // lazily per capture), so a missing camera count is normal there.
@@ -774,6 +752,11 @@ class UpdateEngine extends KioskEngine {
     summary.add('LED board: ${ledBoard ? 'connected' : 'NOT detected'}');
     log('Cameras: $cameras — LED board '
         '${ledBoard ? 'connected' : 'NOT detected'}.');
+    if (hardwareAbsent > 0) {
+      log('$hardwareAbsent server log line(s) say kiosk hardware is not '
+          'attached — not a failure (fine for a board that is not in a kiosk '
+          'yet).');
+    }
 
     if (errors.isNotEmpty) {
       setStep(_verify, StepStatus.fail, shorten(errors.first));
