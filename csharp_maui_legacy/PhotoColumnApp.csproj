@@ -53,9 +53,7 @@
         <AndroidCreatePackagePerAbi>False</AndroidCreatePackagePerAbi>
         <DebugSymbols>True</DebugSymbols>
         <AndroidKeyStore>True</AndroidKeyStore>
-        <AndroidSigningStorePass>mam300866</AndroidSigningStorePass>
         <AndroidSigningKeyAlias>key0</AndroidSigningKeyAlias>
-        <AndroidSigningKeyPass>mam300866</AndroidSigningKeyPass>
         <ApplicationTitle>FaceSnap</ApplicationTitle>
         <ApplicationId>com.gridler.facesnap</ApplicationId>
     </PropertyGroup>
@@ -63,9 +61,7 @@
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-android|AnyCPU'">
         <RunAOTCompilation>True</RunAOTCompilation>
         <AndroidKeyStore>True</AndroidKeyStore>
-        <AndroidSigningStorePass>mam300866</AndroidSigningStorePass>
         <AndroidSigningKeyAlias>key0</AndroidSigningKeyAlias>
-        <AndroidSigningKeyPass>mam300866</AndroidSigningKeyPass>
         <ApplicationTitle>FaceSnap</ApplicationTitle>
         <ApplicationId>com.gridler.facesnap</ApplicationId>
         <DebugSymbols>False</DebugSymbols>
