@@ -109,6 +109,10 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
   /// SettingsState.serverKey the settings were loaded for.
   String? _loadedFor;
 
+  /// The error line a failed [_load] put up; a later successful load removes
+  /// it (and only it — a newer, different error stays).
+  String? _loadError;
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +191,8 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
       final s = await _camera.loadSettings(Empty());
       final kiosk = SettingsState.current;
       setState(() {
+        if (message == _loadError) message = null;
+        _loadError = null;
         _settings = s;
         for (final spec in _sliderSpecs) {
           _values[spec.name] = spec.read(s).toDouble();
@@ -205,8 +211,8 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
         }
       });
     } catch (e) {
-      setState(() =>
-          message = 'Could not load camera settings: ${operatorMessage(e)}');
+      setState(() => message = _loadError =
+          'Could not load camera settings: ${operatorMessage(e)}');
     }
   }
 

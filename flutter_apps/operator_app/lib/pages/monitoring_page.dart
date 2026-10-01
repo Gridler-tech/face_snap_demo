@@ -23,6 +23,10 @@ class _MonitoringPageState extends State<MonitoringPage> {
   final Map<UsageType, String> _usage = {};
   StreamSubscription<UsageResponse>? _usageSubscription;
   String? _message;
+
+  /// The error line a failed [_loadKioskInfo] put up; a later successful load
+  /// removes it (and only it — a newer, different error stays).
+  String? _loadError;
   LightMeasurementResponse? _light;
   bool _lightRunning = false;
 
@@ -67,9 +71,14 @@ class _MonitoringPageState extends State<MonitoringPage> {
     try {
       final info = await KioskClient(GrpcChannelProvider.channel)
           .getKioskInfo(Empty());
-      setState(() => _kioskInfo = info);
+      setState(() {
+        if (_message == _loadError) _message = null;
+        _loadError = null;
+        _kioskInfo = info;
+      });
     } catch (e) {
-      setState(() => _message = 'Could not load kiosk info: ${operatorMessage(e)}');
+      setState(() => _message =
+          _loadError = 'Could not load kiosk info: ${operatorMessage(e)}');
     }
   }
 

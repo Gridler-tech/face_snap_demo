@@ -2,6 +2,19 @@
 
 
 
+## Repository note, 01-10-2026 (operator app 1.1.14)
+
+Release 1.5.2 now carries `FaceSnapOperatorSetup-1.1.14.exe`, and the sources in
+`flutter_apps/operator_app` match it. When the first load of the Camera,
+Calibration or Monitoring page failed (for example because the server or the
+camera column was still starting), its error line stayed on screen even after the
+page had loaded successfully ("kiosk not reachable — is the server running?").
+Each page now removes its own load error once a load succeeds; a newer, different
+error stays. The Calibration page also showed that error raw
+(`ParallelWaitError: gRPC Error …`) and now shows the readable message. Tested in
+`test/load_error_recovery_test.dart` against a fake server that refuses the first
+load.
+
 ## Version 1.5.2, 01-10-2026
 
 Background erasing strength. Replace `GrpcLibrary.dll` (and `GrpcLibrary.xml`);

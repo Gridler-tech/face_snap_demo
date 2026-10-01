@@ -38,6 +38,10 @@ class _CalibrationPageState extends State<CalibrationPage> {
   Uint8List? _bestPhoto; // the sharpest capture from the last sweep
   String? _message;
 
+  /// The error line a failed [_load] put up; a later successful load removes
+  /// it (and only it — a newer, different error stays).
+  String? _loadError;
+
   CalibrationClient get _calibration =>
       CalibrationClient(GrpcChannelProvider.channel);
   CameraClient get _camera => CameraClient(GrpcChannelProvider.channel);
@@ -110,12 +114,17 @@ class _CalibrationPageState extends State<CalibrationPage> {
     try {
       // Independent reads — one round-trip each, in parallel. The expected
       // camera count comes from the shared settings snapshot instead of a
-      // third LoadSettings call.
-      final (calibration, camera) = await (
-        _calibration.getCalibration(Empty()),
-        _camera.loadSettings(Empty()),
-      ).wait;
+      // third LoadSettings call. Future.wait, not a record's .wait: that one
+      // wraps a failure in a ParallelWaitError, which the error line then
+      // showed raw instead of "kiosk not reachable".
+      final calibrationCall = _calibration.getCalibration(Empty());
+      final cameraCall = _camera.loadSettings(Empty());
+      await Future.wait([calibrationCall, cameraCall]);
+      final calibration = await calibrationCall;
+      final camera = await cameraCall;
       setState(() {
+        if (_message == _loadError) _message = null;
+        _loadError = null;
         _rows = calibration.calibrate.toList()
           ..sort((a, b) => a.linuxCameraIndex.compareTo(b.linuxCameraIndex));
         _currentFocus = camera.focusAbsolute;
@@ -124,8 +133,8 @@ class _CalibrationPageState extends State<CalibrationPage> {
             SettingsState.current?.cameraOrderingAutomatic ?? false;
       });
     } catch (e) {
-      setState(
-          () => _message = 'Could not load calibration: ${operatorMessage(e)}');
+      setState(() => _message =
+          _loadError = 'Could not load calibration: ${operatorMessage(e)}');
     }
   }
 
