@@ -2,6 +2,30 @@
 
 
 
+## Version 1.5.2, 01-10-2026
+
+Background erasing strength. Replace `GrpcLibrary.dll` (and `GrpcLibrary.xml`);
+the assembly version stays 1.0.0.0 and everything in 1.5.1 is unchanged — this
+release only adds.
+
+- **`SettingsProcessor.SetBackgroundStrength(int value)`** sets how strongly the
+  background is erased, for every background method: 1 (mild) keeps more of a soft
+  edge (fine hair, at the risk of a faint background-coloured fringe), 5 (heavy)
+  drops faint edge pixels and pulls the edge in (a cleaner, harder edge, at the risk
+  of thinning hair). 3 is the original behaviour and the default. It returns the
+  strength the server applied (`BackgroundStrength.backgroundStrength`); a value
+  outside 1–5 is refused with `INVALID_ARGUMENT`.
+- **`KioskSettingsDto.backgroundStrength`** (from `LoadSettings`) is the current
+  strength. A server from before this setting reports 3 — it erases the original
+  way — and refuses `SetBackgroundStrength` with `UNIMPLEMENTED`.
+- `ISettingsProcessor.SetBackgroundStrength` has a default body, like the members
+  added in 1.5: an implementation written against 1.5.1 still loads and throws
+  `NotSupportedException` for it until it implements it.
+
+Needs a server that supports the setting: Windows server 1.1.14 or kiosk image
+2.0.13 and later. These servers also fall back to the MediaPipe result when MODNet
+keeps too little of the face, and remove faint leftovers of bystanders.
+
 ## Repository note, 01-10-2026 (operator app 1.1.13 sources)
 
 The operator app sources in `flutter_apps/` are now at version 1.1.13:

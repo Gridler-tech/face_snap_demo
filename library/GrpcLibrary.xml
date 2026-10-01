@@ -445,6 +445,11 @@
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.backgroundColor">
             <summary>Background fill colour as RRGGBB hex, used when a background method is active.</summary>
         </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.backgroundStrength">
+            <summary>Background erasing strength: 1 (mild, soft edges kept) to 5
+            (heavy, faint edges dropped and the edge pulled in); 3 = the original
+            behaviour (also what an older server reports).</summary>
+        </member>
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.jpegQuality">
             <summary>JPEG encoding quality of delivered photos (50–100).</summary>
         </member>
@@ -629,6 +634,12 @@
         <member name="P:GrpcLibrary.Dto.ExpectedCameras.expectedCameras">
             <summary>How many cameras this kiosk is built with; 0 = derive from
             the calibration file.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.BackgroundStrength">
+            <summary>The applied background erasing strength, echoed by <c>SetBackgroundStrength</c>.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BackgroundStrength.backgroundStrength">
+            <summary>1 (mild) to 5 (heavy); 3 = the original behaviour.</summary>
         </member>
         <member name="T:GrpcLibrary.Dto.Usage">
             <summary>
@@ -1495,6 +1506,17 @@
             <param name="value">The camera count (1–6), or 0 to derive it from the
             calibration file (the historical behaviour).</param>
             <returns>The expected camera count set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetBackgroundStrength(System.Int32)">
+            <summary>
+            This method sets the background erasing strength: 1 (mild) keeps more of a
+            soft edge (fine hair, at the risk of a faint background-coloured fringe), 5
+            (heavy) drops faint edge pixels and pulls the edge in (a cleaner, harder
+            edge, at the risk of thinning hair). 3 is the original behaviour. Applies to
+            every background method.
+            </summary>
+            <param name="value">The strength, 1–5.</param>
+            <returns>The strength set by the server.</returns>
         </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SetGlassesLightsOff(System.Boolean)">
             <summary>
@@ -2755,6 +2777,16 @@
             camera self-heal compares the attached count against this.
             </summary>
         </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.BackgroundStrengthFieldNumber">
+            <summary>Field number for the "background_strength" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.BackgroundStrength">
+            <summary>
+            Background erasing strength, 1 (mild: soft edges kept) to 5 (heavy:
+            faint edges dropped, edge pulled in); 3 = the original behaviour.
+            0 (an older server) means 3.
+            </summary>
+        </member>
         <member name="T:GrpcLibrary.ResolutionRequest">
             <summary>
             The request message containing the resolution value.
@@ -3164,6 +3196,17 @@
             <summary>Field number for the "value" field.</summary>
         </member>
         <member name="F:GrpcLibrary.ExpectedCamerasResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BackgroundStrengthRequest">
+            <summary>
+            The request/response for the background erasing strength (1-5).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundStrengthRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BackgroundStrengthResponse.MessageFieldNumber">
             <summary>Field number for the "message" field.</summary>
         </member>
         <member name="T:GrpcLibrary.Settings">
