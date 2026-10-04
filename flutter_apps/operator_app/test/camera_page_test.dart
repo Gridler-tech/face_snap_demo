@@ -12,9 +12,12 @@ import 'package:operator_app/pages/camera_page.dart';
 import 'package:operator_app/services/settings_state.dart';
 
 class _FakeCamera extends CameraServiceBase {
+  _FakeCamera({this.autoExposure = false});
+  final bool autoExposure;
+
   @override
   Future<LoadCameraSettingsResponse> loadSettings(ServiceCall call, Empty request) async =>
-      LoadCameraSettingsResponse();
+      LoadCameraSettingsResponse(exposureAutoPriority: autoExposure);
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -39,6 +42,16 @@ class _FakeSettings extends SettingsServiceBase {
       throw GrpcError.unimplemented('${invocation.memberName}');
 }
 
+/// The Exposure slider: the Slider inside the column whose label reads
+/// `Exposure 330` (label plus the current value).
+Finder _exposureSlider() => find.descendant(
+    of: find
+        .ancestor(
+            of: find.textContaining(RegExp(r'^Exposure \d+$')),
+            matching: find.byType(Column))
+        .first, // nearest enclosing Column = this slider's own row
+    matching: find.byType(Slider));
+
 Finder _msmfSwitch() => find.descendant(
     of: find.ancestor(
         of: find.text('Fast camera selection (Media Foundation)'),
@@ -49,14 +62,15 @@ Finder _msmfSwitch() => find.descendant(
 /// 127.0.0.1 is "this PC"; 127.0.0.2 is still loopback but counts as another
 /// host, like a kiosk board.
 Future<_FakeSettings> _pumpPage(WidgetTester tester, String address,
-    {bool acceptMsmf = true}) async {
+    {bool acceptMsmf = true, bool autoExposure = false}) async {
   tester.view.physicalSize = const Size(1600, 1400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final settings = _FakeSettings(acceptMsmf: acceptMsmf);
-  final server = Server.create(services: [_FakeCamera(), settings]);
+  final server = Server.create(
+      services: [_FakeCamera(autoExposure: autoExposure), settings]);
   await server.serve(address: InternetAddress(address), port: 0);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
 
@@ -120,6 +134,25 @@ void main() {
           reason: 'the server refused the change');
       expect(find.textContaining('Server call failed'), findsOneWidget);
       expect(SettingsState.current!.msmfSelection, isTrue);
+    });
+  });
+
+  testWidgets('the exposure slider is greyed out while automatic exposure is on',
+      (tester) async {
+    await tester.runAsync(() async {
+      await _pumpPage(tester, '127.0.0.1', autoExposure: true);
+      expect(find.text('Automatic exposure'), findsOneWidget);
+      expect(tester.widget<Slider>(_exposureSlider()).onChanged, isNull);
+      expect(find.text('Set by the camera while automatic exposure is on'),
+          findsOneWidget);
+    });
+  });
+
+  testWidgets('the exposure slider works with manual exposure', (tester) async {
+    await tester.runAsync(() async {
+      await _pumpPage(tester, '127.0.0.1', autoExposure: false);
+      expect(tester.widget<Slider>(_exposureSlider()).onChanged, isNotNull);
+      expect(find.textContaining('Set by the camera while'), findsNothing);
     });
   });
 }

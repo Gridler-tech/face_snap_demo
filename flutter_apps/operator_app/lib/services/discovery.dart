@@ -16,6 +16,7 @@
 // multicast_dns package fails there with errno 10042).
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -119,12 +120,18 @@ Future<List<DiscoveredKiosk>> discoverKiosks(
 /// Kiosks AND clean boards: the service search plus stock-hostname probes,
 /// run concurrently over the same window. A machine found both ways is
 /// reported once, as a kiosk.
+///
+/// [sweep] adds the active port-22 sweep of the local subnets, the only way
+/// to find a clean board whose OS answers no name protocol. It is for a
+/// deliberate search (first scan, "Search again", the Updater): the periodic
+/// background re-scan passes false — a clean board never appears by itself,
+/// and 500 connection attempts twice a minute are a waste.
 Future<List<DiscoveredKiosk>> discoverBoards(
-    {Duration timeout = const Duration(seconds: 4)}) async {
+    {Duration timeout = const Duration(seconds: 4), bool sweep = true}) async {
   final results = await Future.wait([
     discoverKiosks(timeout: timeout),
     probeHostnames(cleanBoardDefaults.keys.toList(), timeout: timeout),
-    _sweepSubnetForBoards(),
+    if (sweep) sweepSubnetForBoards() else Future.value(const <DiscoveredKiosk>[]),
   ]);
   final kiosks = results[0];
   final seen = kiosks.map((k) => k.ip).toSet();
@@ -142,8 +149,24 @@ Future<List<DiscoveredKiosk>> discoverBoards(
 /// of the connection attempts) against the known board OUIs. Finds clean
 /// boards whose OS answers no name protocol at all. Windows-only (the
 /// updater's platform); a no-op elsewhere.
-Future<List<DiscoveredKiosk>> _sweepSubnetForBoards() async {
+///
+/// Runs in its own isolate: on Windows a burst of 64 timed-out connects
+/// stalls the isolate that issued them for ~0.2 s (measured 2026-10-03 —
+/// 8 such stalls per sweep froze the operator app's UI for a moment every
+/// 30 s). The result is a plain list, cheap to send back.
+Future<List<DiscoveredKiosk>> sweepSubnetForBoards() async {
   if (!Platform.isWindows) return const [];
+  try {
+    return await Isolate.run(_sweepSubnetForBoardsHere);
+  } catch (e) {
+    // The sweep is a bonus on top of mDNS/LLMNR: a failing interface listing
+    // or arp call must not fail the whole search and drop those results.
+    stderr.writeln('subnet sweep skipped: $e');
+    return const [];
+  }
+}
+
+Future<List<DiscoveredKiosk>> _sweepSubnetForBoardsHere() async {
   final addresses = await _localAddresses();
   final subnets = {
     for (final a in addresses)

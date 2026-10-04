@@ -30,6 +30,52 @@
         <member name="P:GrpcLibrary.Dto.CalibratedResponse.message">
             <summary>Human-readable result or error description.</summary>
         </member>
+        <member name="T:GrpcLibrary.Dto.PersonCalibrationCamera">
+            <summary>
+            One attached camera in the result of <c>CalibrationProcessor.CalibrateByPerson()</c>.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationCamera.idModelId">
+            <summary>USB model id of the camera unit.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationCamera.linuxCameraIndex">
+            <summary>The camera's enumeration index on the server.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationCamera.proposedPosition">
+            <summary>Proposed column position (1 = bottom); 0 when nothing is proposed.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationCamera.faceHeight">
+            <summary>Where the face was seen in this camera's image: 0 = top, 1 = bottom
+            (median of the rounds); -1 when the camera never saw the face.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationCamera.roundsSeen">
+            <summary>In how many of the rounds this camera saw the face.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.PersonCalibrationResult">
+            <summary>
+            Result of <c>CalibrationProcessor.CalibrateByPerson()</c>: a PROPOSED position per
+            attached camera, worked out from a person standing in front of the column.
+            Nothing is stored on the server until the positions are sent with
+            <c>SetCalibration</c>.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationResult.success">
+            <summary>True when every camera has a proposed position. False: nothing is
+            proposed and <see cref="P:GrpcLibrary.Dto.PersonCalibrationResult.message"/> says what to change.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationResult.message">
+            <summary>What was worked out, or why not (for the operator).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationResult.rounds">
+            <summary>How many times the column was scanned.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PersonCalibrationResult.cameras">
+            <summary>One entry per attached camera.</summary>
+        </member>
+        <member name="M:GrpcLibrary.Dto.PersonCalibrationResult.ToCalibration">
+            <summary>The proposal as calibration entries, ready for
+            <c>SetCalibration</c>. Empty when <see cref="P:GrpcLibrary.Dto.PersonCalibrationResult.success"/> is false.</summary>
+        </member>
         <member name="T:GrpcLibrary.Dto.CameraSettings">
             <summary>
             All camera image settings as stored on the server, returned by
@@ -436,6 +482,10 @@
             <summary>true = automatic camera ordering (positions derived from the USB port);
             false = manual QR calibration.</summary>
         </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.cameraOrderingMode">
+            <summary>The camera ordering mode by name: "manual", "automatic" or "person";
+            empty from a server before 1.1.15 / image 2.0.14.</summary>
+        </member>
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.msmfSelection">
             <summary>true = the selection scan uses the faster Media Foundation backend (Windows only).</summary>
         </member>
@@ -456,6 +506,31 @@
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.expectedCameras">
             <summary>How many cameras this kiosk is built with; 0 = derive from
             the calibration file. Drives the server's camera self-heal.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.glassesLightsOff">
+            <summary>Glasses mode: the lights go off for the photo once glasses are
+            detected on the first valid frame (see <c>SetGlassesLightsOff</c>). Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.ofiqChecks">
+            <summary>OFIQ (ISO/IEC 29794-5) quality report instead of the informational
+            checks (see <c>SetOfiqChecks</c>). Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.ledLayout">
+            <summary>LED hardware layout on the Plasma board: "strip" or "ring"
+            (see <c>SetLedLayout</c>); "strip" for a server without the field. Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.focusColor">
+            <summary>Focus-light colour as RRGGBB hex (see <c>SetFocusLight</c>);
+            "00FF00" for a server without the field. Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.focusIntensity">
+            <summary>Focus-light intensity 0–100 (see <c>SetFocusLight</c>); 78 for a
+            server without the field. Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.ledsOffForPhoto">
+            <summary>Lights-off photo mode: the chosen camera's ring shows for a second,
+            then all column LEDs go off and the backlights light the photo
+            (see <c>SetLedsOffForPhoto</c>). Added in 1.5.3.</summary>
         </member>
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.cameraResolutions">
             <summary>The resolutions supported by the kiosk cameras.</summary>
@@ -569,7 +644,12 @@
             <summary>The applied camera-ordering mode, echoed by <c>SetCameraOrderingMode</c>.</summary>
         </member>
         <member name="P:GrpcLibrary.Dto.CameraOrderingMode.automatic">
-            <summary>true = automatic ordering from the USB port; false = manual QR calibration.</summary>
+            <summary>true = automatic ordering from the USB port; false = the saved positions.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CameraOrderingMode.mode">
+            <summary>The mode by name: "manual", "automatic" or "person" (the saved positions,
+            worked out with <c>CalibrationProcessor.CalibrateByPerson</c>). Empty from a
+            server before 1.1.15 / image 2.0.14.</summary>
         </member>
         <member name="T:GrpcLibrary.Dto.MsmfSelection">
             <summary>The applied MSMF-selection state, echoed by <c>SetMsmfSelection</c>.</summary>
@@ -627,6 +707,12 @@
         </member>
         <member name="P:GrpcLibrary.Dto.GlassesLightsOff.glassesLightsOff">
             <summary>Whether the lights switch off for a subject wearing glasses.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.LedsOffForPhoto">
+            <summary>The applied lights-off photo mode, echoed by <c>SetLedsOffForPhoto</c> (added in 1.5.3).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.LedsOffForPhoto.ledsOffForPhoto">
+            <summary>Whether all column LEDs switch off for the high-resolution photo.</summary>
         </member>
         <member name="T:GrpcLibrary.Dto.ExpectedCameras">
             <summary>The applied expected camera count, echoed by <c>SetExpectedCameras</c>.</summary>
@@ -713,6 +799,21 @@
         <member name="P:GrpcLibrary.Dto.AutoTuneUpdate.error">
             <summary>Failure reason (empty on success).</summary>
         </member>
+        <member name="T:GrpcLibrary.Dto.BacklightStatus">
+            <summary>
+            The two LED backlights on the kiosk's USB relay module, read back from the module
+            by <c>LightProcessor.GetBacklights()</c> / <c>SetBacklight()</c>.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BacklightStatus.connected">
+            <summary>Whether the USB relay module is attached (both states are false when not).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BacklightStatus.backlightBottom">
+            <summary>The bottom backlight (relay 1) is on.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BacklightStatus.backlightTop">
+            <summary>The top backlight (relay 2) is on.</summary>
+        </member>
         <member name="T:GrpcLibrary.Dto.Status">
             <summary>
             Outcome of one capture-flow step.
@@ -774,6 +875,21 @@
             <returns>
             a CalibratedResponse object containing the success and message of the request
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.CalibrationProcessor.CalibrateByPerson">
+            <summary>
+            Works out the camera positions from a person standing in front of the column.
+            The person stands straight at the normal photo distance, looks ahead and holds
+            still; the server scans the column three times (about ten seconds) and orders
+            the cameras by where each one sees the face. The result is a PROPOSAL: nothing
+            is stored until it is sent with <see cref="M:GrpcLibrary.CalibrationProcessor.SetCalibration(System.Collections.Generic.List{GrpcLibrary.Dto.CalibrationData})"/> (see
+            <c>PersonCalibrationResult.ToCalibration()</c>). When the answer is not
+            unambiguous (a camera did not see the face, two cameras too close to tell
+            apart, the person moved) <c>success</c> is false and <c>message</c> says what
+            to change. Needs server 1.1.15 / image 2.0.14 or later; an older server
+            answers UNIMPLEMENTED.
+            </summary>
+            <returns>The proposed position per attached camera.</returns>
         </member>
         <member name="T:GrpcLibrary.CameraProcessor">
             <summary>
@@ -965,6 +1081,15 @@
             The channel choice of one processor instance; see <see cref="T:GrpcLibrary.GrpcChannelProvider"/>.
             </summary>
         </member>
+        <member name="M:GrpcLibrary.ILightProcessor.SetBacklight(GrpcLibrary.Backlight,System.Boolean)">
+            <summary>Switches one of the two LED backlights (bottom = relay 1, top = relay 2)
+            on the USB relay module by hand, for testing; the capture flows switch both
+            themselves. Returns the module's state. Server 1.1.15 / image 2.0.14 or newer.</summary>
+        </member>
+        <member name="M:GrpcLibrary.ILightProcessor.GetBacklights">
+            <summary>Whether the USB relay module is attached and which backlights are on.
+            Server 1.1.15 / image 2.0.14 or newer.</summary>
+        </member>
         <member name="T:GrpcLibrary.InterfaceDefaults">
             <summary>
             Default bodies for the processor-interface members added after 1.4. With a
@@ -973,6 +1098,11 @@
             member on it throws until the class implements it. The library's processors
             implement every member.
             </summary>
+        </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.SetLedsOffForPhoto(System.Boolean)">
+            <summary>Lights-off photo mode: the chosen camera's ring shows for a second,
+            then all column LEDs go off and the backlights light the photo.
+            Server 1.1.15 / image 2.0.14 or newer.</summary>
         </member>
         <member name="T:GrpcLibrary.KioskProcessor">
             <summary>
@@ -1126,6 +1256,28 @@
             </summary>
             <param name="index">The camera index the subject stands in front of.</param>
             <returns></returns>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.SetBacklight(GrpcLibrary.Backlight,System.Boolean)">
+            <summary>
+            This method switches one of the two LED backlights on the kiosk's USB relay
+            module by hand (for testing). The kiosk also switches both itself: on for the
+            high-resolution photo of a capture, off as soon as the photo is taken, and off
+            when the server starts or stops.
+            </summary>
+            <param name="backlight"><see cref="F:GrpcLibrary.Backlight.Bottom"/> (relay 1) or <see cref="F:GrpcLibrary.Backlight.Top"/> (relay 2).</param>
+            <param name="on">True to switch it on, false to switch it off.</param>
+            <returns>The state read back from the module.</returns>
+            <exception cref="T:Grpc.Core.RpcException">
+            <c>InvalidArgument</c> for <see cref="F:GrpcLibrary.Backlight.Unspecified"/>; <c>FailedPrecondition</c>
+            when the relay module is not connected; <c>Unimplemented</c> on a server without backlight support.
+            </exception>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.GetBacklights">
+            <summary>
+            This method reads whether the USB relay module is attached and which of the two
+            LED backlights are on.
+            </summary>
+            <returns>The state read back from the module (both off when it is not connected).</returns>
         </member>
         <member name="M:GrpcLibrary.LightProcessor.AutoTuneWhitePoint">
             <summary>
@@ -1449,6 +1601,18 @@
             <param name="automatic">true = automatic ordering, false = manual calibration.</param>
             <returns>The camera ordering mode set by the server.</returns>
         </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetCameraOrderingMode(System.String)">
+            <summary>
+            This method sets how the kiosk decides each camera's position, by name:
+            "manual" (the saved positions), "automatic" (from the physical USB port when the
+            wiring is a known one) or "person" (the saved positions, worked out with
+            <c>CalibrationProcessor.CalibrateByPerson</c>). Needs server 1.1.15 / image
+            2.0.14 or later; an older server ignores the name and sets "manual" unless
+            the mode is "automatic".
+            </summary>
+            <param name="mode">"manual", "automatic" or "person".</param>
+            <returns>The camera ordering mode set by the server.</returns>
+        </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SetMsmfSelection(System.Boolean)">
             <summary>
             This method sets whether the best-camera selection scan uses the faster Media
@@ -1460,11 +1624,13 @@
         <member name="M:GrpcLibrary.SettingsProcessor.SetBackgroundMethod(System.String)">
             <summary>
             This method sets how the photo background is erased and filled with the
-            configured colour: "none" (keep original), "mediapipe" (fast),
-            (best quality) or "modnet" (portrait matting).
+            configured colour: "none" (keep original), "mediapipe" (fast), "modnet"
+            (portrait matting) or "withoutbg" (the withoutBG Open Model: best edges on
+            hair and beard, about 1.5 s per photo; server 1.1.15 / image 2.0.14 and later).
+            The retired "rembg" is still accepted and sets "withoutbg".
             </summary>
-            <param name="method">One of "none", "mediapipe", "modnet".</param>
-            <returns>The background method set by the server.</returns>
+            <param name="method">One of "none", "mediapipe", "modnet", "withoutbg".</param>
+            <returns>The background method set by the server ("withoutbg" when "rembg" was asked for).</returns>
         </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SetBackgroundColor(System.String)">
             <summary>
@@ -1525,6 +1691,17 @@
             </summary>
             <param name="glassesLightsOff">Glasses lights-off mode on/off.</param>
             <returns>The glasses lights-off value (on/off) set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetLedsOffForPhoto(System.Boolean)">
+            <summary>
+            This method sets the lights-off photo mode on or off. When on, the selected
+            camera's ring shows for a second, then all column LEDs switch off and the
+            high-resolution photo is lit by the backlights only (for filtered or
+            polarised setups, and to keep the column out of reflections).
+            Requires server 1.1.15 or newer; older servers answer UNIMPLEMENTED.
+            </summary>
+            <param name="ledsOffForPhoto">Lights-off photo mode on/off.</param>
+            <returns>The lights-off photo value (on/off) set by the server.</returns>
         </member>
         <member name="T:GrpcLibrary.CameraReflection">
             <summary>Holder for reflection information generated from Protos/camera.proto</summary>
@@ -2787,6 +2964,24 @@
             0 (an older server) means 3.
             </summary>
         </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LedsOffForPhotoFieldNumber">
+            <summary>Field number for the "leds_off_for_photo" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.LedsOffForPhoto">
+            <summary>
+            Lights-off photo: the selected camera's ring shows for a second, then
+            all LEDs go off and the high-res photo is taken under the backlights only.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.CameraOrderingModeFieldNumber">
+            <summary>Field number for the "camera_ordering_mode" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.CameraOrderingMode">
+            <summary>
+            "manual", "automatic" or "person" (see CameraOrderingModeRequest);
+            camera_ordering_automatic stays true only for "automatic".
+            </summary>
+        </member>
         <member name="T:GrpcLibrary.ResolutionRequest">
             <summary>
             The request message containing the resolution value.
@@ -2954,19 +3149,28 @@
         <member name="T:GrpcLibrary.CameraOrderingModeRequest">
             <summary>
             The request message containing the camera ordering mode.
-            true = automatic (derive positions from USB ports); false = manual calibration.
+            mode (since 2.3) names it: "manual" (the saved positions), "automatic" (positions
+            from the USB sockets when the wiring is a known one) or "person" (the saved
+            positions, worked out with Calibration.CalibrateByPerson). When mode is empty the
+            older flag decides: true = automatic, false = manual.
             </summary>
         </member>
         <member name="F:GrpcLibrary.CameraOrderingModeRequest.AutomaticFieldNumber">
             <summary>Field number for the "automatic" field.</summary>
         </member>
+        <member name="F:GrpcLibrary.CameraOrderingModeRequest.ModeFieldNumber">
+            <summary>Field number for the "mode" field.</summary>
+        </member>
         <member name="T:GrpcLibrary.CameraOrderingModeResponse">
             <summary>
-            The response message containing the camera ordering mode.
+            The response message containing the camera ordering mode that was set.
             </summary>
         </member>
         <member name="F:GrpcLibrary.CameraOrderingModeResponse.AutomaticFieldNumber">
             <summary>Field number for the "automatic" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CameraOrderingModeResponse.ModeFieldNumber">
+            <summary>Field number for the "mode" field.</summary>
         </member>
         <member name="T:GrpcLibrary.MsmfSelectionRequest">
             <summary>
@@ -3147,6 +3351,18 @@
         <member name="F:GrpcLibrary.GlassesLightsOffResponse.MessageFieldNumber">
             <summary>Field number for the "message" field.</summary>
         </member>
+        <member name="T:GrpcLibrary.LedsOffForPhotoRequest">
+            <summary>
+            The request/response messages for the lights-off photo mode (all LEDs off
+            for the high-res photo, after a one-second indicator on the selected camera).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LedsOffForPhotoRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LedsOffForPhotoResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
         <member name="T:GrpcLibrary.OfiqChecksRequest">
             <summary>
             The request/response for the OFIQ quality-report mode.
@@ -3265,6 +3481,60 @@
         <member name="F:GrpcLibrary.CalibrateResponse.MessageFieldNumber">
             <summary>Field number for the "message" field.</summary>
         </member>
+        <member name="T:GrpcLibrary.PersonCalibrationCamera">
+            <summary>
+            One attached camera in the result of CalibrateByPerson.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationCamera.IdModelIdFieldNumber">
+            <summary>Field number for the "id_model_id" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationCamera.LinuxCameraIndexFieldNumber">
+            <summary>Field number for the "linux_camera_index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationCamera.ProposedPositionFieldNumber">
+            <summary>Field number for the "proposed_position" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.PersonCalibrationCamera.ProposedPosition">
+            <summary>
+            1 = bottom. 0 = no position proposed (the calibration did not succeed).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationCamera.FaceHeightFieldNumber">
+            <summary>Field number for the "face_height" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.PersonCalibrationCamera.FaceHeight">
+            <summary>
+            Where the face was seen in this camera's image: 0 = top, 1 = bottom (median of
+            the rounds). -1 = the camera never saw the face.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationCamera.RoundsSeenFieldNumber">
+            <summary>Field number for the "rounds_seen" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.PersonCalibrationCamera.RoundsSeen">
+            <summary>
+            In how many of the rounds this camera saw the face.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.PersonCalibrationResponse.Success">
+            <summary>
+            true = every camera has a proposed_position. false = nothing is proposed and
+            message says what to change.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationResponse.CamerasFieldNumber">
+            <summary>Field number for the "cameras" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PersonCalibrationResponse.RoundsFieldNumber">
+            <summary>Field number for the "rounds" field.</summary>
+        </member>
         <member name="T:GrpcLibrary.Calibration">
             <summary>
             The calibration service definition.
@@ -3363,6 +3633,54 @@
             <param name="options">The options for the call.</param>
             <returns>The call object.</returns>
         </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.CalibrateByPerson(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Work out the camera positions from a person standing in front of the column:
+            the column is scanned three times and the cameras are ordered by where each one
+            sees the face (takes about ten seconds). Returns a PROPOSAL - nothing is stored;
+            save it with SetCalibration.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.CalibrateByPerson(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Work out the camera positions from a person standing in front of the column:
+            the column is scanned three times and the cameras are ordered by where each one
+            sees the face (takes about ten seconds). Returns a PROPOSAL - nothing is stored;
+            save it with SetCalibration.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.CalibrateByPersonAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Work out the camera positions from a person standing in front of the column:
+            the column is scanned three times and the cameras are ordered by where each one
+            sees the face (takes about ten seconds). Returns a PROPOSAL - nothing is stored;
+            save it with SetCalibration.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Calibration.CalibrationClient.CalibrateByPersonAsync(Google.Protobuf.WellKnownTypes.Empty,Grpc.Core.CallOptions)">
+            <summary>
+            Work out the camera positions from a person standing in front of the column:
+            the column is scanned three times and the cameras are ordered by where each one
+            sees the face (takes about ten seconds). Returns a PROPOSAL - nothing is stored;
+            save it with SetCalibration.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
         <member name="M:GrpcLibrary.Calibration.CalibrationClient.NewInstance(Grpc.Core.ClientBase.ClientBaseConfiguration)">
             <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
         </member>
@@ -3441,6 +3759,27 @@
         </member>
         <member name="F:GrpcLibrary.LightIndexRequest.IndexFieldNumber">
             <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightRequest.BacklightFieldNumber">
+            <summary>Field number for the "backlight" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightRequest.OnFieldNumber">
+            <summary>Field number for the "on" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BacklightStatus">
+            <summary>
+            connected = the USB relay module is attached; the two states are read back
+            from the module (both false while it is not connected).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightStatus.ConnectedFieldNumber">
+            <summary>Field number for the "connected" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightStatus.BacklightBottomFieldNumber">
+            <summary>Field number for the "backlight_bottom" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BacklightStatus.BacklightTopFieldNumber">
+            <summary>Field number for the "backlight_top" field.</summary>
         </member>
         <member name="T:GrpcLibrary.Lights">
             <summary>
@@ -3533,6 +3872,62 @@
             mix whose light (ambient subtracted) hits the target white point (6000 K
             neutral) at the current brightness. Streams one update per step; the last
             one has done=true. The sensor must face the strip from the subject position.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.SetBacklight(GrpcLibrary.BacklightRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
+            top). A capture switches both on for the high-resolution photo and off as soon
+            as it is taken; server start and stop switch them off. SetBacklight switches
+            one by hand (for testing) and returns the state read back from the module:
+            INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
+            module is not connected.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.SetBacklight(GrpcLibrary.BacklightRequest,Grpc.Core.CallOptions)">
+            <summary>
+            The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
+            top). A capture switches both on for the high-resolution photo and off as soon
+            as it is taken; server start and stop switch them off. SetBacklight switches
+            one by hand (for testing) and returns the state read back from the module:
+            INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
+            module is not connected.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="options">The options for the call.</param>
+            <returns>The response received from the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.SetBacklightAsync(GrpcLibrary.BacklightRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
+            top). A capture switches both on for the high-resolution photo and off as soon
+            as it is taken; server start and stop switch them off. SetBacklight switches
+            one by hand (for testing) and returns the state read back from the module:
+            INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
+            module is not connected.
+            </summary>
+            <param name="request">The request to send to the server.</param>
+            <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+            <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+            <param name="cancellationToken">An optional token for canceling the call.</param>
+            <returns>The call object.</returns>
+        </member>
+        <member name="M:GrpcLibrary.Lights.LightsClient.SetBacklightAsync(GrpcLibrary.BacklightRequest,Grpc.Core.CallOptions)">
+            <summary>
+            The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
+            top). A capture switches both on for the high-resolution photo and off as soon
+            as it is taken; server start and stop switch them off. SetBacklight switches
+            one by hand (for testing) and returns the state read back from the module:
+            INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
+            module is not connected.
             </summary>
             <param name="request">The request to send to the server.</param>
             <param name="options">The options for the call.</param>

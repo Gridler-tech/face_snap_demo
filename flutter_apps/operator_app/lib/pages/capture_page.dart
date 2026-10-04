@@ -18,6 +18,18 @@ import '../util/jpeg_size.dart';
 
 enum _Verdict { pending, pass, fail, warn, info }
 
+/// True for the status lines with which the server ends a capture WITHOUT a
+/// photo: "Could not take the photo with camera 4: the mouth was open in 30 of
+/// 30 frames, Please try again", "Could not find landmarks with index 4, Please
+/// try again", "Camera 4 stopped delivering frames, Please try again", "Camera
+/// detection failed, Please try again", "Capture failed, Please try again".
+/// They all end in "Please try again"; the two "Could not" openings are matched
+/// as well so a reworded ending still counts. These rows are shown in amber.
+bool captureGaveUp(String text) =>
+    text.startsWith('Could not take the photo') ||
+    text.startsWith('Could not find landmarks') ||
+    text.trimRight().endsWith('Please try again');
+
 class _ResultItem {
   _ResultItem(this.key, this.text, this.verdict);
 
@@ -189,6 +201,12 @@ class _CapturePageState extends State<CapturePage> {
         _results.removeWhere((r) => r.key == 'SelectedCamera');
         _results.insert(0, _ResultItem('SelectedCamera', combined, _Verdict.info));
       });
+      return;
+    }
+    if (captureGaveUp(text)) {
+      // The capture ended without a photo: amber, so the reason stands out
+      // instead of sitting in the list as a grey information row.
+      setState(() => _results.insert(0, _ResultItem(null, text, _Verdict.warn)));
       return;
     }
     if (text.startsWith('Live person check')) {

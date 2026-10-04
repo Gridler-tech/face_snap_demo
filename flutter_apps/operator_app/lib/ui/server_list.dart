@@ -19,7 +19,7 @@ import '../services/server_connector.dart';
 import '../services/server_probe.dart';
 import 'ui.dart';
 
-typedef DiscoverFn = Future<List<DiscoveredKiosk>> Function();
+typedef DiscoverFn = Future<List<DiscoveredKiosk>> Function({bool sweep});
 typedef ProbeFn = Future<ServerSnapshot> Function(String host, int port,
     {bool sshDetails});
 typedef ConnectFn = Future<void> Function(String host, int port);
@@ -81,8 +81,10 @@ class _ServerListState extends State<ServerList> {
   /// and clean ones) plus a server on this PC, which announces nothing over
   /// mDNS and is probed directly — listed first when it answers. Behind the
   /// `discover` seam as one unit, so tests never touch a real socket.
-  static Future<List<DiscoveredKiosk>> _discoverAll() async {
-    final results = await Future.wait([discoverBoards(), findLocalServer()]);
+  /// [sweep]: see discoverBoards — only a deliberate search sweeps the subnet.
+  static Future<List<DiscoveredKiosk>> _discoverAll({bool sweep = true}) async {
+    final results =
+        await Future.wait([discoverBoards(sweep: sweep), findLocalServer()]);
     final local = results[1] as DiscoveredKiosk?;
     return [?local, ...results[0] as List<DiscoveredKiosk>];
   }
@@ -97,7 +99,9 @@ class _ServerListState extends State<ServerList> {
     if (widget.discover != null || !underTest) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scan());
       final every = widget.refreshEvery;
-      if (every != null) _timer = Timer.periodic(every, (_) => _scan());
+      if (every != null) {
+        _timer = Timer.periodic(every, (_) => _scan(sweep: false));
+      }
     }
   }
 
@@ -139,7 +143,10 @@ class _ServerListState extends State<ServerList> {
   /// seconds when a kiosk was renamed or unplugged, and the operator must
   /// not have to wait that out). Bumping [_gen] orphans the old scan: its
   /// late results and its own clean-up are dropped by the generation checks.
-  Future<void> _scan({bool restart = false}) async {
+  ///
+  /// [sweep]: the periodic re-scan skips the subnet sweep (see
+  /// discoverBoards); the first scan and "Search again" include it.
+  Future<void> _scan({bool restart = false, bool sweep = true}) async {
     if (!mounted || (_scanning && !restart)) return;
     setState(() {
       _scanning = true;
@@ -148,7 +155,7 @@ class _ServerListState extends State<ServerList> {
     final gen = ++_gen;
     try {
       final rows = [
-        for (final k in dedupeDiscovered(await _discover())) _Row(k),
+        for (final k in dedupeDiscovered(await _discover(sweep: sweep))) _Row(k),
       ];
 
       // The remembered server must never vanish from the list just because

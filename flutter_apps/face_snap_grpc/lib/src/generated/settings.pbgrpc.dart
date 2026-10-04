@@ -268,6 +268,13 @@ class SettingsClient extends $grpc.Client {
     return $createUnaryCall(_$setBackgroundStrength, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.LedsOffForPhotoResponse> setLedsOffForPhoto(
+    $0.LedsOffForPhotoRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setLedsOffForPhoto, request, options: options);
+  }
+
   // method descriptors
 
   static final _$saveSettings =
@@ -434,6 +441,11 @@ class SettingsClient extends $grpc.Client {
       '/settings.Settings/SetBackgroundStrength',
       ($0.BackgroundStrengthRequest value) => value.writeToBuffer(),
       $0.BackgroundStrengthResponse.fromBuffer);
+  static final _$setLedsOffForPhoto =
+      $grpc.ClientMethod<$0.LedsOffForPhotoRequest, $0.LedsOffForPhotoResponse>(
+          '/settings.Settings/SetLedsOffForPhoto',
+          ($0.LedsOffForPhotoRequest value) => value.writeToBuffer(),
+          $0.LedsOffForPhotoResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('settings.Settings')
@@ -712,6 +724,15 @@ abstract class SettingsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.BackgroundStrengthRequest.fromBuffer(value),
         ($0.BackgroundStrengthResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.LedsOffForPhotoRequest,
+            $0.LedsOffForPhotoResponse>(
+        'SetLedsOffForPhoto',
+        setLedsOffForPhoto_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.LedsOffForPhotoRequest.fromBuffer(value),
+        ($0.LedsOffForPhotoResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SaveSettingsResponse> saveSettings_Pre(
@@ -1003,4 +1024,13 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.BackgroundStrengthResponse> setBackgroundStrength(
       $grpc.ServiceCall call, $0.BackgroundStrengthRequest request);
+
+  $async.Future<$0.LedsOffForPhotoResponse> setLedsOffForPhoto_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.LedsOffForPhotoRequest> $request) async {
+    return setLedsOffForPhoto($call, await $request);
+  }
+
+  $async.Future<$0.LedsOffForPhotoResponse> setLedsOffForPhoto(
+      $grpc.ServiceCall call, $0.LedsOffForPhotoRequest request);
 }

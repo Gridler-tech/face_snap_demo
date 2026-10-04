@@ -38,7 +38,7 @@ Licensed under the BSD 3-Clause License:
 > OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 > OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-### `Microsoft.Extensions.Logging.Abstractions.dll`
+### `Microsoft.Extensions.Logging.Abstractions.dll`, `Microsoft.Extensions.DependencyInjection.Abstractions.dll`
 
 Copyright © .NET Foundation and Contributors
 ([dotnet/runtime](https://github.com/dotnet/runtime)).
@@ -54,7 +54,8 @@ Licensed under the [MIT License](https://github.com/dotnet/runtime/blob/main/LIC
   [dartssh2](https://pub.dev/packages/dartssh2) (MIT),
   [file_selector](https://pub.dev/packages/file_selector) (BSD 3-Clause),
   [photo_view](https://pub.dev/packages/photo_view) (MIT),
-  [flutter_colorpicker](https://pub.dev/packages/flutter_colorpicker) (MIT)
+  [flutter_colorpicker](https://pub.dev/packages/flutter_colorpicker) (MIT),
+  [package_info_plus](https://pub.dev/packages/package_info_plus) (BSD 3-Clause)
 
 The FaceSnap kiosk server itself also builds on open source — among others .NET,
 OpenCV, MediaPipe, gRPC and Protocol Buffers — under their respective licenses.

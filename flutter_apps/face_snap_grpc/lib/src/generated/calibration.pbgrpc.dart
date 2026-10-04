@@ -50,6 +50,17 @@ class CalibrationClient extends $grpc.Client {
     return $createUnaryCall(_$setCalibration, request, options: options);
   }
 
+  /// Work out the camera positions from a person standing in front of the column:
+  /// the column is scanned three times and the cameras are ordered by where each one
+  /// sees the face (takes about ten seconds). Returns a PROPOSAL - nothing is stored;
+  /// save it with SetCalibration.
+  $grpc.ResponseFuture<$1.PersonCalibrationResponse> calibrateByPerson(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$calibrateByPerson, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getCalibration =
@@ -62,6 +73,11 @@ class CalibrationClient extends $grpc.Client {
           '/calibration.Calibration/SetCalibration',
           ($1.CalibrateRequest value) => value.writeToBuffer(),
           $1.CalibrateResponse.fromBuffer);
+  static final _$calibrateByPerson =
+      $grpc.ClientMethod<$0.Empty, $1.PersonCalibrationResponse>(
+          '/calibration.Calibration/CalibrateByPerson',
+          ($0.Empty value) => value.writeToBuffer(),
+          $1.PersonCalibrationResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('calibration.Calibration')
@@ -83,6 +99,13 @@ abstract class CalibrationServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $1.CalibrateRequest.fromBuffer(value),
         ($1.CalibrateResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $1.PersonCalibrationResponse>(
+        'CalibrateByPerson',
+        calibrateByPerson_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($1.PersonCalibrationResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$1.CalibrationSettingsResponse> getCalibration_Pre(
@@ -101,4 +124,12 @@ abstract class CalibrationServiceBase extends $grpc.Service {
 
   $async.Future<$1.CalibrateResponse> setCalibration(
       $grpc.ServiceCall call, $1.CalibrateRequest request);
+
+  $async.Future<$1.PersonCalibrationResponse> calibrateByPerson_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return calibrateByPerson($call, await $request);
+  }
+
+  $async.Future<$1.PersonCalibrationResponse> calibrateByPerson(
+      $grpc.ServiceCall call, $0.Empty request);
 }

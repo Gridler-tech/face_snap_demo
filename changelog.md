@@ -2,6 +2,147 @@
 
 
 
+## Version 1.5.3, 04-10-2026
+
+Backlights, the lights-off photo mode and calibration by a person. The assembly
+version stays 1.0.0.0 and everything in 1.5.2 is unchanged — the API only adds.
+This time replace **all** DLLs from `library/`, not only `GrpcLibrary.dll` (and
+`GrpcLibrary.xml`): the library is now built against current gRPC and Protocol
+Buffers packages.
+
+- **Updated dependencies.** `Grpc.Net.Client`, `Grpc.Net.Common` and
+  `Grpc.Core.Api` 2.84.0 (were 2.51.0), `Google.Protobuf` 3.36.2 (was 3.21.12),
+  `Microsoft.Extensions.Logging.Abstractions` 8.0.1 (was 3.0.3) and, new,
+  `Microsoft.Extensions.DependencyInjection.Abstractions` 8.0.1. `GrpcLibrary.dll`
+  1.5.3 needs at least these versions: an application that keeps the old
+  `Google.Protobuf.dll` next to the new `GrpcLibrary.dll` fails to load it. The
+  release's `GrpcLibrary.deps.json` lists the exact set.
+
+- **`LightProcessor.SetBacklight(Backlight backlight, bool on)`** and
+  **`GetBacklights()`** switch and read the two LED backlights behind the subject
+  (`Backlight.Bottom` = relay 1, `Backlight.Top` = relay 2) on the USB relay module
+  attached to the server machine. Both return a `BacklightStatus` (`connected`,
+  `backlightBottom`, `backlightTop`). The capture flows switch both backlights on
+  right before the high-resolution photo and off as soon as a frame is accepted, so
+  these calls are for test switches, not for the photo itself. A server without the
+  module answers `SetBacklight` with `FAILED_PRECONDITION` ("USB relay module not
+  connected") and reports `connected = false`.
+- **`SettingsProcessor.SetLedsOffForPhoto(bool value)`** switches the lights-off
+  photo mode: the chosen camera's ring shows for one second, then all column LEDs go
+  off before the camera opens and the photo is lit by the backlights only (for
+  filtered or polarised setups, and to keep the column out of reflections). It applies
+  to the automatic and the manual flow. `LoadSettings` reports it as
+  `leds_off_for_photo` (field 41). The existing glasses mode (`SetGlassesLightsOff`)
+  is the "only for glasses wearers" variant: with the new mode off, the lights go off
+  only once glasses are detected on the first valid frame.
+- **`KioskSettingsDto`** (from `LoadSettings`) now also carries `ledsOffForPhoto`,
+  and the settings that could only be set, never read back, since 1.5.0:
+  `glassesLightsOff`, `ofiqChecks`, `ledLayout`, `focusColor` and
+  `focusIntensity`. A server without a field reports the default ("strip",
+  "00FF00", 78, false).
+- **`CalibrationProcessor.CalibrateByPerson()`** works out the camera positions from a
+  person standing in front of the column (server 1.1.15, image 2.0.14). The person
+  stands straight at the normal photo distance, looks ahead and holds still; the server
+  scans the column three times (about ten seconds) and orders the cameras by where each
+  one sees the face. It returns a `PersonCalibrationResult` (`success`, `message`,
+  `rounds`, `cameras` with `proposedPosition`, `faceHeight`, `roundsSeen`). The result is
+  a proposal: nothing is stored until you send `result.ToCalibration()` to
+  `SetCalibration`. When the answer is not unambiguous `success` is false and `message`
+  says what to change. An older server answers `UNIMPLEMENTED`.
+- **`SettingsProcessor.SetCameraOrderingMode(string mode)`** sets the ordering mode by
+  name: `"manual"`, `"automatic"` or `"person"` (the saved positions, worked out with
+  `CalibrateByPerson`). The `bool` overload stays. `LoadSettings()` reports
+  `cameraOrderingMode`; `CameraOrderingMode` has a `mode` field. Both are empty from an
+  older server.
+- `ILightProcessor.SetBacklight` / `GetBacklights`,
+  `ICalibrationProcessor.CalibrateByPerson` and
+  `ISettingsProcessor.SetLedsOffForPhoto` / `SetCameraOrderingMode(string)` have
+  default bodies, like the members added in 1.5: an implementation written against
+  1.5.2 still loads and throws `NotSupportedException` for them until it implements
+  them.
+- Server behaviour fix, no API change: `CameraProcessor.SetExposureAutoPriority(true)`
+  now really leaves the camera in automatic exposure. Servers before 1.1.15 wrote the
+  manual exposure value right after switching to automatic, which put the camera
+  straight back to manual. On the kiosk boards the flag now maps to the camera's
+  V4L2 menu (3 = aperture priority, 1 = manual); before, `true` selected manual
+  and `false` was refused. Fresh server installs now default to automatic exposure
+  and automatic white balance, which gave the best photos with filtered lenses,
+  lights-off photos and room light; existing installs keep their stored values.
+- **Background method `withoutbg` replaces `rembg`** (server 1.1.15, image 2.0.14).
+  `SettingsProcessor.SetBackgroundMethod("withoutbg")` selects the withoutBG Open
+  Model: the best edges on hair and beard, and it keeps dark clothing that `rembg`
+  erased. About 1.5 s per photo on a laptop CPU. `"rembg"` is still accepted and now
+  runs withoutBG; the response and `LoadSettings().backgroundMethod` report
+  `"withoutbg"`. Servers before 1.1.15 / image 2.0.14 know `"rembg"` but refuse
+  `"withoutbg"` with `INVALID_ARGUMENT`. No library change is needed: the method is
+  a string. The model is built with DINOv3 (Apache-2.0 + Meta DINOv3 License).
+- **Server behaviour change, no API change: face recognition compares the face.**
+  `KioskProcessor.FaceRecognition` used to squash the whole photo to the model's input
+  size. Servers 1.1.15 / image 2.0.14 find the face on the full photo, cut a square
+  around it and compare only that (without a face the whole photo is used, as before);
+  the Windows server and the kiosk image now return identical distances. Distances
+  therefore differ from older servers: a threshold you calibrated yourself needs
+  recalibrating. `threshold = 0` still uses the server's default for the model and
+  metric. Measured with the new comparison on 36 same-person kiosk pairs, 41
+  same-person everyday pairs and 3,244 pairs of different people, these thresholds
+  accept every same-person kiosk pair (Facenet512 with cosine also every everyday
+  pair):
+
+  | Model | cosine | euclidean | euclidean L2 | different people accepted |
+  |---|---|---|---|---|
+  | Facenet512 | 0.42 | 22.0 | 0.92 | about 0.2 % |
+  | SFace | 0.45 | 6.5 | 0.95 | about 0.2 % |
+  | Dlib | 0.07 | 0.54 | 0.38 | about 1 % |
+
+  Facenet512 with cosine was the best all-round choice and is now the operator app's
+  default.
+
+Needs a server that supports these: Windows server 1.1.15 or kiosk image 2.0.14 and
+later; older servers answer the new RPCs with `UNIMPLEMENTED`.
+
+## Repository note, 04-10-2026 (operator app 1.1.15)
+
+Release 1.5.3 carries `FaceSnapOperatorSetup-1.1.15.exe` (the installer moved from
+1.5.2), and the sources in `flutter_apps/` match it. Most of it needs Windows server
+1.1.15 or kiosk image 2.0.14; against an older server the new controls say so and
+fall back.
+
+- **Backlights.** The Lighting page has a "Backlights" card: one switch per
+  backlight (bottom = relay 1, top = relay 2) on the USB relay module, with the state
+  read back from the module, a note when no module is connected or the server is
+  older, and Refresh. Before the app force-stops a server on this PC it switches the
+  backlights off.
+- **Lights-off photo mode.** A Lighting page switch for `leds_off_for_photo` (also a
+  fleet settings profile key); the glasses switch is labelled as the "only for
+  glasses wearers" variant.
+- **Face recognition.** The servers now compare the face region (see 1.5.3), so the
+  page's thresholds were recalibrated (the table above) and its slider ranges follow
+  them. The page now opens on Facenet512 with cosine at 0.42 (was Dlib).
+- **Calibration by a person.** The Calibration page offers Manual, Automatic and By a
+  person. "By a person" shows the instructions and a start button; a successful result
+  fills the position boxes as a proposal to check and save, a refused one shows the
+  server's reason in amber.
+- **Background erasing.** The Photo page offers withoutBG instead of rembg; "rembg"
+  is listed only while an older server reports it.
+- **Capture page.** A capture that ended without a photo shows the server's reason as
+  an amber "!" row instead of a grey information row.
+- **Kiosk page.** The periodic network scan no longer freezes the window (it stalled
+  the UI for 0.5–4 s several times a minute): the sweep runs on its own isolate and the
+  30-second re-scan skips it. A clean, unprovisioned board is found with "Search
+  again" or on the Updater page.
+- **About page.** The library list matches what the servers and the app use now
+  (MediaPipe as FaceSnap's native build, withoutBG, the FrameFind glasses classifier,
+  the .NET runtime and gRPC for .NET of the kiosk image, package_info_plus, …).
+- Updated packages: dartssh2 4.1.0, package_info_plus 10.2.2, protobuf 6.1.0. The
+  Dart stubs in `flutter_apps/face_snap_grpc` are regenerated for the new RPCs
+  (`SetBacklight`, `GetBacklights`, `SetLedsOffForPhoto`, `CalibrateByPerson`,
+  `SetCameraOrderingMode` with a mode name).
+
+Tests (240 in total): `backlights_test.dart`, `leds_off_for_photo_test.dart`,
+`face_recognition_thresholds_test.dart`, `calibration_by_person_test.dart`,
+`background_method_test.dart` and `capture_give_up_test.dart`, against in-process
+fake servers where a server is involved.
+
 ## Repository note, 01-10-2026 (operator app 1.1.14)
 
 Release 1.5.2 now carries `FaceSnapOperatorSetup-1.1.14.exe`, and the sources in

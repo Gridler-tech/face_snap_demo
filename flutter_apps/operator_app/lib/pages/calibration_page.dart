@@ -16,6 +16,19 @@ import '../ui/ui.dart';
 import '../util/sharpness.dart';
 import '../util/sweep_color.dart';
 
+/// The explanation under the "Camera ordering" selector for each mode.
+String orderingModeHelp(String mode) => switch (mode) {
+      'automatic' =>
+        'The column is ordered from its USB sockets when the wiring matches a '
+            'known loom, and that wins over the positions below.',
+      'person' =>
+        'The server works out the positions from a person: stand straight in '
+            'front of the column at the normal photo distance, look ahead and '
+            'hold still, then start. The result fills the positions below; '
+            'check it and save.',
+      _ => 'The positions saved below are used. Set each camera and save.',
+    };
+
 class CalibrationPage extends StatefulWidget {
   const CalibrationPage({super.key});
 
@@ -26,11 +39,18 @@ class CalibrationPage extends StatefulWidget {
 class _CalibrationPageState extends State<CalibrationPage> {
   List<CalibrateType>? _rows;
 
-  /// kiosk.camera_ordering_mode == automatic: positions come from the USB
-  /// sockets when the wiring matches a known loom, and that wins over a saved
-  /// calibration. Off: a complete saved calibration wins (the loom still
-  /// fills in an uncalibrated column).
-  bool _orderingAutomatic = false;
+  /// How the camera positions are decided: 'manual' (the positions saved below),
+  /// 'automatic' (from the USB sockets when the wiring is a known loom) or
+  /// 'person' (the saved positions, worked out by the server from a person
+  /// standing in front of the column - see [_calibrateByPerson]).
+  String _orderingMode = 'manual';
+
+  /// True while the server scans the column for the calibration by a person.
+  bool _calibratingByPerson = false;
+
+  /// What the last calibration by a person said, and whether it succeeded.
+  String? _personNote;
+  bool _personSucceeded = false;
   int _currentFocus = -1;
   int _expectedCameras = 0;
   bool _sweeping = false;
@@ -94,19 +114,79 @@ class _CalibrationPageState extends State<CalibrationPage> {
   /// Switch the ordering mode on the kiosk, then re-read the rows: the
   /// resolved positions change with the mode (the same resolver serves the
   /// capture flow and this page).
-  Future<void> _setOrdering(bool automatic) async {
-    setState(() => _orderingAutomatic = automatic);
+  Future<void> _setOrdering(String mode) async {
+    final before = _orderingMode;
+    if (mode == before) return;
+    setState(() {
+      _orderingMode = mode;
+      _personNote = null;
+    });
     try {
-      await SettingsState.client.setCameraOrderingMode(
-          CameraOrderingModeRequest(automatic: automatic));
-      SettingsState.current?.cameraOrderingAutomatic = automatic;
+      final reply = await SettingsState.client.setCameraOrderingMode(
+          CameraOrderingModeRequest(automatic: mode == 'automatic', mode: mode));
+      // A server from before the mode field answers with the flag only.
+      final set = reply.mode.isEmpty
+          ? (reply.automatic ? 'automatic' : 'manual')
+          : reply.mode;
+      SettingsState.current
+        ?..cameraOrderingAutomatic = set == 'automatic'
+        ..cameraOrderingMode = set;
       await _refresh();
+      if (mounted && set != mode) {
+        setState(() => _message = mode == 'person'
+            ? 'This server cannot calibrate by a person yet (needs server '
+                '1.1.15 / image 2.0.14); the saved positions are used.'
+            : 'The server set the ordering mode to "$set".');
+      }
     } catch (e) {
       setState(() {
-        _orderingAutomatic = !automatic;
+        _orderingMode = before;
         _message =
             'Could not change the ordering mode: ${operatorMessage(e)}';
       });
+    }
+  }
+
+  /// Ask the server to work out the positions from the person standing in
+  /// front of the column (three scans, about ten seconds). A successful result
+  /// is put in the position boxes as a PROPOSAL; the operator checks it and
+  /// saves it with "Save positions".
+  Future<void> _calibrateByPerson() async {
+    if (_calibratingByPerson) return;
+    setState(() {
+      _calibratingByPerson = true;
+      _personNote = null;
+      _message = null;
+    });
+    try {
+      final result = await _calibration.calibrateByPerson(Empty(),
+          options: CallOptions(timeout: const Duration(seconds: 180)));
+      if (!mounted) return;
+      setState(() {
+        _personSucceeded = result.success;
+        if (result.success) {
+          final proposed = {
+            for (final camera in result.cameras)
+              camera.linuxCameraIndex: camera.proposedPosition,
+          };
+          for (final row in _rows ?? const <CalibrateType>[]) {
+            final position = proposed[row.linuxCameraIndex];
+            if (position != null) row.calibratedCameraIndex = position;
+          }
+          _personNote = 'Positions proposed from the person in front of the '
+              'column. Check them below and press "Save positions" to keep them.';
+        } else {
+          _personNote = result.message;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _personSucceeded = false;
+        _personNote = 'The calibration could not run: ${operatorMessage(e)}';
+      });
+    } finally {
+      if (mounted) setState(() => _calibratingByPerson = false);
     }
   }
 
@@ -129,8 +209,14 @@ class _CalibrationPageState extends State<CalibrationPage> {
           ..sort((a, b) => a.linuxCameraIndex.compareTo(b.linuxCameraIndex));
         _currentFocus = camera.focusAbsolute;
         _expectedCameras = SettingsState.current?.expectedCameras ?? 0;
-        _orderingAutomatic =
-            SettingsState.current?.cameraOrderingAutomatic ?? false;
+        final settings = SettingsState.current;
+        final mode = settings?.cameraOrderingMode ?? '';
+        // A server from before the mode field only reports the flag.
+        _orderingMode = mode.isNotEmpty
+            ? mode
+            : ((settings?.cameraOrderingAutomatic ?? false)
+                ? 'automatic'
+                : 'manual');
       });
     } catch (e) {
       setState(() => _message =
@@ -391,19 +477,67 @@ class _CalibrationPageState extends State<CalibrationPage> {
                   ),
                   const SizedBox(height: 8),
                   Row(children: [
-                    Switch(
-                        value: _orderingAutomatic, onChanged: _setOrdering),
-                    const SizedBox(width: 8),
-                    const RowLabel('Automatic camera ordering (USB positions)'),
+                    const RowLabel('Camera ordering'),
+                    const SizedBox(width: 12),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'manual', label: Text('Manual')),
+                        ButtonSegment(
+                            value: 'automatic',
+                            label: Text('Automatic (USB sockets)')),
+                        ButtonSegment(
+                            value: 'person', label: Text('By a person')),
+                      ],
+                      selected: {_orderingMode},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (s) => _setOrdering(s.first),
+                    ),
                   ]),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 12, bottom: 4),
-                    child: Text(
-                        'On: the column is ordered from its USB sockets when the '
-                        'wiring matches a known loom, and that wins over the '
-                        'positions below. Off: complete saved positions win.',
-                        style: TextStyle(color: T.muted, fontSize: 12.5)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, bottom: 4),
+                    child: Text(orderingModeHelp(_orderingMode),
+                        style:
+                            const TextStyle(color: T.muted, fontSize: 12.5)),
                   ),
+                  if (_orderingMode == 'person') ...[
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      SizedBox(
+                        width: 320,
+                        child: GoButton(
+                            text: _calibratingByPerson
+                                ? 'Calibrating - hold still…'
+                                : 'Start calibration by a person',
+                            onPressed: _calibratingByPerson
+                                ? null
+                                : _calibrateByPerson),
+                      ),
+                      if (_calibratingByPerson) ...[
+                        const SizedBox(width: 14),
+                        const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2.5)),
+                        const SizedBox(width: 10),
+                        const Text('Scanning the column three times (about 10 s)',
+                            style: TextStyle(color: T.muted, fontSize: 13)),
+                      ],
+                    ]),
+                    if (_personNote != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _personSucceeded ? T.passTint : T.warnTint,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(_personNote!,
+                            style: TextStyle(
+                                color: _personSucceeded ? T.pass : T.warn,
+                                fontSize: 13.5)),
+                      ),
+                  ],
                   const SizedBox(height: 8),
                   for (final row in rows)
                     Padding(
@@ -418,6 +552,10 @@ class _CalibrationPageState extends State<CalibrationPage> {
                                 style: const TextStyle(
                                     color: T.muted, fontSize: 13))),
                         DropdownMenu<int>(
+                          // Keyed on the value: a proposal from the calibration
+                          // by a person must show in the box.
+                          key: ValueKey(
+                              'position-${row.linuxCameraIndex}-${row.calibratedCameraIndex}'),
                           initialSelection: row.calibratedCameraIndex,
                           width: 170,
                           dropdownMenuEntries: [

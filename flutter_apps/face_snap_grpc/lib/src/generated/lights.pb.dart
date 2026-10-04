@@ -14,7 +14,11 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'lights.pbenum.dart';
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'lights.pbenum.dart';
 
 /// Progress of one white-point tuning run. On the final update (done=true):
 /// success means the tuned R/G/B intensities are stored in the lighting
@@ -277,6 +281,153 @@ class LightIndexRequest extends $pb.GeneratedMessage {
   $core.bool hasIndex() => $_has(0);
   @$pb.TagNumber(1)
   void clearIndex() => $_clearField(1);
+}
+
+class BacklightRequest extends $pb.GeneratedMessage {
+  factory BacklightRequest({
+    Backlight? backlight,
+    $core.bool? on,
+  }) {
+    final result = create();
+    if (backlight != null) result.backlight = backlight;
+    if (on != null) result.on = on;
+    return result;
+  }
+
+  BacklightRequest._();
+
+  factory BacklightRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BacklightRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BacklightRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'lights'),
+      createEmptyInstance: create)
+    ..aE<Backlight>(1, _omitFieldNames ? '' : 'backlight',
+        enumValues: Backlight.values)
+    ..aOB(2, _omitFieldNames ? '' : 'on')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightRequest copyWith(void Function(BacklightRequest) updates) =>
+      super.copyWith((message) => updates(message as BacklightRequest))
+          as BacklightRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BacklightRequest create() => BacklightRequest._();
+  @$core.override
+  BacklightRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BacklightRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BacklightRequest>(create);
+  static BacklightRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Backlight get backlight => $_getN(0);
+  @$pb.TagNumber(1)
+  set backlight(Backlight value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasBacklight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBacklight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get on => $_getBF(1);
+  @$pb.TagNumber(2)
+  set on($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOn() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOn() => $_clearField(2);
+}
+
+/// connected = the USB relay module is attached; the two states are read back
+/// from the module (both false while it is not connected).
+class BacklightStatus extends $pb.GeneratedMessage {
+  factory BacklightStatus({
+    $core.bool? connected,
+    $core.bool? backlightBottom,
+    $core.bool? backlightTop,
+  }) {
+    final result = create();
+    if (connected != null) result.connected = connected;
+    if (backlightBottom != null) result.backlightBottom = backlightBottom;
+    if (backlightTop != null) result.backlightTop = backlightTop;
+    return result;
+  }
+
+  BacklightStatus._();
+
+  factory BacklightStatus.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BacklightStatus.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BacklightStatus',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'lights'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'connected')
+    ..aOB(2, _omitFieldNames ? '' : 'backlightBottom')
+    ..aOB(3, _omitFieldNames ? '' : 'backlightTop')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightStatus clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightStatus copyWith(void Function(BacklightStatus) updates) =>
+      super.copyWith((message) => updates(message as BacklightStatus))
+          as BacklightStatus;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BacklightStatus create() => BacklightStatus._();
+  @$core.override
+  BacklightStatus createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BacklightStatus getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BacklightStatus>(create);
+  static BacklightStatus? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get connected => $_getBF(0);
+  @$pb.TagNumber(1)
+  set connected($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConnected() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConnected() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get backlightBottom => $_getBF(1);
+  @$pb.TagNumber(2)
+  set backlightBottom($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBacklightBottom() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBacklightBottom() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get backlightTop => $_getBF(2);
+  @$pb.TagNumber(3)
+  set backlightTop($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBacklightTop() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBacklightTop() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

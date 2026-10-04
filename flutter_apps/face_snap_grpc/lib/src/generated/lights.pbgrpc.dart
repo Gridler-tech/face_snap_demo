@@ -80,6 +80,26 @@ class LightsClient extends $grpc.Client {
         options: options);
   }
 
+  /// The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
+  /// top). A capture switches both on for the high-resolution photo and off as soon
+  /// as it is taken; server start and stop switch them off. SetBacklight switches
+  /// one by hand (for testing) and returns the state read back from the module:
+  /// INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
+  /// module is not connected.
+  $grpc.ResponseFuture<$0.BacklightStatus> setBacklight(
+    $0.BacklightRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setBacklight, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.BacklightStatus> getBacklights(
+    $1.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getBacklights, request, options: options);
+  }
+
   // method descriptors
 
   static final _$setAllLights =
@@ -107,6 +127,16 @@ class LightsClient extends $grpc.Client {
           '/lights.Lights/AutoTuneWhitePoint',
           ($1.Empty value) => value.writeToBuffer(),
           $0.AutoTuneUpdate.fromBuffer);
+  static final _$setBacklight =
+      $grpc.ClientMethod<$0.BacklightRequest, $0.BacklightStatus>(
+          '/lights.Lights/SetBacklight',
+          ($0.BacklightRequest value) => value.writeToBuffer(),
+          $0.BacklightStatus.fromBuffer);
+  static final _$getBacklights =
+      $grpc.ClientMethod<$1.Empty, $0.BacklightStatus>(
+          '/lights.Lights/GetBacklights',
+          ($1.Empty value) => value.writeToBuffer(),
+          $0.BacklightStatus.fromBuffer);
 }
 
 @$pb.GrpcServiceName('lights.Lights')
@@ -149,6 +179,20 @@ abstract class LightsServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
         ($0.AutoTuneUpdate value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BacklightRequest, $0.BacklightStatus>(
+        'SetBacklight',
+        setBacklight_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.BacklightRequest.fromBuffer(value),
+        ($0.BacklightStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.Empty, $0.BacklightStatus>(
+        'GetBacklights',
+        getBacklights_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
+        ($0.BacklightStatus value) => value.writeToBuffer()));
   }
 
   $async.Future<$1.Empty> setAllLights_Pre($grpc.ServiceCall $call,
@@ -189,5 +233,21 @@ abstract class LightsServiceBase extends $grpc.Service {
   }
 
   $async.Stream<$0.AutoTuneUpdate> autoTuneWhitePoint(
+      $grpc.ServiceCall call, $1.Empty request);
+
+  $async.Future<$0.BacklightStatus> setBacklight_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.BacklightRequest> $request) async {
+    return setBacklight($call, await $request);
+  }
+
+  $async.Future<$0.BacklightStatus> setBacklight(
+      $grpc.ServiceCall call, $0.BacklightRequest request);
+
+  $async.Future<$0.BacklightStatus> getBacklights_Pre(
+      $grpc.ServiceCall $call, $async.Future<$1.Empty> $request) async {
+    return getBacklights($call, await $request);
+  }
+
+  $async.Future<$0.BacklightStatus> getBacklights(
       $grpc.ServiceCall call, $1.Empty request);
 }

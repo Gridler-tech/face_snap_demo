@@ -97,3 +97,59 @@ const CalibrateResponse$json = {
 final $typed_data.Uint8List calibrateResponseDescriptor = $convert.base64Decode(
     'ChFDYWxpYnJhdGVSZXNwb25zZRIYCgdzdWNjZXNzGAEgASgIUgdzdWNjZXNzEhgKB21lc3NhZ2'
     'UYAiABKAlSB21lc3NhZ2U=');
+
+@$core.Deprecated('Use personCalibrationCameraDescriptor instead')
+const PersonCalibrationCamera$json = {
+  '1': 'PersonCalibrationCamera',
+  '2': [
+    {'1': 'id_model_id', '3': 1, '4': 1, '5': 9, '10': 'idModelId'},
+    {
+      '1': 'linux_camera_index',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'linuxCameraIndex'
+    },
+    {
+      '1': 'proposed_position',
+      '3': 3,
+      '4': 1,
+      '5': 5,
+      '10': 'proposedPosition'
+    },
+    {'1': 'face_height', '3': 4, '4': 1, '5': 1, '10': 'faceHeight'},
+    {'1': 'rounds_seen', '3': 5, '4': 1, '5': 5, '10': 'roundsSeen'},
+  ],
+};
+
+/// Descriptor for `PersonCalibrationCamera`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List personCalibrationCameraDescriptor = $convert.base64Decode(
+    'ChdQZXJzb25DYWxpYnJhdGlvbkNhbWVyYRIeCgtpZF9tb2RlbF9pZBgBIAEoCVIJaWRNb2RlbE'
+    'lkEiwKEmxpbnV4X2NhbWVyYV9pbmRleBgCIAEoBVIQbGludXhDYW1lcmFJbmRleBIrChFwcm9w'
+    'b3NlZF9wb3NpdGlvbhgDIAEoBVIQcHJvcG9zZWRQb3NpdGlvbhIfCgtmYWNlX2hlaWdodBgEIA'
+    'EoAVIKZmFjZUhlaWdodBIfCgtyb3VuZHNfc2VlbhgFIAEoBVIKcm91bmRzU2Vlbg==');
+
+@$core.Deprecated('Use personCalibrationResponseDescriptor instead')
+const PersonCalibrationResponse$json = {
+  '1': 'PersonCalibrationResponse',
+  '2': [
+    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+    {
+      '1': 'cameras',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.calibration.PersonCalibrationCamera',
+      '10': 'cameras'
+    },
+    {'1': 'rounds', '3': 4, '4': 1, '5': 5, '10': 'rounds'},
+  ],
+};
+
+/// Descriptor for `PersonCalibrationResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List personCalibrationResponseDescriptor = $convert.base64Decode(
+    'ChlQZXJzb25DYWxpYnJhdGlvblJlc3BvbnNlEhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3MSGA'
+    'oHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZRI+CgdjYW1lcmFzGAMgAygLMiQuY2FsaWJyYXRpb24u'
+    'UGVyc29uQ2FsaWJyYXRpb25DYW1lcmFSB2NhbWVyYXMSFgoGcm91bmRzGAQgASgFUgZyb3VuZH'
+    'M=');

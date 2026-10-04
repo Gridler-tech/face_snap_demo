@@ -30,6 +30,9 @@
         <Reference Include="Microsoft.Extensions.Logging.Abstractions">
             <HintPath>..\library\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
         </Reference>
+        <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+            <HintPath>..\library\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+        </Reference>
     </ItemGroup>
 
 </Project>

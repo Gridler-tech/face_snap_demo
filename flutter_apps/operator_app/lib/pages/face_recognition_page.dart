@@ -10,6 +10,39 @@ import '../services/photo_store.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 
+/// Calibrated decision threshold + a sensible slider ceiling per model/metric
+/// combination. Distances live on completely different scales per combination
+/// (Dlib cosine ~0.0-0.2, Facenet512 euclidean ~0-40), so one fixed slider
+/// range would be meaningless.
+///
+/// The values were measured on 2026-10-04 with the servers as they compare
+/// faces now (the face is cut out of the full photo first): 36 same-person
+/// pairs of kiosk captures, 41 same-person pairs of everyday photos and 3,244
+/// pairs of different people. Each value accepts every kiosk pair and is the
+/// lowest round value that does so with some room; that lets through about
+/// 0.2 % of the different-people pairs for Facenet512 and SFace and about 1 %
+/// for Dlib, whose distances overlap. They are NOT deepface's own defaults
+/// any more (Dlib 0.07 / 0.6 / 0.4, Facenet512 0.30 / 23.56 / 1.04, SFace
+/// 0.593 / 10.73 / 1.06) - those are what the servers still use when a
+/// request carries no threshold. Euclidean L2 follows cosine: sqrt(2 x cosine).
+({double calibrated, double max}) faceRecognitionThresholdSpec(
+    Model model, DistanceMetric metric) {
+  if (model == Model.DLIB) {
+    if (metric == DistanceMetric.COSINE) return (calibrated: 0.07, max: 0.2);
+    if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 0.54, max: 1.2);
+    return (calibrated: 0.38, max: 0.8); // euclidean L2
+  }
+  if (model == Model.FACENET512) {
+    if (metric == DistanceMetric.COSINE) return (calibrated: 0.42, max: 0.8);
+    if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 22.0, max: 44);
+    return (calibrated: 0.92, max: 1.8);
+  }
+  // SFace
+  if (metric == DistanceMetric.COSINE) return (calibrated: 0.45, max: 0.9);
+  if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 6.5, max: 13);
+  return (calibrated: 0.95, max: 1.9);
+}
+
 class FaceRecognitionPage extends StatefulWidget {
   const FaceRecognitionPage({super.key});
 
@@ -74,33 +107,16 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
       _second ??= photo;
     }
   }
-  Model _model = Model.DLIB;
+  Model _model = Model.FACENET512; // best all-round in the 2026-10-04 measurement
   DistanceMetric _metric = DistanceMetric.COSINE;
-  double _threshold = 0.07; // calibrated default for Dlib + cosine
+  double _threshold =
+      faceRecognitionThresholdSpec(Model.FACENET512, DistanceMetric.COSINE)
+          .calibrated;
   bool _busy = false;
 
-  /// Calibrated decision threshold + a sensible slider ceiling per
-  /// model/metric combination (deepface's tuned values — the same table the
-  /// servers carry in FaceVerifier). Distances live on completely different
-  /// scales per combination (Dlib cosine ~0.0-0.2, Facenet512 euclidean
-  /// ~0-40), so one fixed slider range would be meaningless.
   static ({double calibrated, double max}) _thresholdSpec(
-      Model model, DistanceMetric metric) {
-    if (model == Model.DLIB) {
-      if (metric == DistanceMetric.COSINE) return (calibrated: 0.07, max: 0.2);
-      if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 0.6, max: 1.2);
-      return (calibrated: 0.4, max: 0.8); // euclidean L2
-    }
-    if (model == Model.FACENET512) {
-      if (metric == DistanceMetric.COSINE) return (calibrated: 0.30, max: 0.6);
-      if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 23.56, max: 48);
-      return (calibrated: 1.04, max: 2.0);
-    }
-    // SFace
-    if (metric == DistanceMetric.COSINE) return (calibrated: 0.593, max: 1.2);
-    if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 10.73, max: 22);
-    return (calibrated: 1.06, max: 2.0);
-  }
+          Model model, DistanceMetric metric) =>
+      faceRecognitionThresholdSpec(model, metric);
 
   /// Model/metric changed: jump the threshold to that combination's
   /// calibrated default (still adjustable afterwards).

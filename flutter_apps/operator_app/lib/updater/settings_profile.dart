@@ -224,8 +224,10 @@ class SettingsProfile {
     }
     switch (path) {
       case 'kiosk.background_method':
-        const methods = ['none', 'mediapipe', 'modnet', 'rembg'];
-        return methods.contains(value)
+        const methods = ['none', 'mediapipe', 'modnet', 'withoutbg'];
+        // 'rembg' (retired, now withoutBG) stays valid: a profile saved from an
+        // older server may carry it, and a current server takes it as withoutbg.
+        return methods.contains(value) || value == 'rembg'
             ? null
             : 'must be one of ${methods.join(', ')}.';
       case 'kiosk.background_strength':
@@ -238,6 +240,7 @@ class SettingsProfile {
             : 'must be a whole number from 50 to 100.';
       case 'kiosk.ofiq_checks':
       case 'kiosk.glasses_lights_off':
+      case 'kiosk.leds_off_for_photo':
         return value is bool ? null : 'must be true or false.';
       case 'kiosk.camera_ordering_mode':
         return value == 'manual' || value == 'automatic'
@@ -247,7 +250,8 @@ class SettingsProfile {
     return 'unknown setting — a profile may only contain the camera '
         'resolution, the quality checks, background_method, '
         'background_strength, jpeg_quality, '
-        'ofiq_checks, glasses_lights_off and camera_ordering_mode.';
+        'ofiq_checks, glasses_lights_off, leds_off_for_photo and '
+        'camera_ordering_mode.';
   }
 
   static const _labels = {
@@ -256,6 +260,7 @@ class SettingsProfile {
     'kiosk.jpeg_quality': 'JPEG quality',
     'kiosk.ofiq_checks': 'OFIQ quality report',
     'kiosk.glasses_lights_off': 'Lights off for glasses',
+    'kiosk.leds_off_for_photo': 'Lights off for the photo',
     'kiosk.camera_ordering_mode': 'Camera ordering',
   };
 

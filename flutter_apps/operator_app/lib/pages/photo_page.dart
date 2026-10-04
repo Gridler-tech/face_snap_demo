@@ -30,8 +30,19 @@ const _backgroundMethods = [
   ('none', 'none (keep background)'),
   ('mediapipe', 'MediaPipe (fastest)'),
   ('modnet', 'MODNet (portrait matting)'),
-  ('rembg', 'rembg (best quality, slower)'),
+  ('withoutbg', 'withoutBG (best quality, slower)'),
 ];
+
+/// The retired fourth method. A server from before the withoutBG change still
+/// reports it (and does not know 'withoutbg'), so it is listed only while it is
+/// the server's current value.
+const _legacyRembg = ('rembg', 'rembg (older server)');
+
+/// The dropdown entries for a server whose current method is [current].
+List<(String, String)> backgroundMethodEntries(String current) => [
+      ..._backgroundMethods,
+      if (current == _legacyRembg.$1) _legacyRembg,
+    ];
 
 /// What each erasing strength does (shown next to the 1-5 selector).
 const _strengthHints = {
@@ -152,6 +163,34 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     });
   }
 
+  /// Send the erasing method; roll the dropdown back when the server refuses (an
+  /// older server does not know 'withoutbg'). The server's reply is what was set:
+  /// a current server answers 'withoutbg' when asked for the retired 'rembg'.
+  Future<void> _setBackgroundMethod(String code) async {
+    final before = _backgroundMethod;
+    setState(() => _backgroundMethod = code);
+    try {
+      final r = await _client
+          .setBackgroundMethod(BackgroundMethodRequest(method: code));
+      final set = r.method.isEmpty ? code : r.method;
+      // Keep the shared snapshot in step (pages seed from it).
+      SettingsState.current?.backgroundMethod = set;
+      if (mounted) {
+        setState(() {
+          _backgroundMethod = set;
+          message = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _backgroundMethod = before;
+          message = 'Server call failed: ${operatorMessage(e)}';
+        });
+      }
+    }
+  }
+
   /// Send the erasing strength; roll the selector back when the server refuses
   /// (an older server does not know the setting).
   Future<void> _setBackgroundStrength(int level) async {
@@ -270,21 +309,18 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
         const RowLabel('Background erasing'),
         const SizedBox(width: 10),
         DropdownMenu<String>(
+          // Keyed on the value so a refused change shows the old method again.
+          key: ValueKey('background-method-$_backgroundMethod'),
           initialSelection: _backgroundMethod,
           width: 280,
           dropdownMenuEntries: [
-            for (final (code, display) in _backgroundMethods)
+            for (final (code, display)
+                in backgroundMethodEntries(_backgroundMethod))
               DropdownMenuEntry(value: code, label: display),
           ],
           onSelected: (code) {
-            if (code == null) return;
-            setState(() => _backgroundMethod = code);
-            runServerCall(() async {
-              await _client
-                  .setBackgroundMethod(BackgroundMethodRequest(method: code));
-              // Keep the shared snapshot in step (pages seed from it).
-              SettingsState.current?.backgroundMethod = code;
-            });
+            if (code == null || code == _backgroundMethod) return;
+            _setBackgroundMethod(code);
           },
         ),
         if (_showBackgroundColor) ...[

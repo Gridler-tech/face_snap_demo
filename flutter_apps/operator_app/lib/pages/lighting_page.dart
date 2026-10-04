@@ -1,6 +1,6 @@
 // Lighting page: the kiosk-lighting controls (on/off, R/G/B intensity,
-// glasses mode) and the manual per-camera light buttons. Split out of the
-// old Settings page.
+// glasses mode), the manual per-camera light buttons and the two LED
+// backlights on the USB relay module. Split out of the old Settings page.
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 // hide colorToHex: the picker package exports a util with the same name as
@@ -21,6 +21,7 @@ class LightingPage extends StatefulWidget {
 class _LightingPageState extends State<LightingPage> with ServerCallState {
   late bool _lighting;
   late bool _glassesLightsOff;
+  late bool _ledsOffForPhoto;
   late double _intensityRed, _intensityGreen, _intensityBlue;
   String _ledLayout = 'strip';
   Color _focusColor = const Color(0xFF00FF00);
@@ -41,12 +42,25 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
 
   SettingsClient get _client => SettingsState.client;
 
+  // The two LED backlights, as read back from the USB relay module (null
+  // until the first read). _backlightsNote says why they can't be switched
+  // (module not connected, older server, failed call); _backlightsFor is the
+  // server they were read from, so a server switch re-reads them.
+  BacklightStatus? _backlights;
+  String? _backlightsNote;
+  bool _backlightsNoteIsError = false;
+  bool _backlightsBusy = false;
+  String? _backlightsFor;
+
+  LightsClient get _lights => LightsClient(GrpcChannelProvider.channel);
+
   @override
   void initState() {
     super.initState();
     // Leave "No server connected" the moment the snapshot lands after a
     // late server start (const IndexedStack pages never rebuild otherwise).
     SettingsState.revision.addListener(_onSettingsChanged);
+    if (SettingsState.current != null) _loadBacklights();
   }
 
   @override
@@ -56,13 +70,101 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
   }
 
   void _onSettingsChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    if (_backlights == null || _backlightsFor != SettingsState.serverKey) {
+      _loadBacklights();
+    }
+  }
+
+  bool _backlightsLoading = false;
+
+  /// Reads the module state once at a time; a reply that arrives after the
+  /// server changed is dropped and the read repeated for the new server. With
+  /// [keepNote] an existing error note survives a "not connected" answer.
+  Future<void> _loadBacklights({bool keepNote = false}) async {
+    if (_backlightsLoading) return;
+    _backlightsLoading = true;
+    final key = SettingsState.serverKey;
+    _backlightsFor = key;
+    try {
+      final state = await _lights.getBacklights(Empty(),
+          options: CallOptions(timeout: const Duration(seconds: 5)));
+      if (!mounted || key != SettingsState.serverKey) return;
+      setState(() {
+        _backlights = state;
+        if (!keepNote || state.connected) {
+          _backlightsNoteIsError = false;
+          _backlightsNote = state.connected
+              ? null
+              : 'USB relay module not connected — plug it in, then press Refresh.';
+        }
+      });
+    } catch (e) {
+      if (!mounted || key != SettingsState.serverKey) return;
+      setState(() {
+        _backlights = null;
+        _backlightsNoteIsError = true;
+        _backlightsNote = 'Could not read the backlights: ${operatorMessage(e)}';
+      });
+    } finally {
+      _backlightsLoading = false;
+      if (mounted && SettingsState.serverKey != key) _loadBacklights();
+    }
+  }
+
+  Future<void> _setBacklight(Backlight backlight, bool on) async {
+    setState(() => _backlightsBusy = true);
+    try {
+      final state = await _lights
+          .setBacklight(BacklightRequest(backlight: backlight, on: on));
+      if (!mounted) return;
+      setState(() {
+        _backlights = state;
+        _backlightsNote = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      // The switch shows the last read-back state, so it springs back; the
+      // module may have gone meanwhile, so read it again (the switches then
+      // grey out) while this note stays.
+      setState(() {
+        _backlightsNoteIsError = true;
+        _backlightsNote = 'Could not switch the backlight: ${operatorMessage(e)}';
+      });
+      _loadBacklights(keepNote: true);
+    } finally {
+      if (mounted) setState(() => _backlightsBusy = false);
+    }
+  }
+
+  /// A kiosk-mode switch: shows the new value at once, pushes it, and springs
+  /// back when the server refuses (an older server answers UNIMPLEMENTED). On
+  /// success the settings snapshot the other pages read follows.
+  Future<void> _pushMode(bool on,
+      {required void Function(bool) show,
+      required void Function(LoadSettingsResponse, bool) store,
+      required Future<dynamic> Function(bool) call}) async {
+    setState(() => show(on));
+    try {
+      await call(on);
+      final s = SettingsState.current;
+      if (s != null) store(s, on);
+      if (mounted) setState(() => message = null);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        show(!on);
+        message = 'Server call failed: ${operatorMessage(e)}';
+      });
+    }
   }
 
   void _readFromState() {
     final s = SettingsState.current!;
     _lighting = s.lighting;
     _glassesLightsOff = s.glassesLightsOff;
+    _ledsOffForPhoto = s.ledsOffForPhoto;
     _intensityRed = s.intensityRed.toDouble();
     _intensityGreen = s.intensityGreen.toDouble();
     _intensityBlue = s.intensityBlue.toDouble();
@@ -91,6 +193,11 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
             title: 'Lights',
             titleLeading: const DevInfoBadge('lights'),
             child: _buildLightsCard()),
+        const SizedBox(height: 14),
+        SectionCard(
+            title: 'Backlights',
+            titleLeading: const DevInfoBadge('backlights'),
+            child: _buildBacklightsCard()),
         ErrorLine(message),
       ]),
     );
@@ -195,15 +302,31 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
       Row(children: [
         Switch(
             value: _glassesLightsOff,
-            onChanged: (v) {
-              setState(() => _glassesLightsOff = v);
-              runServerCall(() => _client.setGlassesLightsOff(
-                  GlassesLightsOffRequest(value: _glassesLightsOff)));
-            }),
+            onChanged: (v) => _pushMode(v,
+                show: (on) => _glassesLightsOff = on,
+                store: (s, on) => s.glassesLightsOff = on,
+                call: (on) => _client
+                    .setGlassesLightsOff(GlassesLightsOffRequest(value: on)))),
         const SizedBox(width: 10),
         const Expanded(
             child: RowLabel(
-                'Glasses mode: photo with all lights off when glasses are detected')),
+                'Glasses mode: lights off for the photo only when glasses are '
+                'detected (the chosen camera\'s ring stays on until then)')),
+      ]),
+      const SizedBox(height: 4),
+      Row(children: [
+        Switch(
+            value: _ledsOffForPhoto,
+            onChanged: (v) => _pushMode(v,
+                show: (on) => _ledsOffForPhoto = on,
+                store: (s, on) => s.ledsOffForPhoto = on,
+                call: (on) => _client
+                    .setLedsOffForPhoto(LedsOffForPhotoRequest(value: on)))),
+        const SizedBox(width: 10),
+        const Expanded(
+            child: RowLabel(
+                'Lights off for the photo: the chosen camera\'s ring shows for a '
+                'second, then all LEDs go off and the backlights light the photo')),
       ]),
     ]);
   }
@@ -348,4 +471,43 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     }
   }
 
+  /// The two LED backlights on the USB relay module, switched by hand for
+  /// testing (captures switch them themselves).
+  Widget _buildBacklightsCard() {
+    final state = _backlights;
+    final enabled = state != null && state.connected && !_backlightsBusy;
+    Widget row(String label, Backlight backlight, bool value) => Row(children: [
+          Switch(
+              value: value,
+              onChanged: enabled ? (v) => _setBacklight(backlight, v) : null),
+          const SizedBox(width: 10),
+          Expanded(child: RowLabel(label)),
+        ]);
+    final note = _backlightsNote ??
+        (state == null ? 'Reading the relay module…' : 'USB relay module connected');
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text(
+          'For testing: switch each backlight by hand. During a capture both '
+          'go on for the high-resolution photo and off as soon as it is '
+          'taken; starting or stopping the server switches them off.',
+          style: TextStyle(color: T.muted, fontSize: 13)),
+      const SizedBox(height: 8),
+      row('Bottom backlight (relay 1)', Backlight.BACKLIGHT_BOTTOM,
+          state?.backlightBottom ?? false),
+      row('Top backlight (relay 2)', Backlight.BACKLIGHT_TOP,
+          state?.backlightTop ?? false),
+      const SizedBox(height: 6),
+      Row(children: [
+        Expanded(
+            child: Text(note,
+                style: TextStyle(
+                    color: _backlightsNoteIsError && _backlightsNote != null
+                        ? T.fail
+                        : T.muted,
+                    fontSize: 13))),
+        const SizedBox(width: 12),
+        QuietButton(text: 'Refresh', onPressed: _loadBacklights),
+      ]),
+    ]);
+  }
 }

@@ -291,7 +291,10 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
                 runServerCall(() => _camera.setWhiteBalanceTemperatureAuto(
                     WhiteBalanceTemperatureAutoRequest(value: v)));
               }),
-              _switchRow('Exposure auto priority', s.exposureAutoPriority, (v) {
+              // The server keeps the V4L2 control name exposure_auto_priority
+              // for this flag; on the kiosk cameras it is the auto/manual
+              // exposure switch, so that is what the operator sees.
+              _switchRow('Automatic exposure', s.exposureAutoPriority, (v) {
                 setState(() => _settings!.exposureAutoPriority = v);
                 runServerCall(() => _camera.setExposureAutoPriority(
                     ExposureAutoPriorityRequest(value: v)));
@@ -456,6 +459,14 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
         ? range.max.toDouble()
         : spec.fallbackMax;
     final value = (_values[spec.name] ?? min).clamp(min, max);
+    // A manual value is meaningless while the camera's own automatic mode
+    // owns the property (the server does not even write it then).
+    final s = _settings!;
+    final String? lockedBy = switch (spec.name) {
+      'exposure_absolute' => s.exposureAutoPriority ? 'automatic exposure' : null,
+      'focus_absolute' => s.autofocus ? 'autofocus' : null,
+      _ => null,
+    };
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       RowLabel('${spec.label} ${value.round()}'),
@@ -463,10 +474,18 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
         value: value,
         min: min,
         max: max,
-        onChanged: (v) => setState(() => _values[spec.name] = v),
+        onChanged: lockedBy == null
+            ? (v) => setState(() => _values[spec.name] = v)
+            : null,
         onChangeEnd: (v) =>
             runServerCall(() => spec.write(_camera, v.round())),
       ),
+      if (lockedBy != null)
+        Padding(
+          padding: const EdgeInsets.only(left: 24, bottom: 6),
+          child: Text('Set by the camera while $lockedBy is on',
+              style: Theme.of(context).textTheme.bodySmall),
+        ),
     ]);
   }
 }

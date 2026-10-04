@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:face_snap_grpc/face_snap_grpc.dart';
+
 /// Local FaceSnap server control (Windows): status, start/stop and the
 /// start-at-logon shortcut — the Dart port of the C# ServerProcessManager +
 /// ServerAutostart helpers. Only meaningful when the app runs on the kiosk
@@ -36,10 +38,39 @@ class ServerManager {
   }
 
   /// Stops whoever owns the port (the server may have been started elsewhere).
+  /// The windowless server is force-killed, which skips its own shutdown
+  /// steps, so the backlights are switched off first (as a normal stop does).
   static Future<void> stop(int port) async {
+    await backlightsOff(port);
     await _powershell(
         '\$c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; '
         'if (\$c) { \$c.OwningProcess | Sort-Object -Unique | ForEach-Object { Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue } }');
+  }
+
+  /// Both backlights off on the local server, best effort: no relay module,
+  /// a server without backlight support or one that does not answer within
+  /// two seconds simply leaves nothing to switch off. Both calls go out at
+  /// once under one two-second budget, so a hung server (the usual reason to
+  /// press Stop) delays the kill by two seconds, not four.
+  static Future<void> backlightsOff(int port) async {
+    final channel = GrpcChannelProvider.openChannel('127.0.0.1', port);
+    try {
+      final lights = LightsClient(channel);
+      final options = CallOptions(timeout: const Duration(seconds: 2));
+      await Future.wait([
+        for (final backlight in [
+          Backlight.BACKLIGHT_BOTTOM,
+          Backlight.BACKLIGHT_TOP,
+        ])
+          lights.setBacklight(
+              BacklightRequest(backlight: backlight, on: false),
+              options: options),
+      ]);
+    } catch (_) {
+      // Nothing to switch off (see above).
+    } finally {
+      await channel.shutdown();
+    }
   }
 
   // The server installer's Inno Setup AppId (face_snap_server.iss) plus the

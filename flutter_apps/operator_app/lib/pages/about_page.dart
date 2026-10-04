@@ -14,24 +14,37 @@ class _Library {
 
 const _serverLibraries = [
   _Library('OpenCV', 'camera capture and image processing', 'Apache-2.0'),
-  _Library('MediaPipe', 'face landmarks and segmentation', 'Apache-2.0'),
+  _Library('MediaPipe (FaceSnap native build)', 'face landmarks, expression and segmentation',
+      'Apache-2.0'),
   _Library('TensorFlow / tf-keras', 'deep-learning runtime', 'Apache-2.0'),
   _Library('DeepFace', 'face recognition framework', 'MIT'),
   _Library('Face recognition weights: Dlib / Facenet512 / SFace',
       'model files', 'CC0 (public domain) / MIT / Apache-2.0'),
   _Library('dlib', 'face recognition runtime', 'Boost'),
   _Library('ONNX Runtime', 'neural-network inference', 'MIT'),
-  _Library('rembg / MODNet / U2-Net', 'background removal', 'MIT / Apache-2.0'),
-  _Library('PyMatting, scikit-image, Numba', 'matting and image toolkits',
-      'MIT / BSD'),
+  _Library('FrameFind glasses classifier', 'glasses check (model file)',
+      'MIT'),
+  _Library('MODNet', 'background removal (portrait matting)', 'Apache-2.0'),
+  _Library('withoutBG Open Model - Built with DINOv3',
+      'background removal (best quality)',
+      'Apache-2.0 / Meta DINOv3 License'),
+  _Library('Depth Anything V2 (small)', 'part of the withoutBG model',
+      'Apache-2.0'),
   _Library('gRPC (grpcio) & Protocol Buffers', 'client-server communication',
       'Apache-2.0 / BSD-3'),
   _Library('NumPy', 'numeric computing', 'BSD-3'),
+  _Library('Pillow', 'image resizing for the withoutBG model',
+      'MIT-CMU'),
   _Library('cv2-enumerate-cameras & pygrabber', 'Windows camera discovery',
       'MIT'),
   _Library('mpremote & pyserial', 'LED-board (MicroPython) link', 'MIT / BSD-3'),
   _Library('psutil', 'system monitoring', 'BSD-3'),
-  _Library('Python', 'server runtime', 'PSF'),
+  _Library('Python', 'runtime of the Windows server',
+      'PSF'),
+  _Library('.NET & ASP.NET Core', 'runtime of Server 2.0 (kiosk boards)',
+      'MIT'),
+  _Library('gRPC for .NET', 'client-server communication of Server 2.0',
+      'Apache-2.0'),
 ];
 
 const _qualityLibraries = [
@@ -46,6 +59,8 @@ const _appLibraries = [
   _Library('file_selector', 'native save dialogs', 'BSD-3'),
   _Library('flutter_colorpicker', 'focus-light colour picker', 'MIT'),
   _Library('dartssh2', 'kiosk board server control (SSH)', 'MIT'),
+  _Library('package_info_plus', 'application version display',
+      'BSD-3'),
 ];
 
 const _boardLibraries = [

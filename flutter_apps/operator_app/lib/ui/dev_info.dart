@@ -235,7 +235,7 @@ await for (final event in startAutomaticCapture()) {
     rpc: 'SettingsProcessor.SetPhotoFormat',
     summary: 'Each control is an immediate unary setter. The photo format '
         'decides the aspect ratio AND how the face is framed; background '
-        'erasing takes a method (none / mediapipe / modnet / rembg), a fill '
+        'erasing takes a method (none / mediapipe / modnet / withoutbg), a fill '
         'colour and a strength 1 (mild) - 5 (heavy), 3 = standard; JPEG '
         'quality applies to delivered photos.',
     snippets: {
@@ -329,6 +329,34 @@ await foreach (var step in lights.AutoTuneWhitePoint())
 final lights = LightsClient(GrpcChannelProvider.channel);
 await lights.setAllLights(AllLightsRequest(status: true));
 await lights.setLightAtCameraIndex(LightIndexRequest(index: 2));''',
+    },
+    docsUrl: '$_docsBase/api/GrpcLibrary.LightProcessor.html',
+  ),
+  'backlights': _DevTopic(
+    title: 'The two LED backlights',
+    rpc: 'LightProcessor.SetBacklight / GetBacklights',
+    summary: 'Two LED backlights on a USB relay module (relay 1 = bottom, '
+        'relay 2 = top). The kiosk switches both itself: on for the '
+        'high-resolution photo of a capture, off as soon as it is taken, and '
+        'off when the server starts or stops. SetBacklight switches one by '
+        'hand for testing; both calls return the state read back from the '
+        'module. Without the module: FailedPrecondition (connected = false).',
+    snippets: {
+      'C# — facesnap-sdk': '''
+var lights = new LightProcessor();
+var state = await lights.GetBacklights();
+if (state.connected)
+{
+    state = await lights.SetBacklight(Backlight.Top, true);
+    Show(state.backlightTop);             // read back from the module
+}''',
+      'Dart — face_snap_grpc': '''
+final lights = LightsClient(GrpcChannelProvider.channel);
+var state = await lights.getBacklights(Empty());
+if (state.connected) {
+  state = await lights.setBacklight(
+      BacklightRequest(backlight: Backlight.BACKLIGHT_TOP, on: true));
+}''',
     },
     docsUrl: '$_docsBase/api/GrpcLibrary.LightProcessor.html',
   ),
@@ -445,7 +473,11 @@ await c.setMsmfSelection(MsmfSelectionRequest(enabled: true));''',
         'position the capture flow resolves for it. SetCalibration rewrites '
         'the calibration in the list order you send (position = index in '
         'the list). Identity is the USB PORT, not the camera unit — a '
-        'replacement camera in the same port needs no recalibration.',
+        'replacement camera in the same port needs no recalibration. '
+        'Three ordering modes (SetCameraOrderingMode: manual / automatic / '
+        'person). CalibrateByPerson scans the column three times with a '
+        'person in front of it and returns a PROPOSED position per camera '
+        '(nothing is stored until SetCalibration).',
     snippets: {
       'C# — facesnap-sdk': '''
 var calibration = new CalibrationProcessor();

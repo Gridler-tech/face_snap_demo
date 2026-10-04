@@ -45,7 +45,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [
+      discover: ({bool sweep = true}) async => [
         kiosk('facesnap-a.local', '192.168.3.167'),
         kiosk('facesnap-b.local', '192.168.3.181'),
       ],
@@ -69,7 +69,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [kiosk('facesnap-b.local', '192.168.3.181')],
+      discover: ({bool sweep = true}) async => [kiosk('facesnap-b.local', '192.168.3.181')],
       probe: (h, p, {bool sshDetails = true}) async => _down,
       connect: (h, p) async => fail('must not connect to a dead server'),
     )));
@@ -86,7 +86,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [
+      discover: ({bool sweep = true}) async => [
         DiscoveredKiosk(hostName: 'odroid', ip: '10.0.0.9', kind: BoardKind.clean),
       ],
       probe: (h, p, {bool sshDetails = true}) async =>
@@ -109,7 +109,7 @@ void main() {
       onConnected: () async => refreshed = true,
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [
+      discover: ({bool sweep = true}) async => [
         kiosk('facesnap-a.local', '192.168.3.167'),
         kiosk('facesnap-b.local', '192.168.3.181'),
       ],
@@ -135,7 +135,7 @@ void main() {
       onConnected: () async => fail('must not refresh after a failed connect'),
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [kiosk('facesnap-b.local', '192.168.3.181')],
+      discover: ({bool sweep = true}) async => [kiosk('facesnap-b.local', '192.168.3.181')],
       probe: (h, p, {bool sshDetails = true}) async => _up,
       connect: (h, p) async => throw Exception('refused'),
     )));
@@ -154,7 +154,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () async => [kiosk('facesnap-b.local', '192.168.3.181')],
+      discover: ({bool sweep = true}) async => [kiosk('facesnap-b.local', '192.168.3.181')],
       probe: (h, p, {bool sshDetails = true}) async =>
           h == '192.168.3.180' ? _down : _up,
       connect: (h, p) async {},
@@ -175,7 +175,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async => addAsked = true,
       refreshEvery: null,
-      discover: () async => [],
+      discover: ({bool sweep = true}) async => [],
       probe: (h, p, {bool sshDetails = true}) async => _up,
       connect: (h, p) async {},
     )));
@@ -199,7 +199,7 @@ void main() {
       onConnected: () async {},
       onAddAddress: () async {},
       refreshEvery: null,
-      discover: () => ++calls == 1
+      discover: ({bool sweep = true}) => ++calls == 1
           ? stuck.future
           : Future.value([kiosk('facesnap-b.local', '192.168.3.181')]),
       probe: (h, p, {bool sshDetails = true}) async => _up,
@@ -215,5 +215,34 @@ void main() {
     expect(find.text('Connected'), findsOneWidget);
     expect(find.text('1 server found'), findsOneWidget);
     expect(find.text('Searching the network…'), findsNothing);
+  });
+
+  testWidgets('only a deliberate search sweeps the subnet', (tester) async {
+    // The 30 s background re-scan must not run the port-22 sweep of every
+    // local address (it stalled the UI for a moment each time); the first
+    // scan and "Search again" do.
+    AppConfig.host = '127.0.0.1';
+    final sweeps = <bool>[];
+    await tester.pumpWidget(host(ServerList(
+      onConnected: () async {},
+      onAddAddress: () async {},
+      refreshEvery: const Duration(seconds: 30),
+      discover: ({bool sweep = true}) async {
+        sweeps.add(sweep);
+        return [kiosk('facesnap-b.local', '192.168.3.181')];
+      },
+      probe: (h, p, {bool sshDetails = true}) async => _up,
+      connect: (h, p) async {},
+    )));
+    await settle(tester);
+    expect(sweeps, [true], reason: 'the first scan is a full search');
+
+    await tester.pump(const Duration(seconds: 30)); // the periodic re-scan
+    await settle(tester);
+    expect(sweeps, [true, false], reason: 'the background re-scan skips the sweep');
+
+    await tester.tap(find.text('Search again'));
+    await settle(tester);
+    expect(sweeps, [true, false, true], reason: 'the operator asked for a search');
   });
 }

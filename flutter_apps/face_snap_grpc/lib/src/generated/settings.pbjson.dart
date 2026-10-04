@@ -184,6 +184,20 @@ const LoadSettingsResponse$json = {
       '5': 5,
       '10': 'backgroundStrength'
     },
+    {
+      '1': 'leds_off_for_photo',
+      '3': 41,
+      '4': 1,
+      '5': 8,
+      '10': 'ledsOffForPhoto'
+    },
+    {
+      '1': 'camera_ordering_mode',
+      '3': 42,
+      '4': 1,
+      '5': 9,
+      '10': 'cameraOrderingMode'
+    },
   ],
   '9': [
     {'1': 18, '2': 19},
@@ -220,8 +234,9 @@ final $typed_data.Uint8List loadSettingsResponseDescriptor = $convert.base64Deco
     'b2ZpcUNoZWNrcxIdCgpsZWRfbGF5b3V0GCQgASgJUglsZWRMYXlvdXQSHwoLZm9jdXNfY29sb3'
     'IYJSABKAlSCmZvY3VzQ29sb3ISJwoPZm9jdXNfaW50ZW5zaXR5GCYgASgFUg5mb2N1c0ludGVu'
     'c2l0eRIpChBleHBlY3RlZF9jYW1lcmFzGCcgASgFUg9leHBlY3RlZENhbWVyYXMSLwoTYmFja2'
-    'dyb3VuZF9zdHJlbmd0aBgoIAEoBVISYmFja2dyb3VuZFN0cmVuZ3RoSgQIEhATSgQIHxAgSgQI'
-    'IBAhSgQIIRAi');
+    'dyb3VuZF9zdHJlbmd0aBgoIAEoBVISYmFja2dyb3VuZFN0cmVuZ3RoEisKEmxlZHNfb2ZmX2Zv'
+    'cl9waG90bxgpIAEoCFIPbGVkc09mZkZvclBob3RvEjAKFGNhbWVyYV9vcmRlcmluZ19tb2RlGC'
+    'ogASgJUhJjYW1lcmFPcmRlcmluZ01vZGVKBAgSEBNKBAgfECBKBAggECFKBAghECI=');
 
 @$core.Deprecated('Use resolutionRequestDescriptor instead')
 const ResolutionRequest$json = {
@@ -455,6 +470,7 @@ const CameraOrderingModeRequest$json = {
   '1': 'CameraOrderingModeRequest',
   '2': [
     {'1': 'automatic', '3': 1, '4': 1, '5': 8, '10': 'automatic'},
+    {'1': 'mode', '3': 2, '4': 1, '5': 9, '10': 'mode'},
   ],
 };
 
@@ -462,13 +478,14 @@ const CameraOrderingModeRequest$json = {
 final $typed_data.Uint8List cameraOrderingModeRequestDescriptor =
     $convert.base64Decode(
         'ChlDYW1lcmFPcmRlcmluZ01vZGVSZXF1ZXN0EhwKCWF1dG9tYXRpYxgBIAEoCFIJYXV0b21hdG'
-        'lj');
+        'ljEhIKBG1vZGUYAiABKAlSBG1vZGU=');
 
 @$core.Deprecated('Use cameraOrderingModeResponseDescriptor instead')
 const CameraOrderingModeResponse$json = {
   '1': 'CameraOrderingModeResponse',
   '2': [
     {'1': 'automatic', '3': 1, '4': 1, '5': 8, '10': 'automatic'},
+    {'1': 'mode', '3': 2, '4': 1, '5': 9, '10': 'mode'},
   ],
 };
 
@@ -476,7 +493,7 @@ const CameraOrderingModeResponse$json = {
 final $typed_data.Uint8List cameraOrderingModeResponseDescriptor =
     $convert.base64Decode(
         'ChpDYW1lcmFPcmRlcmluZ01vZGVSZXNwb25zZRIcCglhdXRvbWF0aWMYASABKAhSCWF1dG9tYX'
-        'RpYw==');
+        'RpYxISCgRtb2RlGAIgASgJUgRtb2Rl');
 
 @$core.Deprecated('Use msmfSelectionRequestDescriptor instead')
 const MsmfSelectionRequest$json = {
@@ -840,6 +857,32 @@ const GlassesLightsOffResponse$json = {
 final $typed_data.Uint8List glassesLightsOffResponseDescriptor =
     $convert.base64Decode(
         'ChhHbGFzc2VzTGlnaHRzT2ZmUmVzcG9uc2USGAoHbWVzc2FnZRgBIAEoCFIHbWVzc2FnZQ==');
+
+@$core.Deprecated('Use ledsOffForPhotoRequestDescriptor instead')
+const LedsOffForPhotoRequest$json = {
+  '1': 'LedsOffForPhotoRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 8, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `LedsOffForPhotoRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List ledsOffForPhotoRequestDescriptor =
+    $convert.base64Decode(
+        'ChZMZWRzT2ZmRm9yUGhvdG9SZXF1ZXN0EhQKBXZhbHVlGAEgASgIUgV2YWx1ZQ==');
+
+@$core.Deprecated('Use ledsOffForPhotoResponseDescriptor instead')
+const LedsOffForPhotoResponse$json = {
+  '1': 'LedsOffForPhotoResponse',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 8, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `LedsOffForPhotoResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List ledsOffForPhotoResponseDescriptor =
+    $convert.base64Decode(
+        'ChdMZWRzT2ZmRm9yUGhvdG9SZXNwb25zZRIYCgdtZXNzYWdlGAEgASgIUgdtZXNzYWdl');
 
 @$core.Deprecated('Use ofiqChecksRequestDescriptor instead')
 const OfiqChecksRequest$json = {

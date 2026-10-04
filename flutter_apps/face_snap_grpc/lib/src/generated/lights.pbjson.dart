@@ -15,6 +15,21 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use backlightDescriptor instead')
+const Backlight$json = {
+  '1': 'Backlight',
+  '2': [
+    {'1': 'BACKLIGHT_UNSPECIFIED', '2': 0},
+    {'1': 'BACKLIGHT_BOTTOM', '2': 1},
+    {'1': 'BACKLIGHT_TOP', '2': 2},
+  ],
+};
+
+/// Descriptor for `Backlight`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List backlightDescriptor = $convert.base64Decode(
+    'CglCYWNrbGlnaHQSGQoVQkFDS0xJR0hUX1VOU1BFQ0lGSUVEEAASFAoQQkFDS0xJR0hUX0JPVF'
+    'RPTRABEhEKDUJBQ0tMSUdIVF9UT1AQAg==');
+
 @$core.Deprecated('Use autoTuneUpdateDescriptor instead')
 const AutoTuneUpdate$json = {
   '1': 'AutoTuneUpdate',
@@ -62,3 +77,40 @@ const LightIndexRequest$json = {
 /// Descriptor for `LightIndexRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List lightIndexRequestDescriptor = $convert
     .base64Decode('ChFMaWdodEluZGV4UmVxdWVzdBIUCgVpbmRleBgBIAEoBVIFaW5kZXg=');
+
+@$core.Deprecated('Use backlightRequestDescriptor instead')
+const BacklightRequest$json = {
+  '1': 'BacklightRequest',
+  '2': [
+    {
+      '1': 'backlight',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.lights.Backlight',
+      '10': 'backlight'
+    },
+    {'1': 'on', '3': 2, '4': 1, '5': 8, '10': 'on'},
+  ],
+};
+
+/// Descriptor for `BacklightRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backlightRequestDescriptor = $convert.base64Decode(
+    'ChBCYWNrbGlnaHRSZXF1ZXN0Ei8KCWJhY2tsaWdodBgBIAEoDjIRLmxpZ2h0cy5CYWNrbGlnaH'
+    'RSCWJhY2tsaWdodBIOCgJvbhgCIAEoCFICb24=');
+
+@$core.Deprecated('Use backlightStatusDescriptor instead')
+const BacklightStatus$json = {
+  '1': 'BacklightStatus',
+  '2': [
+    {'1': 'connected', '3': 1, '4': 1, '5': 8, '10': 'connected'},
+    {'1': 'backlight_bottom', '3': 2, '4': 1, '5': 8, '10': 'backlightBottom'},
+    {'1': 'backlight_top', '3': 3, '4': 1, '5': 8, '10': 'backlightTop'},
+  ],
+};
+
+/// Descriptor for `BacklightStatus`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backlightStatusDescriptor = $convert.base64Decode(
+    'Cg9CYWNrbGlnaHRTdGF0dXMSHAoJY29ubmVjdGVkGAEgASgIUgljb25uZWN0ZWQSKQoQYmFja2'
+    'xpZ2h0X2JvdHRvbRgCIAEoCFIPYmFja2xpZ2h0Qm90dG9tEiMKDWJhY2tsaWdodF90b3AYAyAB'
+    'KAhSDGJhY2tsaWdodFRvcA==');

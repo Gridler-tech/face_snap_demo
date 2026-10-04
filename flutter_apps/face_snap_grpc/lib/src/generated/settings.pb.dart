@@ -540,6 +540,8 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     $core.int? focusIntensity,
     $core.int? expectedCameras,
     $core.int? backgroundStrength,
+    $core.bool? ledsOffForPhoto,
+    $core.String? cameraOrderingMode,
   }) {
     final result = create();
     if (width != null) result.width = width;
@@ -583,6 +585,9 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     if (expectedCameras != null) result.expectedCameras = expectedCameras;
     if (backgroundStrength != null)
       result.backgroundStrength = backgroundStrength;
+    if (ledsOffForPhoto != null) result.ledsOffForPhoto = ledsOffForPhoto;
+    if (cameraOrderingMode != null)
+      result.cameraOrderingMode = cameraOrderingMode;
     return result;
   }
 
@@ -636,6 +641,8 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     ..aI(38, _omitFieldNames ? '' : 'focusIntensity')
     ..aI(39, _omitFieldNames ? '' : 'expectedCameras')
     ..aI(40, _omitFieldNames ? '' : 'backgroundStrength')
+    ..aOB(41, _omitFieldNames ? '' : 'ledsOffForPhoto')
+    ..aOS(42, _omitFieldNames ? '' : 'cameraOrderingMode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -996,6 +1003,28 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
   $core.bool hasBackgroundStrength() => $_has(35);
   @$pb.TagNumber(40)
   void clearBackgroundStrength() => $_clearField(40);
+
+  /// Lights-off photo: the selected camera's ring shows for a second, then
+  /// all LEDs go off and the high-res photo is taken under the backlights only.
+  @$pb.TagNumber(41)
+  $core.bool get ledsOffForPhoto => $_getBF(36);
+  @$pb.TagNumber(41)
+  set ledsOffForPhoto($core.bool value) => $_setBool(36, value);
+  @$pb.TagNumber(41)
+  $core.bool hasLedsOffForPhoto() => $_has(36);
+  @$pb.TagNumber(41)
+  void clearLedsOffForPhoto() => $_clearField(41);
+
+  /// "manual", "automatic" or "person" (see CameraOrderingModeRequest);
+  /// camera_ordering_automatic stays true only for "automatic".
+  @$pb.TagNumber(42)
+  $core.String get cameraOrderingMode => $_getSZ(37);
+  @$pb.TagNumber(42)
+  set cameraOrderingMode($core.String value) => $_setString(37, value);
+  @$pb.TagNumber(42)
+  $core.bool hasCameraOrderingMode() => $_has(37);
+  @$pb.TagNumber(42)
+  void clearCameraOrderingMode() => $_clearField(42);
 }
 
 /// The request message containing the resolution value.
@@ -2039,13 +2068,18 @@ class DistanceMaxResponse extends $pb.GeneratedMessage {
 }
 
 /// The request message containing the camera ordering mode.
-/// true = automatic (derive positions from USB ports); false = manual calibration.
+/// mode (since 2.3) names it: "manual" (the saved positions), "automatic" (positions
+/// from the USB sockets when the wiring is a known one) or "person" (the saved
+/// positions, worked out with Calibration.CalibrateByPerson). When mode is empty the
+/// older flag decides: true = automatic, false = manual.
 class CameraOrderingModeRequest extends $pb.GeneratedMessage {
   factory CameraOrderingModeRequest({
     $core.bool? automatic,
+    $core.String? mode,
   }) {
     final result = create();
     if (automatic != null) result.automatic = automatic;
+    if (mode != null) result.mode = mode;
     return result;
   }
 
@@ -2063,6 +2097,7 @@ class CameraOrderingModeRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'automatic')
+    ..aOS(2, _omitFieldNames ? '' : 'mode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2093,15 +2128,26 @@ class CameraOrderingModeRequest extends $pb.GeneratedMessage {
   $core.bool hasAutomatic() => $_has(0);
   @$pb.TagNumber(1)
   void clearAutomatic() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get mode => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mode($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMode() => $_clearField(2);
 }
 
-/// The response message containing the camera ordering mode.
+/// The response message containing the camera ordering mode that was set.
 class CameraOrderingModeResponse extends $pb.GeneratedMessage {
   factory CameraOrderingModeResponse({
     $core.bool? automatic,
+    $core.String? mode,
   }) {
     final result = create();
     if (automatic != null) result.automatic = automatic;
+    if (mode != null) result.mode = mode;
     return result;
   }
 
@@ -2119,6 +2165,7 @@ class CameraOrderingModeResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'automatic')
+    ..aOS(2, _omitFieldNames ? '' : 'mode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2150,6 +2197,15 @@ class CameraOrderingModeResponse extends $pb.GeneratedMessage {
   $core.bool hasAutomatic() => $_has(0);
   @$pb.TagNumber(1)
   void clearAutomatic() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get mode => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set mode($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMode() => $_clearField(2);
 }
 
 /// The request message containing whether MSMF is used for the selection scan.
@@ -3712,6 +3768,118 @@ class GlassesLightsOffResponse extends $pb.GeneratedMessage {
   static GlassesLightsOffResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GlassesLightsOffResponse>(create);
   static GlassesLightsOffResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get message => $_getBF(0);
+  @$pb.TagNumber(1)
+  set message($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessage() => $_clearField(1);
+}
+
+/// The request/response messages for the lights-off photo mode (all LEDs off
+/// for the high-res photo, after a one-second indicator on the selected camera).
+class LedsOffForPhotoRequest extends $pb.GeneratedMessage {
+  factory LedsOffForPhotoRequest({
+    $core.bool? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  LedsOffForPhotoRequest._();
+
+  factory LedsOffForPhotoRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LedsOffForPhotoRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LedsOffForPhotoRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LedsOffForPhotoRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LedsOffForPhotoRequest copyWith(
+          void Function(LedsOffForPhotoRequest) updates) =>
+      super.copyWith((message) => updates(message as LedsOffForPhotoRequest))
+          as LedsOffForPhotoRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LedsOffForPhotoRequest create() => LedsOffForPhotoRequest._();
+  @$core.override
+  LedsOffForPhotoRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LedsOffForPhotoRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LedsOffForPhotoRequest>(create);
+  static LedsOffForPhotoRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get value => $_getBF(0);
+  @$pb.TagNumber(1)
+  set value($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class LedsOffForPhotoResponse extends $pb.GeneratedMessage {
+  factory LedsOffForPhotoResponse({
+    $core.bool? message,
+  }) {
+    final result = create();
+    if (message != null) result.message = message;
+    return result;
+  }
+
+  LedsOffForPhotoResponse._();
+
+  factory LedsOffForPhotoResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LedsOffForPhotoResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LedsOffForPhotoResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LedsOffForPhotoResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LedsOffForPhotoResponse copyWith(
+          void Function(LedsOffForPhotoResponse) updates) =>
+      super.copyWith((message) => updates(message as LedsOffForPhotoResponse))
+          as LedsOffForPhotoResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LedsOffForPhotoResponse create() => LedsOffForPhotoResponse._();
+  @$core.override
+  LedsOffForPhotoResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LedsOffForPhotoResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LedsOffForPhotoResponse>(create);
+  static LedsOffForPhotoResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.bool get message => $_getBF(0);
