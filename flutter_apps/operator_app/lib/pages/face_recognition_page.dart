@@ -184,11 +184,25 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
                 for (final photo in photos.reversed) _photoTile(photo),
               ]),
             const SizedBox(height: 12),
-            QuietButton(
-              text: 'Load photo from this PC…',
-              width: 220,
-              onPressed: _busy ? null : _loadFromDisk,
-            ),
+            Row(children: [
+              QuietButton(
+                text: 'Load photo from this PC…',
+                width: 220,
+                onPressed: _busy ? null : _loadFromDisk,
+              ),
+              const SizedBox(width: 10),
+              QuietButton(
+                text: 'Clear captures',
+                width: 160,
+                onPressed: _busy || photos.isEmpty
+                    ? null
+                    : () => setState(() {
+                          PhotoStore.clear();
+                          if (_first != null && !_diskPhotos.contains(_first)) _first = null;
+                          if (_second != null && !_diskPhotos.contains(_second)) _second = null;
+                        }),
+              ),
+            ]),
           ]),
         ),
         const SizedBox(height: 14),

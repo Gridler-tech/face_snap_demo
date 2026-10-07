@@ -10,6 +10,8 @@ export 'package:grpc/grpc.dart' show CallOptions, GrpcError;
 
 export 'src/automatic_capture.dart';
 export 'src/channel_provider.dart';
+export 'src/rpc_snippets.dart';
+export 'src/rpc_trace.dart';
 export 'src/generated/calibration.pbgrpc.dart';
 export 'src/generated/camera.pbgrpc.dart';
 export 'src/generated/kiosk.pbgrpc.dart';

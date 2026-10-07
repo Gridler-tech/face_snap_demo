@@ -9,3 +9,7 @@ environment:
 dependencies:
   grpc: ^5.1.0
   protobuf: ^6.0.0
+
+dev_dependencies:
+  # The RPC trace tests serve fake services from an in-process grpc Server.
+  test: ^1.29.0

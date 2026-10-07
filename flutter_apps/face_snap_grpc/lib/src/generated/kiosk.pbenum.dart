@@ -83,5 +83,59 @@ class StatusType extends $pb.ProtobufEnum {
   const StatusType._(super.value, super.name);
 }
 
+/// What kind of check a CheckResult reports.
+class CheckKind extends $pb.ProtobufEnum {
+  static const CheckKind CHECK_KIND_UNSPECIFIED =
+      CheckKind._(0, _omitEnumNames ? '' : 'CHECK_KIND_UNSPECIFIED');
+  static const CheckKind GATE = CheckKind._(1, _omitEnumNames ? '' : 'GATE');
+  static const CheckKind KIOSK_CHECK =
+      CheckKind._(2, _omitEnumNames ? '' : 'KIOSK_CHECK');
+  static const CheckKind LIVENESS =
+      CheckKind._(3, _omitEnumNames ? '' : 'LIVENESS');
+  static const CheckKind OFIQ = CheckKind._(4, _omitEnumNames ? '' : 'OFIQ');
+  static const CheckKind ICAO = CheckKind._(5, _omitEnumNames ? '' : 'ICAO');
+
+  static const $core.List<CheckKind> values = <CheckKind>[
+    CHECK_KIND_UNSPECIFIED,
+    GATE,
+    KIOSK_CHECK,
+    LIVENESS,
+    OFIQ,
+    ICAO,
+  ];
+
+  static final $core.List<CheckKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static CheckKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CheckKind._(super.value, super.name);
+}
+
+class CheckVerdict extends $pb.ProtobufEnum {
+  static const CheckVerdict VERDICT_UNSPECIFIED =
+      CheckVerdict._(0, _omitEnumNames ? '' : 'VERDICT_UNSPECIFIED');
+  static const CheckVerdict PASSED =
+      CheckVerdict._(1, _omitEnumNames ? '' : 'PASSED');
+  static const CheckVerdict FAILED =
+      CheckVerdict._(2, _omitEnumNames ? '' : 'FAILED');
+  static const CheckVerdict NOT_CHECKED =
+      CheckVerdict._(3, _omitEnumNames ? '' : 'NOT_CHECKED');
+
+  static const $core.List<CheckVerdict> values = <CheckVerdict>[
+    VERDICT_UNSPECIFIED,
+    PASSED,
+    FAILED,
+    NOT_CHECKED,
+  ];
+
+  static final $core.List<CheckVerdict?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static CheckVerdict? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const CheckVerdict._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

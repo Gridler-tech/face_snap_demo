@@ -60,6 +60,40 @@ final $typed_data.Uint8List statusTypeDescriptor = $convert.base64Decode(
     'CgpTdGF0dXNUeXBlEgYKAk9LEAASCQoFRVJST1IQARILCgdUSU1FT1VUEAMSCwoHVU5LTk9XTh'
     'AE');
 
+@$core.Deprecated('Use checkKindDescriptor instead')
+const CheckKind$json = {
+  '1': 'CheckKind',
+  '2': [
+    {'1': 'CHECK_KIND_UNSPECIFIED', '2': 0},
+    {'1': 'GATE', '2': 1},
+    {'1': 'KIOSK_CHECK', '2': 2},
+    {'1': 'LIVENESS', '2': 3},
+    {'1': 'OFIQ', '2': 4},
+    {'1': 'ICAO', '2': 5},
+  ],
+};
+
+/// Descriptor for `CheckKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List checkKindDescriptor = $convert.base64Decode(
+    'CglDaGVja0tpbmQSGgoWQ0hFQ0tfS0lORF9VTlNQRUNJRklFRBAAEggKBEdBVEUQARIPCgtLSU'
+    '9TS19DSEVDSxACEgwKCExJVkVORVNTEAMSCAoET0ZJURAEEggKBElDQU8QBQ==');
+
+@$core.Deprecated('Use checkVerdictDescriptor instead')
+const CheckVerdict$json = {
+  '1': 'CheckVerdict',
+  '2': [
+    {'1': 'VERDICT_UNSPECIFIED', '2': 0},
+    {'1': 'PASSED', '2': 1},
+    {'1': 'FAILED', '2': 2},
+    {'1': 'NOT_CHECKED', '2': 3},
+  ],
+};
+
+/// Descriptor for `CheckVerdict`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List checkVerdictDescriptor = $convert.base64Decode(
+    'CgxDaGVja1ZlcmRpY3QSFwoTVkVSRElDVF9VTlNQRUNJRklFRBAAEgoKBlBBU1NFRBABEgoKBk'
+    'ZBSUxFRBACEg8KC05PVF9DSEVDS0VEEAM=');
+
 @$core.Deprecated('Use previewRequestDescriptor instead')
 const PreviewRequest$json = {
   '1': 'PreviewRequest',
@@ -257,6 +291,15 @@ const ProcessAutomaticResponse$json = {
       '9': 0,
       '10': 'imageData'
     },
+    {
+      '1': 'checkResult',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.kiosk.CheckResult',
+      '9': 0,
+      '10': 'checkResult'
+    },
   ],
   '8': [
     {'1': 'result'},
@@ -267,7 +310,53 @@ const ProcessAutomaticResponse$json = {
 final $typed_data.Uint8List processAutomaticResponseDescriptor = $convert.base64Decode(
     'ChhQcm9jZXNzQXV0b21hdGljUmVzcG9uc2USQAoNcHJvY2Vzc1N0YXR1cxgBIAEoCzIYLmtpb3'
     'NrLlByb2Nlc3NTdGVwU3RhdHVzSABSDXByb2Nlc3NTdGF0dXMSNwoJaW1hZ2VEYXRhGAIgASgL'
-    'Mhcua2lvc2suUHJvY2Vzc0ltYWdlRGF0YUgAUglpbWFnZURhdGFCCAoGcmVzdWx0');
+    'Mhcua2lvc2suUHJvY2Vzc0ltYWdlRGF0YUgAUglpbWFnZURhdGESNgoLY2hlY2tSZXN1bHQYAy'
+    'ABKAsyEi5raW9zay5DaGVja1Jlc3VsdEgAUgtjaGVja1Jlc3VsdEIICgZyZXN1bHQ=');
+
+@$core.Deprecated('Use checkResultDescriptor instead')
+const CheckResult$json = {
+  '1': 'CheckResult',
+  '2': [
+    {'1': 'index', '3': 1, '4': 1, '5': 5, '10': 'index'},
+    {
+      '1': 'kind',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.kiosk.CheckKind',
+      '10': 'kind'
+    },
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'verdict',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.kiosk.CheckVerdict',
+      '10': 'verdict'
+    },
+    {'1': 'gates_photo', '3': 5, '4': 1, '5': 8, '10': 'gatesPhoto'},
+    {'1': 'value', '3': 6, '4': 1, '5': 1, '9': 0, '10': 'value', '17': true},
+    {'1': 'min', '3': 7, '4': 1, '5': 1, '9': 1, '10': 'min', '17': true},
+    {'1': 'max', '3': 8, '4': 1, '5': 1, '9': 2, '10': 'max', '17': true},
+    {'1': 'unit', '3': 9, '4': 1, '5': 9, '10': 'unit'},
+    {'1': 'description', '3': 10, '4': 1, '5': 9, '10': 'description'},
+  ],
+  '8': [
+    {'1': '_value'},
+    {'1': '_min'},
+    {'1': '_max'},
+  ],
+};
+
+/// Descriptor for `CheckResult`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List checkResultDescriptor = $convert.base64Decode(
+    'CgtDaGVja1Jlc3VsdBIUCgVpbmRleBgBIAEoBVIFaW5kZXgSJAoEa2luZBgCIAEoDjIQLmtpb3'
+    'NrLkNoZWNrS2luZFIEa2luZBISCgRuYW1lGAMgASgJUgRuYW1lEi0KB3ZlcmRpY3QYBCABKA4y'
+    'Ey5raW9zay5DaGVja1ZlcmRpY3RSB3ZlcmRpY3QSHwoLZ2F0ZXNfcGhvdG8YBSABKAhSCmdhdG'
+    'VzUGhvdG8SGQoFdmFsdWUYBiABKAFIAFIFdmFsdWWIAQESFQoDbWluGAcgASgBSAFSA21pbogB'
+    'ARIVCgNtYXgYCCABKAFIAlIDbWF4iAEBEhIKBHVuaXQYCSABKAlSBHVuaXQSIAoLZGVzY3JpcH'
+    'Rpb24YCiABKAlSC2Rlc2NyaXB0aW9uQggKBl92YWx1ZUIGCgRfbWluQgYKBF9tYXg=');
 
 @$core.Deprecated('Use processManualResponseDescriptor instead')
 const ProcessManualResponse$json = {
@@ -371,6 +460,14 @@ const HighResImageResponse$json = {
       '6': '.kiosk.StatusType',
       '10': 'statusType'
     },
+    {
+      '1': 'checks',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.kiosk.CheckResult',
+      '10': 'checks'
+    },
   ],
 };
 
@@ -378,7 +475,8 @@ const HighResImageResponse$json = {
 final $typed_data.Uint8List highResImageResponseDescriptor = $convert.base64Decode(
     'ChRIaWdoUmVzSW1hZ2VSZXNwb25zZRJDChBwcm9jZXNzSW1hZ2VEYXRhGAEgASgLMhcua2lvc2'
     'suUHJvY2Vzc0ltYWdlRGF0YVIQcHJvY2Vzc0ltYWdlRGF0YRIxCgpzdGF0dXNUeXBlGAIgASgO'
-    'MhEua2lvc2suU3RhdHVzVHlwZVIKc3RhdHVzVHlwZQ==');
+    'MhEua2lvc2suU3RhdHVzVHlwZVIKc3RhdHVzVHlwZRIqCgZjaGVja3MYAyADKAsyEi5raW9zay'
+    '5DaGVja1Jlc3VsdFIGY2hlY2tz');
 
 @$core.Deprecated('Use highResIcaoImageRequestDescriptor instead')
 const HighResIcaoImageRequest$json = {

@@ -32,7 +32,9 @@ class BackupEngine extends KioskEngine {
         await _doInspect();
         await _doBackup();
         return true;
-      }, beforeClose: () => sshOrNull?.run('rm -f $kConfigBackupTgz').ignore());
+      }, beforeClose: () async {
+        await sshOrNull?.run('rm -f $kConfigBackupTgz');
+      });
 
   Future<void> _doInspect() async {
     setStep(_inspect, StepStatus.running);

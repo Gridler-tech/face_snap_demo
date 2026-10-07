@@ -31,6 +31,16 @@ const kConfigBackupTgz = '/tmp/facesnap_config_backup.tgz';
 /// Container-name filter matching the compose service's container.
 const kContainerFilter = '--filter name=face_snap';
 
+/// The last [tail] lines of the compose container's log, both streams.
+/// `| head -1`: `docker logs` takes ONE container and the filter can match
+/// several (see KioskEngine.containerLogs, which warns in that case).
+String containerLogsCmd(int tail) =>
+    'docker logs --tail $tail \$(docker ps -q $kContainerFilter | head -1) 2>&1';
+
+/// Non-blank lines in a command's output (e.g. ids from `docker ps -q`).
+int countLines(String stdout) =>
+    stdout.split('\n').where((l) => l.trim().isNotEmpty).length;
+
 /// Image-reference filters covering both server generations:
 /// face_snap_server (Python) and facesnap2.
 const kImageRefFilters =

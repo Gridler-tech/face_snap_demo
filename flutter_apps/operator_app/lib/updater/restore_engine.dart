@@ -52,7 +52,9 @@ class RestoreEngine extends KioskEngine {
         await _doStart();
         await _doVerify();
         return true;
-      }, beforeClose: () => sshOrNull?.run('rm -f $_remoteTgz').ignore());
+      }, beforeClose: () async {
+        await sshOrNull?.run('rm -f $_remoteTgz');
+      });
 
   Future<void> _doInspect() async {
     setStep(_inspect, StepStatus.running);
@@ -155,9 +157,8 @@ class RestoreEngine extends KioskEngine {
     var bound = false;
     for (var i = 0; i < 36; i++) {
       await Future<void>.delayed(const Duration(seconds: 5));
-      final logs = await ssh.run(
-          'docker logs --tail 400 \$(docker ps -q $kContainerFilter) 2>&1');
-      if (kServerReadyMarker.hasMatch(logs.stdout)) {
+      final logs = await containerLogs(400);
+      if (kServerReadyMarker.hasMatch(logs)) {
         bound = true;
         break;
       }

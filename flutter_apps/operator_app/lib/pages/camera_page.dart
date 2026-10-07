@@ -138,7 +138,10 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
     if (_loadedFor != server) {
       // Switched servers: the previous server's camera settings and any
       // running preview belong to the old channel — drop them and reload.
-      _previewSubscription?.cancel();
+      // _stopPreview (not a bare cancel) also clears the camera and the last
+      // frame, else the Live preview card keeps showing the old server's
+      // frame with "Stop preview" enabled after the reload.
+      _stopPreview();
       setState(() => _settings = null);
     }
     _loadedFor = server;
@@ -164,15 +167,21 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
               data is Uint8List ? data : Uint8List.fromList(data));
         }
       },
-      onError: (Object e) => setState(() {
-        message = 'Preview failed: ${operatorMessage(e)}';
-        _previewSubscription = null;
-        _previewCamera = null;
-      }),
-      onDone: () => setState(() {
-        _previewSubscription = null;
-        _previewCamera = null;
-      }),
+      onError: (Object e) {
+        if (!mounted) return;
+        setState(() {
+          message = 'Preview failed: ${operatorMessage(e)}';
+          _previewSubscription = null;
+          _previewCamera = null;
+        });
+      },
+      onDone: () {
+        if (!mounted) return;
+        setState(() {
+          _previewSubscription = null;
+          _previewCamera = null;
+        });
+      },
     );
   }
 

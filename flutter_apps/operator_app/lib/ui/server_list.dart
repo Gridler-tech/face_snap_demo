@@ -11,6 +11,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:face_snap_grpc/face_snap_grpc.dart' show RpcTrace;
 import 'package:flutter/material.dart';
 
 import '../services/app_config.dart';
@@ -97,10 +98,15 @@ class _ServerListState extends State<ServerList> {
     // page too.
     final underTest = Platform.environment['FLUTTER_TEST'] == 'true';
     if (widget.discover != null || !underTest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scan());
+      // The automatic scans are background status polling: their probes
+      // (GetKioskInfo on every row) are tagged so the RPC console can hide
+      // them. "Search again" is the operator's own action and stays visible.
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => RpcTrace.runTagged('poll', () => _scan()));
       final every = widget.refreshEvery;
       if (every != null) {
-        _timer = Timer.periodic(every, (_) => _scan(sweep: false));
+        _timer = Timer.periodic(every,
+            (_) => RpcTrace.runTagged('poll', () => _scan(sweep: false)));
       }
     }
   }

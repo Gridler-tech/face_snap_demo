@@ -33,7 +33,7 @@ class CapturedPhoto {
 class PhotoStore {
   PhotoStore._();
 
-  static const keepCaptures = 3;
+  static const keepCaptures = 10;
 
   /// Oldest capture first; newest photos at the end.
   static final List<CapturedPhoto> photos = [];
@@ -61,6 +61,16 @@ class PhotoStore {
     ]);
     final cutoff = _captureSeq - keepCaptures;
     photos.removeWhere((p) => p.capture <= cutoff);
+    revision.value++;
+    _persist();
+  }
+
+  /// Forget every capture, in memory and on disk (the operator's "Clear"
+  /// button). Photos loaded from disk on the Face recognition page are not
+  /// kept here and stay.
+  static void clear() {
+    if (photos.isEmpty) return;
+    photos.clear();
     revision.value++;
     _persist();
   }

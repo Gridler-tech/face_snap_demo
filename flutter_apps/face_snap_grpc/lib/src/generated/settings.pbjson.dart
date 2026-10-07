@@ -198,6 +198,23 @@ const LoadSettingsResponse$json = {
       '5': 9,
       '10': 'cameraOrderingMode'
     },
+    {'1': 'icao_report', '3': 43, '4': 1, '5': 8, '10': 'icaoReport'},
+    {'1': 'liveness_check', '3': 44, '4': 1, '5': 8, '10': 'livenessCheck'},
+    {
+      '1': 'liveness_shading_check',
+      '3': 45,
+      '4': 1,
+      '5': 8,
+      '10': 'livenessShadingCheck'
+    },
+    {
+      '1': 'liveness_colour_check',
+      '3': 46,
+      '4': 1,
+      '5': 8,
+      '10': 'livenessColourCheck'
+    },
+    {'1': 'photo_light', '3': 47, '4': 1, '5': 9, '10': 'photoLight'},
   ],
   '9': [
     {'1': 18, '2': 19},
@@ -236,7 +253,11 @@ final $typed_data.Uint8List loadSettingsResponseDescriptor = $convert.base64Deco
     'c2l0eRIpChBleHBlY3RlZF9jYW1lcmFzGCcgASgFUg9leHBlY3RlZENhbWVyYXMSLwoTYmFja2'
     'dyb3VuZF9zdHJlbmd0aBgoIAEoBVISYmFja2dyb3VuZFN0cmVuZ3RoEisKEmxlZHNfb2ZmX2Zv'
     'cl9waG90bxgpIAEoCFIPbGVkc09mZkZvclBob3RvEjAKFGNhbWVyYV9vcmRlcmluZ19tb2RlGC'
-    'ogASgJUhJjYW1lcmFPcmRlcmluZ01vZGVKBAgSEBNKBAgfECBKBAggECFKBAghECI=');
+    'ogASgJUhJjYW1lcmFPcmRlcmluZ01vZGUSHwoLaWNhb19yZXBvcnQYKyABKAhSCmljYW9SZXBv'
+    'cnQSJQoObGl2ZW5lc3NfY2hlY2sYLCABKAhSDWxpdmVuZXNzQ2hlY2sSNAoWbGl2ZW5lc3Nfc2'
+    'hhZGluZ19jaGVjaxgtIAEoCFIUbGl2ZW5lc3NTaGFkaW5nQ2hlY2sSMgoVbGl2ZW5lc3NfY29s'
+    'b3VyX2NoZWNrGC4gASgIUhNsaXZlbmVzc0NvbG91ckNoZWNrEh8KC3Bob3RvX2xpZ2h0GC8gAS'
+    'gJUgpwaG90b0xpZ2h0SgQIEhATSgQIHxAgSgQIIBAhSgQIIRAi');
 
 @$core.Deprecated('Use resolutionRequestDescriptor instead')
 const ResolutionRequest$json = {
@@ -909,6 +930,88 @@ final $typed_data.Uint8List ofiqChecksResponseDescriptor =
     $convert.base64Decode(
         'ChJPZmlxQ2hlY2tzUmVzcG9uc2USGAoHbWVzc2FnZRgBIAEoCFIHbWVzc2FnZQ==');
 
+@$core.Deprecated('Use icaoReportRequestDescriptor instead')
+const IcaoReportRequest$json = {
+  '1': 'IcaoReportRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 8, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `IcaoReportRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List icaoReportRequestDescriptor = $convert
+    .base64Decode('ChFJY2FvUmVwb3J0UmVxdWVzdBIUCgV2YWx1ZRgBIAEoCFIFdmFsdWU=');
+
+@$core.Deprecated('Use icaoReportResponseDescriptor instead')
+const IcaoReportResponse$json = {
+  '1': 'IcaoReportResponse',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 8, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `IcaoReportResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List icaoReportResponseDescriptor =
+    $convert.base64Decode(
+        'ChJJY2FvUmVwb3J0UmVzcG9uc2USGAoHbWVzc2FnZRgBIAEoCFIHbWVzc2FnZQ==');
+
+@$core.Deprecated('Use livenessChecksRequestDescriptor instead')
+const LivenessChecksRequest$json = {
+  '1': 'LivenessChecksRequest',
+  '2': [
+    {'1': 'liveness_check', '3': 1, '4': 1, '5': 8, '10': 'livenessCheck'},
+    {'1': 'shading_check', '3': 2, '4': 1, '5': 8, '10': 'shadingCheck'},
+    {'1': 'colour_check', '3': 3, '4': 1, '5': 8, '10': 'colourCheck'},
+  ],
+};
+
+/// Descriptor for `LivenessChecksRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List livenessChecksRequestDescriptor = $convert.base64Decode(
+    'ChVMaXZlbmVzc0NoZWNrc1JlcXVlc3QSJQoObGl2ZW5lc3NfY2hlY2sYASABKAhSDWxpdmVuZX'
+    'NzQ2hlY2sSIwoNc2hhZGluZ19jaGVjaxgCIAEoCFIMc2hhZGluZ0NoZWNrEiEKDGNvbG91cl9j'
+    'aGVjaxgDIAEoCFILY29sb3VyQ2hlY2s=');
+
+@$core.Deprecated('Use livenessChecksResponseDescriptor instead')
+const LivenessChecksResponse$json = {
+  '1': 'LivenessChecksResponse',
+  '2': [
+    {'1': 'liveness_check', '3': 1, '4': 1, '5': 8, '10': 'livenessCheck'},
+    {'1': 'shading_check', '3': 2, '4': 1, '5': 8, '10': 'shadingCheck'},
+    {'1': 'colour_check', '3': 3, '4': 1, '5': 8, '10': 'colourCheck'},
+  ],
+};
+
+/// Descriptor for `LivenessChecksResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List livenessChecksResponseDescriptor = $convert.base64Decode(
+    'ChZMaXZlbmVzc0NoZWNrc1Jlc3BvbnNlEiUKDmxpdmVuZXNzX2NoZWNrGAEgASgIUg1saXZlbm'
+    'Vzc0NoZWNrEiMKDXNoYWRpbmdfY2hlY2sYAiABKAhSDHNoYWRpbmdDaGVjaxIhCgxjb2xvdXJf'
+    'Y2hlY2sYAyABKAhSC2NvbG91ckNoZWNr');
+
+@$core.Deprecated('Use photoLightRequestDescriptor instead')
+const PhotoLightRequest$json = {
+  '1': 'PhotoLightRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 9, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `PhotoLightRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List photoLightRequestDescriptor = $convert
+    .base64Decode('ChFQaG90b0xpZ2h0UmVxdWVzdBIUCgV2YWx1ZRgBIAEoCVIFdmFsdWU=');
+
+@$core.Deprecated('Use photoLightResponseDescriptor instead')
+const PhotoLightResponse$json = {
+  '1': 'PhotoLightResponse',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `PhotoLightResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List photoLightResponseDescriptor =
+    $convert.base64Decode(
+        'ChJQaG90b0xpZ2h0UmVzcG9uc2USGAoHbWVzc2FnZRgBIAEoCVIHbWVzc2FnZQ==');
+
 @$core.Deprecated('Use ledLayoutRequestDescriptor instead')
 const LedLayoutRequest$json = {
   '1': 'LedLayoutRequest',
@@ -932,6 +1035,50 @@ const LedLayoutResponse$json = {
 /// Descriptor for `LedLayoutResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List ledLayoutResponseDescriptor = $convert.base64Decode(
     'ChFMZWRMYXlvdXRSZXNwb25zZRIYCgdtZXNzYWdlGAEgASgJUgdtZXNzYWdl');
+
+@$core.Deprecated('Use boardGblRequestDescriptor instead')
+const BoardGblRequest$json = {
+  '1': 'BoardGblRequest',
+  '2': [
+    {'1': 'layout', '3': 1, '4': 1, '5': 9, '10': 'layout'},
+    {'1': 'content', '3': 2, '4': 1, '5': 9, '10': 'content'},
+  ],
+};
+
+/// Descriptor for `BoardGblRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List boardGblRequestDescriptor = $convert.base64Decode(
+    'Cg9Cb2FyZEdibFJlcXVlc3QSFgoGbGF5b3V0GAEgASgJUgZsYXlvdXQSGAoHY29udGVudBgCIA'
+    'EoCVIHY29udGVudA==');
+
+@$core.Deprecated('Use boardGblLayoutRequestDescriptor instead')
+const BoardGblLayoutRequest$json = {
+  '1': 'BoardGblLayoutRequest',
+  '2': [
+    {'1': 'layout', '3': 1, '4': 1, '5': 9, '10': 'layout'},
+  ],
+};
+
+/// Descriptor for `BoardGblLayoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List boardGblLayoutRequestDescriptor =
+    $convert.base64Decode(
+        'ChVCb2FyZEdibExheW91dFJlcXVlc3QSFgoGbGF5b3V0GAEgASgJUgZsYXlvdXQ=');
+
+@$core.Deprecated('Use boardGblResponseDescriptor instead')
+const BoardGblResponse$json = {
+  '1': 'BoardGblResponse',
+  '2': [
+    {'1': 'layout', '3': 1, '4': 1, '5': 9, '10': 'layout'},
+    {'1': 'content', '3': 2, '4': 1, '5': 9, '10': 'content'},
+    {'1': 'custom', '3': 3, '4': 1, '5': 8, '10': 'custom'},
+    {'1': 'message', '3': 4, '4': 1, '5': 9, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `BoardGblResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List boardGblResponseDescriptor = $convert.base64Decode(
+    'ChBCb2FyZEdibFJlc3BvbnNlEhYKBmxheW91dBgBIAEoCVIGbGF5b3V0EhgKB2NvbnRlbnQYAi'
+    'ABKAlSB2NvbnRlbnQSFgoGY3VzdG9tGAMgASgIUgZjdXN0b20SGAoHbWVzc2FnZRgEIAEoCVIH'
+    'bWVzc2FnZQ==');
 
 @$core.Deprecated('Use focusLightRequestDescriptor instead')
 const FocusLightRequest$json = {

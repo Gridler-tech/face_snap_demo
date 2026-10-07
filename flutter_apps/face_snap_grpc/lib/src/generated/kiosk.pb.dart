@@ -699,16 +699,23 @@ class ProcessImageData extends $pb.GeneratedMessage {
   void clearChunkData() => $_clearField(5);
 }
 
-enum ProcessAutomaticResponse_Result { processStatus, imageData, notSet }
+enum ProcessAutomaticResponse_Result {
+  processStatus,
+  imageData,
+  checkResult,
+  notSet
+}
 
 class ProcessAutomaticResponse extends $pb.GeneratedMessage {
   factory ProcessAutomaticResponse({
     ProcessStepStatus? processStatus,
     ProcessImageData? imageData,
+    CheckResult? checkResult,
   }) {
     final result = create();
     if (processStatus != null) result.processStatus = processStatus;
     if (imageData != null) result.imageData = imageData;
+    if (checkResult != null) result.checkResult = checkResult;
     return result;
   }
 
@@ -725,17 +732,20 @@ class ProcessAutomaticResponse extends $pb.GeneratedMessage {
       _ProcessAutomaticResponse_ResultByTag = {
     1: ProcessAutomaticResponse_Result.processStatus,
     2: ProcessAutomaticResponse_Result.imageData,
+    3: ProcessAutomaticResponse_Result.checkResult,
     0: ProcessAutomaticResponse_Result.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ProcessAutomaticResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'kiosk'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2])
+    ..oo(0, [1, 2, 3])
     ..aOM<ProcessStepStatus>(1, _omitFieldNames ? '' : 'processStatus',
         protoName: 'processStatus', subBuilder: ProcessStepStatus.create)
     ..aOM<ProcessImageData>(2, _omitFieldNames ? '' : 'imageData',
         protoName: 'imageData', subBuilder: ProcessImageData.create)
+    ..aOM<CheckResult>(3, _omitFieldNames ? '' : 'checkResult',
+        protoName: 'checkResult', subBuilder: CheckResult.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -760,10 +770,12 @@ class ProcessAutomaticResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
   ProcessAutomaticResponse_Result whichResult() =>
       _ProcessAutomaticResponse_ResultByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
   void clearResult() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -787,6 +799,185 @@ class ProcessAutomaticResponse extends $pb.GeneratedMessage {
   void clearImageData() => $_clearField(2);
   @$pb.TagNumber(2)
   ProcessImageData ensureImageData() => $_ensure(1);
+
+  /// One structured result per check, sent right after the check's text row
+  /// (the text rows are unchanged). Clients that do not know this field skip it.
+  @$pb.TagNumber(3)
+  CheckResult get checkResult => $_getN(2);
+  @$pb.TagNumber(3)
+  set checkResult(CheckResult value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCheckResult() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCheckResult() => $_clearField(3);
+  @$pb.TagNumber(3)
+  CheckResult ensureCheckResult() => $_ensure(2);
+}
+
+/// A machine-readable check result. `name` is stable and documented; the text in
+/// `description` is the same sentence as the human-readable status row and may change.
+class CheckResult extends $pb.GeneratedMessage {
+  factory CheckResult({
+    $core.int? index,
+    CheckKind? kind,
+    $core.String? name,
+    CheckVerdict? verdict,
+    $core.bool? gatesPhoto,
+    $core.double? value,
+    $core.double? min,
+    $core.double? max,
+    $core.String? unit,
+    $core.String? description,
+  }) {
+    final result = create();
+    if (index != null) result.index = index;
+    if (kind != null) result.kind = kind;
+    if (name != null) result.name = name;
+    if (verdict != null) result.verdict = verdict;
+    if (gatesPhoto != null) result.gatesPhoto = gatesPhoto;
+    if (value != null) result.value = value;
+    if (min != null) result.min = min;
+    if (max != null) result.max = max;
+    if (unit != null) result.unit = unit;
+    if (description != null) result.description = description;
+    return result;
+  }
+
+  CheckResult._();
+
+  factory CheckResult.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CheckResult.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CheckResult',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'kiosk'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'index')
+    ..aE<CheckKind>(2, _omitFieldNames ? '' : 'kind',
+        enumValues: CheckKind.values)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..aE<CheckVerdict>(4, _omitFieldNames ? '' : 'verdict',
+        enumValues: CheckVerdict.values)
+    ..aOB(5, _omitFieldNames ? '' : 'gatesPhoto')
+    ..aD(6, _omitFieldNames ? '' : 'value')
+    ..aD(7, _omitFieldNames ? '' : 'min')
+    ..aD(8, _omitFieldNames ? '' : 'max')
+    ..aOS(9, _omitFieldNames ? '' : 'unit')
+    ..aOS(10, _omitFieldNames ? '' : 'description')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CheckResult clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CheckResult copyWith(void Function(CheckResult) updates) =>
+      super.copyWith((message) => updates(message as CheckResult))
+          as CheckResult;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CheckResult create() => CheckResult._();
+  @$core.override
+  CheckResult createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CheckResult getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CheckResult>(create);
+  static CheckResult? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get index => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set index($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasIndex() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearIndex() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  CheckKind get kind => $_getN(1);
+  @$pb.TagNumber(2)
+  set kind(CheckKind value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasKind() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearKind() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  CheckVerdict get verdict => $_getN(3);
+  @$pb.TagNumber(4)
+  set verdict(CheckVerdict value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVerdict() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVerdict() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get gatesPhoto => $_getBF(4);
+  @$pb.TagNumber(5)
+  set gatesPhoto($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasGatesPhoto() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearGatesPhoto() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.double get value => $_getN(5);
+  @$pb.TagNumber(6)
+  set value($core.double value) => $_setDouble(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasValue() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearValue() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.double get min => $_getN(6);
+  @$pb.TagNumber(7)
+  set min($core.double value) => $_setDouble(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasMin() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearMin() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.double get max => $_getN(7);
+  @$pb.TagNumber(8)
+  set max($core.double value) => $_setDouble(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasMax() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearMax() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.String get unit => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set unit($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasUnit() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearUnit() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get description => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set description($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasDescription() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearDescription() => $_clearField(10);
 }
 
 enum ProcessManualResponse_Result { processStatus, imageData, notSet }
@@ -1071,10 +1262,12 @@ class HighResImageResponse extends $pb.GeneratedMessage {
   factory HighResImageResponse({
     ProcessImageData? processImageData,
     StatusType? statusType,
+    $core.Iterable<CheckResult>? checks,
   }) {
     final result = create();
     if (processImageData != null) result.processImageData = processImageData;
     if (statusType != null) result.statusType = statusType;
+    if (checks != null) result.checks.addAll(checks);
     return result;
   }
 
@@ -1095,6 +1288,8 @@ class HighResImageResponse extends $pb.GeneratedMessage {
         protoName: 'processImageData', subBuilder: ProcessImageData.create)
     ..aE<StatusType>(2, _omitFieldNames ? '' : 'statusType',
         protoName: 'statusType', enumValues: StatusType.values)
+    ..pPM<CheckResult>(3, _omitFieldNames ? '' : 'checks',
+        subBuilder: CheckResult.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1135,6 +1330,12 @@ class HighResImageResponse extends $pb.GeneratedMessage {
   $core.bool hasStatusType() => $_has(1);
   @$pb.TagNumber(2)
   void clearStatusType() => $_clearField(2);
+
+  /// GetHighResolutionImageWithIcaoChecksFromCameraIndex only: the check results of
+  /// the photo, on the FIRST item of the stream (empty on the later chunks and on the
+  /// plain GetHighResolutionImageFromCameraIndex).
+  @$pb.TagNumber(3)
+  $pb.PbList<CheckResult> get checks => $_getList(2);
 }
 
 class HighResIcaoImageRequest extends $pb.GeneratedMessage {

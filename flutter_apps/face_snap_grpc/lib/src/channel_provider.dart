@@ -1,5 +1,7 @@
 import 'package:grpc/grpc.dart';
 
+import 'rpc_trace.dart';
+
 /// Owns the single [ClientChannel] shared by all FaceSnap gRPC clients,
 /// mirroring the C# GrpcChannelProvider: the server address can be swapped at
 /// runtime and the next call transparently uses a channel to the new address,
@@ -14,8 +16,10 @@ class GrpcChannelProvider {
   static String get host => _host;
   static int get port => _port;
 
-  /// The shared channel, created on first use.
-  static ClientChannel get channel => _channel ??= ClientChannel(
+  /// The shared channel, created on first use. Like every channel from this
+  /// provider it is a [TracingClientChannel]: its calls show up in
+  /// [RpcTrace] while recording is on (a plain ClientChannel otherwise).
+  static ClientChannel get channel => _channel ??= TracingClientChannel(
         _host,
         port: _port,
         options: const ChannelOptions(
@@ -27,7 +31,8 @@ class GrpcChannelProvider {
   /// server other than the shared one (e.g. checking every kiosk on the
   /// network) without disturbing it. The caller owns it: shut it down when
   /// done.
-  static ClientChannel openChannel(String host, int port) => ClientChannel(
+  static ClientChannel openChannel(String host, int port) =>
+      TracingClientChannel(
         host,
         port: port,
         options: const ChannelOptions(

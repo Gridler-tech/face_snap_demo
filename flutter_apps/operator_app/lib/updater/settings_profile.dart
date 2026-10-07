@@ -239,6 +239,10 @@ class SettingsProfile {
             ? null
             : 'must be a whole number from 50 to 100.';
       case 'kiosk.ofiq_checks':
+      case 'kiosk.icao_report':
+      case 'kiosk.liveness_check':
+      case 'kiosk.liveness_shading_check':
+      case 'kiosk.liveness_colour_check':
       case 'kiosk.glasses_lights_off':
       case 'kiosk.leds_off_for_photo':
         return value is bool ? null : 'must be true or false.';
@@ -250,7 +254,8 @@ class SettingsProfile {
     return 'unknown setting — a profile may only contain the camera '
         'resolution, the quality checks, background_method, '
         'background_strength, jpeg_quality, '
-        'ofiq_checks, glasses_lights_off, leds_off_for_photo and '
+        'ofiq_checks, icao_report, liveness_check, liveness_shading_check, '
+        'liveness_colour_check, glasses_lights_off, leds_off_for_photo and '
         'camera_ordering_mode.';
   }
 
@@ -259,6 +264,10 @@ class SettingsProfile {
     'kiosk.background_strength': 'Background erasing strength',
     'kiosk.jpeg_quality': 'JPEG quality',
     'kiosk.ofiq_checks': 'OFIQ quality report',
+    'kiosk.icao_report': 'ICAO compliance report',
+    'kiosk.liveness_check': 'Live person check',
+    'kiosk.liveness_shading_check': 'Live person check: shading',
+    'kiosk.liveness_colour_check': 'Live person check: colour',
     'kiosk.glasses_lights_off': 'Lights off for glasses',
     'kiosk.leds_off_for_photo': 'Lights off for the photo',
     'kiosk.camera_ordering_mode': 'Camera ordering',

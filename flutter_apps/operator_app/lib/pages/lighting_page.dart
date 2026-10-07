@@ -2,6 +2,7 @@
 // glasses mode), the manual per-camera light buttons and the two LED
 // backlights on the USB relay module. Split out of the old Settings page.
 import 'package:face_snap_grpc/face_snap_grpc.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 // hide colorToHex: the picker package exports a util with the same name as
 // our ui.dart helper.
@@ -24,6 +25,13 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
   late bool _ledsOffForPhoto;
   late double _intensityRed, _intensityGreen, _intensityBlue;
   String _ledLayout = 'strip';
+  // The strip layout's gbl.py on the Plasma board: null until read, true when
+  // the operator's own file is in force (GetBoardGbl; an older server has no
+  // such RPC and the row then only says so).
+  bool? _stripGblCustom;
+  String? _stripGblNote;
+  // Which LEDs light the photo: 'all', or the 'neighbours' of the selected camera.
+  String _photoLight = 'all';
   Color _focusColor = const Color(0xFF00FF00);
   double _focusIntensity = 78;
   // Latest-wins push for the focus light: the picker fires continuously while
@@ -60,7 +68,102 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     // Leave "No server connected" the moment the snapshot lands after a
     // late server start (const IndexedStack pages never rebuild otherwise).
     SettingsState.revision.addListener(_onSettingsChanged);
-    if (SettingsState.current != null) _loadBacklights();
+    if (SettingsState.current != null) {
+      _loadBacklights();
+      _loadStripGbl();
+    }
+  }
+
+  /// Whether the operator's own gbl.py is in force for the strip layout. Only
+  /// asked of a server that reports the photo light (1.1.19+): older servers
+  /// have neither that field nor this RPC, and the row then says so.
+  Future<void> _loadStripGbl() async {
+    if ((SettingsState.current?.photoLight ?? '').isEmpty) {
+      if (mounted) setState(() { _stripGblCustom = null; _stripGblNote = 'older server'; });
+      return;
+    }
+    try {
+      final r = await _client.getBoardGbl(BoardGblLayoutRequest(layout: 'strip'));
+      if (mounted) setState(() { _stripGblCustom = r.custom; _stripGblNote = null; });
+    } catch (e) {
+      if (mounted) setState(() { _stripGblCustom = null; _stripGblNote = operatorMessage(e); });
+    }
+  }
+
+  /// Send a gbl.py for the strip layout (empty = back to the default file) and
+  /// show what the server made of it.
+  Future<void> _sendStripGbl(String content) async {
+    try {
+      final r = await _client.setBoardGbl(BoardGblRequest(layout: 'strip', content: content));
+      if (!mounted) return;
+      final rejected = r.message.startsWith('rejected');
+      setState(() {
+        _stripGblCustom = r.custom;
+        _stripGblNote = r.message;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(rejected ? 'gbl.py not stored - ${r.message}' : 'gbl.py ${r.message}'),
+          backgroundColor: rejected ? T.fail : null));
+    } catch (e) {
+      if (mounted) setState(() => message = 'Server call failed: ${operatorMessage(e)}');
+    }
+  }
+
+  /// The strip gbl.py in an editor: the file in force, changed by hand, written
+  /// to the board with the button.
+  Future<void> _editStripGbl() async {
+    BoardGblResponse current;
+    try {
+      current = await _client.getBoardGbl(BoardGblLayoutRequest(layout: 'strip'));
+    } catch (e) {
+      if (mounted) setState(() => message = 'Server call failed: ${operatorMessage(e)}');
+      return;
+    }
+    if (!mounted) return;
+    final controller = TextEditingController(text: current.content);
+    final content = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(current.custom
+            ? 'Strip file (gbl.py) - your own file'
+            : 'Strip file (gbl.py) - the default file'),
+        content: SizedBox(
+          width: 720,
+          height: 480,
+          child: TextField(
+            controller: controller,
+            maxLines: null,
+            expands: true,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5),
+            decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                helperText: 'LED_COUNT, the CENTERCAM positions and the spans describe this '
+                    'column; the server checks the names main.py needs before writing.'),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+              child: const Text('Write to the board')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (content == null || content == current.content) return;
+    await _sendStripGbl(content);
+  }
+
+  /// A gbl.py from disk for the strip layout.
+  Future<void> _loadStripGblFile() async {
+    final file = await openFile(acceptedTypeGroups: const [
+      XTypeGroup(label: 'Python file', extensions: ['py']),
+    ]);
+    if (file == null) return; // dialog cancelled
+    final content = await file.readAsString();
+    await _sendStripGbl(content);
   }
 
   @override
@@ -74,6 +177,7 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     setState(() {});
     if (_backlights == null || _backlightsFor != SettingsState.serverKey) {
       _loadBacklights();
+      _loadStripGbl();
     }
   }
 
@@ -169,6 +273,7 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     _intensityGreen = s.intensityGreen.toDouble();
     _intensityBlue = s.intensityBlue.toDouble();
     _ledLayout = s.ledLayout.isEmpty ? 'strip' : s.ledLayout;
+    _photoLight = s.photoLight.isEmpty ? 'all' : s.photoLight;
     _focusColor = hexToColor(s.focusColor, fallback: const Color(0xFF00FF00));
     _focusIntensity = (s.focusIntensity == 0 && s.focusColor.isEmpty)
         ? 78 // pre-upgrade server without the field
@@ -294,10 +399,72 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
                         'matching files to the Plasma board (takes ~10 s, the '
                         'board reboots).')));
               }
+              if (v == 'strip') _loadStripGbl();
             });
           },
         ),
       ]),
+      // The strip column's geometry (LED count, camera positions, spans) is the
+      // column's own: the operator can put a gbl.py of their own on the board.
+      if (_ledLayout == 'strip') ...[
+        const SizedBox(height: 6),
+        Row(children: [
+          const RowLabel('Strip file (gbl.py)'),
+          const SizedBox(width: 14),
+          Text(
+              _stripGblCustom == null
+                  ? (_stripGblNote == null ? '…' : 'not available on this server')
+                  : (_stripGblCustom! ? 'your own file is on the board' : 'the default file is on the board'),
+              style: TextStyle(
+                  color: _stripGblCustom == null && _stripGblNote != null ? T.muted : T.ink,
+                  fontSize: 14)),
+          const SizedBox(width: 14),
+          QuietButton(text: 'Edit…', onPressed: _stripGblCustom == null ? null : _editStripGbl),
+          const SizedBox(width: 8),
+          QuietButton(text: 'Load file…', onPressed: _stripGblCustom == null ? null : _loadStripGblFile),
+          if (_stripGblCustom == true) ...[
+            const SizedBox(width: 8),
+            QuietButton(text: 'Restore default', onPressed: () => _sendStripGbl('')),
+          ],
+        ]),
+        if (_stripGblNote != null && _stripGblCustom != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(_stripGblNote!,
+                style: TextStyle(
+                    color: _stripGblNote!.startsWith('rejected') ? T.fail : T.muted, fontSize: 12)),
+          ),
+      ],
+      const SizedBox(height: 4),
+      Row(children: [
+        const RowLabel('Photo light'),
+        const SizedBox(width: 14),
+        DropdownMenu<String>(
+          initialSelection: _photoLight,
+          width: 370,
+          dropdownMenuEntries: const [
+            DropdownMenuEntry(value: 'all', label: 'All LEDs of the column'),
+            DropdownMenuEntry(
+                value: 'neighbours',
+                label: 'The selected camera\'s ring and its two neighbours'),
+          ],
+          onSelected: (v) {
+            if (v == null || v == _photoLight) return;
+            setState(() => _photoLight = v);
+            SettingsState.current?.photoLight = v;
+            runServerCall(() => _client.setPhotoLight(PhotoLightRequest(value: v)));
+          },
+        ),
+      ]),
+      if (_photoLight == 'neighbours')
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+              'Three rings whatever the column has: the current for a photo does '
+              'not grow with the number of cameras. The camera scan runs the whole '
+              'column at half intensity.',
+              style: TextStyle(color: T.muted, fontSize: 12)),
+        ),
       const SizedBox(height: 4),
       Row(children: [
         Switch(

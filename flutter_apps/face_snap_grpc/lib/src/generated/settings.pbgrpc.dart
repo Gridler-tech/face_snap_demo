@@ -247,6 +247,20 @@ class SettingsClient extends $grpc.Client {
     return $createUnaryCall(_$setLedLayout, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.BoardGblResponse> setBoardGbl(
+    $0.BoardGblRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setBoardGbl, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.BoardGblResponse> getBoardGbl(
+    $0.BoardGblLayoutRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getBoardGbl, request, options: options);
+  }
+
   $grpc.ResponseFuture<$0.FocusLightResponse> setFocusLight(
     $0.FocusLightRequest request, {
     $grpc.CallOptions? options,
@@ -273,6 +287,27 @@ class SettingsClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$setLedsOffForPhoto, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.IcaoReportResponse> setIcaoReport(
+    $0.IcaoReportRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setIcaoReport, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.LivenessChecksResponse> setLivenessChecks(
+    $0.LivenessChecksRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setLivenessChecks, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.PhotoLightResponse> setPhotoLight(
+    $0.PhotoLightRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setPhotoLight, request, options: options);
   }
 
   // method descriptors
@@ -426,6 +461,16 @@ class SettingsClient extends $grpc.Client {
           '/settings.Settings/SetLedLayout',
           ($0.LedLayoutRequest value) => value.writeToBuffer(),
           $0.LedLayoutResponse.fromBuffer);
+  static final _$setBoardGbl =
+      $grpc.ClientMethod<$0.BoardGblRequest, $0.BoardGblResponse>(
+          '/settings.Settings/SetBoardGbl',
+          ($0.BoardGblRequest value) => value.writeToBuffer(),
+          $0.BoardGblResponse.fromBuffer);
+  static final _$getBoardGbl =
+      $grpc.ClientMethod<$0.BoardGblLayoutRequest, $0.BoardGblResponse>(
+          '/settings.Settings/GetBoardGbl',
+          ($0.BoardGblLayoutRequest value) => value.writeToBuffer(),
+          $0.BoardGblResponse.fromBuffer);
   static final _$setFocusLight =
       $grpc.ClientMethod<$0.FocusLightRequest, $0.FocusLightResponse>(
           '/settings.Settings/SetFocusLight',
@@ -446,6 +491,21 @@ class SettingsClient extends $grpc.Client {
           '/settings.Settings/SetLedsOffForPhoto',
           ($0.LedsOffForPhotoRequest value) => value.writeToBuffer(),
           $0.LedsOffForPhotoResponse.fromBuffer);
+  static final _$setIcaoReport =
+      $grpc.ClientMethod<$0.IcaoReportRequest, $0.IcaoReportResponse>(
+          '/settings.Settings/SetIcaoReport',
+          ($0.IcaoReportRequest value) => value.writeToBuffer(),
+          $0.IcaoReportResponse.fromBuffer);
+  static final _$setLivenessChecks =
+      $grpc.ClientMethod<$0.LivenessChecksRequest, $0.LivenessChecksResponse>(
+          '/settings.Settings/SetLivenessChecks',
+          ($0.LivenessChecksRequest value) => value.writeToBuffer(),
+          $0.LivenessChecksResponse.fromBuffer);
+  static final _$setPhotoLight =
+      $grpc.ClientMethod<$0.PhotoLightRequest, $0.PhotoLightResponse>(
+          '/settings.Settings/SetPhotoLight',
+          ($0.PhotoLightRequest value) => value.writeToBuffer(),
+          $0.PhotoLightResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('settings.Settings')
@@ -699,6 +759,22 @@ abstract class SettingsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.LedLayoutRequest.fromBuffer(value),
         ($0.LedLayoutResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BoardGblRequest, $0.BoardGblResponse>(
+        'SetBoardGbl',
+        setBoardGbl_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.BoardGblRequest.fromBuffer(value),
+        ($0.BoardGblResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.BoardGblLayoutRequest, $0.BoardGblResponse>(
+            'GetBoardGbl',
+            getBoardGbl_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.BoardGblLayoutRequest.fromBuffer(value),
+            ($0.BoardGblResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.FocusLightRequest, $0.FocusLightResponse>(
         'SetFocusLight',
         setFocusLight_Pre,
@@ -733,6 +809,29 @@ abstract class SettingsServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.LedsOffForPhotoRequest.fromBuffer(value),
         ($0.LedsOffForPhotoResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.IcaoReportRequest, $0.IcaoReportResponse>(
+        'SetIcaoReport',
+        setIcaoReport_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.IcaoReportRequest.fromBuffer(value),
+        ($0.IcaoReportResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.LivenessChecksRequest,
+            $0.LivenessChecksResponse>(
+        'SetLivenessChecks',
+        setLivenessChecks_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.LivenessChecksRequest.fromBuffer(value),
+        ($0.LivenessChecksResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.PhotoLightRequest, $0.PhotoLightResponse>(
+        'SetPhotoLight',
+        setPhotoLight_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.PhotoLightRequest.fromBuffer(value),
+        ($0.PhotoLightResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SaveSettingsResponse> saveSettings_Pre(
@@ -998,6 +1097,22 @@ abstract class SettingsServiceBase extends $grpc.Service {
   $async.Future<$0.LedLayoutResponse> setLedLayout(
       $grpc.ServiceCall call, $0.LedLayoutRequest request);
 
+  $async.Future<$0.BoardGblResponse> setBoardGbl_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.BoardGblRequest> $request) async {
+    return setBoardGbl($call, await $request);
+  }
+
+  $async.Future<$0.BoardGblResponse> setBoardGbl(
+      $grpc.ServiceCall call, $0.BoardGblRequest request);
+
+  $async.Future<$0.BoardGblResponse> getBoardGbl_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.BoardGblLayoutRequest> $request) async {
+    return getBoardGbl($call, await $request);
+  }
+
+  $async.Future<$0.BoardGblResponse> getBoardGbl(
+      $grpc.ServiceCall call, $0.BoardGblLayoutRequest request);
+
   $async.Future<$0.FocusLightResponse> setFocusLight_Pre(
       $grpc.ServiceCall $call,
       $async.Future<$0.FocusLightRequest> $request) async {
@@ -1033,4 +1148,31 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.LedsOffForPhotoResponse> setLedsOffForPhoto(
       $grpc.ServiceCall call, $0.LedsOffForPhotoRequest request);
+
+  $async.Future<$0.IcaoReportResponse> setIcaoReport_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.IcaoReportRequest> $request) async {
+    return setIcaoReport($call, await $request);
+  }
+
+  $async.Future<$0.IcaoReportResponse> setIcaoReport(
+      $grpc.ServiceCall call, $0.IcaoReportRequest request);
+
+  $async.Future<$0.LivenessChecksResponse> setLivenessChecks_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.LivenessChecksRequest> $request) async {
+    return setLivenessChecks($call, await $request);
+  }
+
+  $async.Future<$0.LivenessChecksResponse> setLivenessChecks(
+      $grpc.ServiceCall call, $0.LivenessChecksRequest request);
+
+  $async.Future<$0.PhotoLightResponse> setPhotoLight_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.PhotoLightRequest> $request) async {
+    return setPhotoLight($call, await $request);
+  }
+
+  $async.Future<$0.PhotoLightResponse> setPhotoLight(
+      $grpc.ServiceCall call, $0.PhotoLightRequest request);
 }

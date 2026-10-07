@@ -19,9 +19,13 @@ class AppConfig {
   // control with the FaceSnap SDKs (see ui/dev_info.dart).
   static bool devMode = false;
 
+  /// Tests point the data folder somewhere harmless; null = the real one.
+  static String? appDataDirOverride;
+
   /// The app's data folder (%APPDATA%\FaceSnapOperator) — also the parent of
   /// PhotoStore's captures directory.
   static String get appDataDir {
+    if (appDataDirOverride != null) return appDataDirOverride!;
     final appData = Platform.environment['APPDATA'] ??
         Platform.environment['HOME'] ??
         '.';

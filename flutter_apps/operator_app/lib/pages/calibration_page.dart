@@ -306,11 +306,25 @@ class _CalibrationPageState extends State<CalibrationPage> {
     // during the sweep it is driven red -> green as the search converges.
     var origFocusColor = '00FF00';
     var focusIntensity = 100;
+    // The light checks of the live person check (shading, colour) cost each
+    // capture a few seconds and tell the sweep nothing: off while it runs,
+    // back to what they were afterwards. Null = nothing to restore.
+    LivenessChecksRequest? lightChecksToRestore;
     try {
       try {
         final s = await SettingsState.client.loadSettings(Empty());
         if (s.focusColor.isNotEmpty) origFocusColor = s.focusColor;
         if (s.focusIntensity > 0) focusIntensity = s.focusIntensity;
+        if (s.livenessShadingCheck || s.livenessColourCheck) {
+          lightChecksToRestore = LivenessChecksRequest(
+              livenessCheck: s.livenessCheck,
+              shadingCheck: s.livenessShadingCheck,
+              colourCheck: s.livenessColourCheck);
+          await SettingsState.client.setLivenessChecks(LivenessChecksRequest(
+              livenessCheck: s.livenessCheck,
+              shadingCheck: false,
+              colourCheck: false));
+        }
       } catch (_) {/* keep defaults */}
 
       // The sweep is a manual-focus search: autofocus must be off for the
@@ -390,6 +404,11 @@ class _CalibrationPageState extends State<CalibrationPage> {
         await SettingsState.client.setFocusLight(FocusLightRequest(
             color: origFocusColor, intensity: focusIntensity));
       } catch (_) {/* best effort */}
+      if (lightChecksToRestore != null) {
+        try {
+          await SettingsState.client.setLivenessChecks(lightChecksToRestore);
+        } catch (_) {/* best effort */}
+      }
       setState(() {
         _sweeping = false;
         _sweepProgress = null;

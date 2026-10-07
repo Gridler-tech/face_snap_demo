@@ -2,6 +2,34 @@
 
 
 
+## Repository note, 07-10-2026 (operator app 1.1.23)
+
+Release 1.5.3 now carries `FaceSnapOperatorSetup-1.1.23.exe`, and the sources in
+`flutter_apps/` match it. The new check results need Windows server 1.1.23 or later;
+older servers still work, the results simply do not appear.
+
+- **Structured check results.** Every check of a capture also arrives as a
+  machine-readable `CheckResult` (name, verdict passed / failed / not checked, the
+  measured value and its limits, unit). The Capture page shows them with every check
+  row and lists what is wrong first. In the Dart SDK the capture stream yields a new
+  `CaptureCheck` event (`CaptureEvent` is sealed: an exhaustive `switch` needs a
+  `case CaptureCheck()`, see `face_snap_grpc/example/capture_once.dart`).
+- **RPC console** (Developer mode). A dock lists every call the app makes to the
+  server, with every request field and the answer, and copies any call as Dart or C#
+  (`RpcTrace` and the snippet builder live in `face_snap_grpc/lib/src/`).
+- **Developer info.** The guides behind the `</>` badges are rewritten for all cards.
+- **Capture page.** A Clear button, the last ten captures kept, the selected camera's
+  row on top, advice rows for the operator, the live person check rows kept together.
+- **Settings.** Switches for the ICAO compliance report, the live person checks
+  with the kiosk's own light and the photo light (the selected camera's ring and its
+  two neighbours); the Lighting page edits the strip layout's own `gbl.py`. The Dart
+  stubs are regenerated for `SetIcaoReport`, `SetLivenessChecks`, `SetPhotoLight`,
+  `SetBoardGbl` / `GetBoardGbl`, `CheckKind` and `CheckVerdict`.
+- **LED board files v14**, which also work on older Plasma 2040 firmware.
+
+The operator app has 278 tests; `face_snap_grpc` now carries its own test
+(`test/rpc_trace_test.dart`, 22 cases).
+
 ## Version 1.5.3, 04-10-2026
 
 Backlights, the lights-off photo mode and calibration by a person. The assembly

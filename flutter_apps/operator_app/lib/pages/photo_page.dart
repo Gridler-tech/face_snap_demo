@@ -72,6 +72,12 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
   late double _jpegQuality;
   late Map<String, bool> _checks;
   late bool _ofiqChecks;
+  late bool _icaoReport;
+  // Live person check: the master switch (depth check over the selection scan)
+  // and the two optional light checks on top of it.
+  late bool _livenessCheck;
+  late bool _livenessShading;
+  late bool _livenessColour;
 
   // The snapshot the local fields were read from; re-read when the shared
   // snapshot is replaced (connect after boot, server change).
@@ -111,6 +117,10 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     _backgroundStrength = s.backgroundStrength == 0 ? 3 : s.backgroundStrength;
     _jpegQuality = (s.jpegQuality == 0 ? 95 : s.jpegQuality).toDouble();
     _ofiqChecks = s.ofiqChecks;
+    _icaoReport = s.icaoReport;
+    _livenessCheck = s.livenessCheck;
+    _livenessShading = s.livenessShadingCheck;
+    _livenessColour = s.livenessColourCheck;
     _checks = {
       'Eyes open': s.eyesCheck,
       'Lips closed': s.lipsCheck,
@@ -447,8 +457,103 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
           .setLightingEvennessCheck(LightingEvennessCheckRequest(value: v)),
   };
 
+  /// The live person check switches. The depth check is part of the master
+  /// switch; the light checks only run with it on, so their switches are
+  /// disabled without it (the stored values stay, the server keeps them too).
+  List<Widget> _livenessRows() {
+    void send() {
+      final request = LivenessChecksRequest(
+          livenessCheck: _livenessCheck,
+          shadingCheck: _livenessShading,
+          colourCheck: _livenessColour);
+      final s = SettingsState.current;
+      s?.livenessCheck = _livenessCheck;
+      s?.livenessShadingCheck = _livenessShading;
+      s?.livenessColourCheck = _livenessColour;
+      runServerCall(() => _client.setLivenessChecks(request));
+    }
+
+    Widget lightRow(String label, String hint, bool value, void Function(bool) set) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 28),
+        child: Row(children: [
+          Switch(
+              value: value,
+              onChanged: _livenessCheck
+                  ? (v) {
+                      setState(() => set(v));
+                      send();
+                    }
+                  : null),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            RowLabel(label),
+            Text(hint, style: const TextStyle(color: T.muted, fontSize: 12)),
+          ])),
+        ]),
+      );
+    }
+
+    return [
+      Row(children: [
+        Switch(
+            value: _livenessCheck,
+            onChanged: (v) {
+              setState(() => _livenessCheck = v);
+              send();
+            }),
+        const SizedBox(width: 10),
+        const Expanded(
+            child: RowLabel(
+                'Live person check (depth measured over the camera scan; informational)')),
+      ]),
+      lightRow(
+          'Shading check: the LEDs above and below the camera light the face in turn',
+          'A flat picture, on paper or on a screen, shows no shading change. '
+              'Needs the LED board; adds about half a second after the photo.',
+          _livenessShading,
+          (v) => _livenessShading = v),
+      lightRow(
+          'Colour check: one yellow flash of the LEDs',
+          'Skin follows the colour, a screen does not. Needs the LED board; '
+              'adds about half a second after the photo.',
+          _livenessColour,
+          (v) => _livenessColour = v),
+    ];
+  }
+
   Widget _buildChecks() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // ICAO compliance report: one verdict per ICAO portrait requirement, from
+      // OFIQ plus the kiosk's own checks. Wins over the two engines below.
+      Row(children: [
+        Switch(
+            value: _icaoReport,
+            onChanged: (v) {
+              setState(() => _icaoReport = v);
+              // Keep the shared snapshot current: the Capture page seeds its
+              // result checklist from it.
+              SettingsState.current?.icaoReport = v;
+              runServerCall(() =>
+                  _client.setIcaoReport(IcaoReportRequest(value: v)));
+            }),
+        const SizedBox(width: 10),
+        const Expanded(
+            child: RowLabel(
+                'ICAO compliance report (one verdict per ICAO requirement)')),
+      ]),
+      if (_icaoReport)
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+              'The photo is delivered first; the report follows a few seconds '
+              'later. It combines OFIQ (ISO/IEC 29794-5) with the kiosk\'s own '
+              'checks for glasses, gaze, red eyes, shadows and head size, and '
+              'replaces the OFIQ report and the checks below. Requires OFIQ '
+              'installed on the server machine.',
+              style: TextStyle(color: T.muted, fontSize: 12)),
+        ),
       // Engine choice: the kiosk's own checks, or the standardized OFIQ
       // (ISO/IEC 29794-5) report computed on the delivered photo.
       Row(children: [
@@ -476,10 +581,12 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
               style: TextStyle(color: T.muted, fontSize: 12)),
         ),
       const SizedBox(height: 4),
+      ..._livenessRows(),
+      const SizedBox(height: 4),
       // The custom checks stay configurable but are visually muted when the
-      // OFIQ report replaces them.
+      // OFIQ or ICAO report replaces them.
       Opacity(
-        opacity: _ofiqChecks ? 0.45 : 1.0,
+        opacity: _ofiqChecks || _icaoReport ? 0.45 : 1.0,
         child: Wrap(
           spacing: 24,
           runSpacing: 4,

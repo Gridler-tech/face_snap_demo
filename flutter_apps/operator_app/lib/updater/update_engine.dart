@@ -708,9 +708,7 @@ class UpdateEngine extends KioskEngine {
         log('Verification failed: the container did not stay up.');
         return false;
       }
-      final logs = await ssh.run(
-          'docker logs --tail 600 \$(docker ps -q $kContainerFilter) 2>&1');
-      text = logs.stdout;
+      text = await containerLogs(600);
       if (kServerReadyMarker.hasMatch(text)) {
         bound = true;
         break;
@@ -728,9 +726,7 @@ class UpdateEngine extends KioskEngine {
     // Hardware discovery logs land right around the bind — give it a moment,
     // then take the final log snapshot.
     await Future<void>.delayed(const Duration(seconds: 8));
-    final logs = await ssh.run(
-        'docker logs --tail 600 \$(docker ps -q $kContainerFilter) 2>&1');
-    text = logs.stdout;
+    text = await containerLogs(600);
 
     // Real problems fail the update (see serverLogErrors). Missing kiosk
     // hardware does not: a board is often updated before it is built into a

@@ -56,10 +56,13 @@ abstract class KioskEngine {
 
   /// Runs a pipeline [body]: on error the running steps are marked failed and
   /// "[noun] failed" is added to the summary; the total time and the SSH
-  /// close always happen. [beforeClose] runs in the finally (fire-and-forget
-  /// remote cleanup, e.g. removing a staging file).
+  /// close always happen. [beforeClose] is remote cleanup (e.g. removing a
+  /// staging file) run in the finally and AWAITED before the SSH close — a
+  /// fire-and-forget command is still being set up when close() tears the
+  /// transport down and never reaches the kiosk. It gets five seconds; a hung
+  /// or failed cleanup is logged and never fails the run.
   Future<bool> runGuarded(String noun, Future<bool> Function() body,
-      {void Function()? beforeClose}) async {
+      {Future<void> Function()? beforeClose}) async {
     final stopwatch = Stopwatch()..start();
     try {
       return await body();
@@ -72,9 +75,38 @@ abstract class KioskEngine {
       return false;
     } finally {
       summary.add('Total time: ${formatDuration(stopwatch.elapsed)}.');
-      beforeClose?.call();
+      if (beforeClose != null) {
+        await beforeClose()
+            .timeout(const Duration(seconds: 5))
+            .catchError((Object e) => log('Cleanup skipped: ${shorten('$e')}'));
+      }
       sshOrNull?.close();
     }
+  }
+
+  /// Whether the verify loops already warned about several matching
+  /// containers (once per run; see [containerLogs]).
+  bool _containersChecked = false;
+
+  /// The tail of the compose container's log. `docker ps -q` lists EVERY
+  /// running container whose name matches the filter — an orphan beside the
+  /// compose one (a hand-run `docker run --name face_snap_test …`) makes it
+  /// two ids, `docker logs` refuses two arguments, the ready marker never
+  /// matches and a healthy update is rolled back. Only the first id (the
+  /// newest container, `docker ps` order) is read; several matches are
+  /// warned about once so the operator knows which log was checked.
+  Future<String> containerLogs(int tail) async {
+    if (!_containersChecked) {
+      _containersChecked = true;
+      final ids = await ssh.run('docker ps -q $kContainerFilter');
+      final n = countLines(ids.stdout);
+      if (n > 1) {
+        log('WARNING: $n running containers match "$kContainerFilter" — '
+            'the log check reads the newest one only. Remove the stray '
+            'container(s) by hand (docker ps).');
+      }
+    }
+    return (await ssh.run(containerLogsCmd(tail))).stdout;
   }
 
   /// First step of every pipeline: connect and identify the board.

@@ -34,6 +34,21 @@ class CapturePhoto extends CaptureEvent {
   final DateTime? lastChunkAt;
 }
 
+/// A structured check result from the automatic flow: the server sends one
+/// right after the [CaptureStatus] line of each check that ran (distance,
+/// eyes, lips, the kiosk checks, liveness, OFIQ, ICAO). Match on
+/// `result.name` (stable, e.g. "distance", "ofiq.Sharpness",
+/// "icao.compliance"), not on `result.description` (the status-line text).
+/// A server that does not send check results produces none.
+class CaptureCheck extends CaptureEvent {
+  CaptureCheck(this.result);
+
+  /// The generated message: index, kind, name, verdict, gatesPhoto,
+  /// value/min/max (check `hasValue()` etc.; unset = the check has no such
+  /// number), unit and description.
+  final CheckResult result;
+}
+
 /// One camera's photo from the manual flow (which returns a photo per camera).
 class CameraPhoto extends CaptureEvent {
   CameraPhoto(this.cameraIndex, this.bytes, this.width, this.height,
@@ -50,7 +65,9 @@ class CameraPhoto extends CaptureEvent {
 }
 
 /// Runs the server's automatic flow once: yields [CaptureStatus] events while
-/// the server works and, when the capture succeeds, one [CapturePhoto]
+/// the server works (each check that ran followed by a [CaptureCheck], from a
+/// server that sends check results) and, when the capture succeeds, one
+/// [CapturePhoto]
 /// (the server streams the JPEG in chunks; they are assembled here, mirroring
 /// the C# KioskProcessor). No photo event = the flow ended without a photo.
 ///
@@ -79,6 +96,11 @@ Stream<CaptureEvent> startAutomaticCapture() async* {
         if (chunks.length > 0) yield flush();
         yield CaptureStatus(
             message.processStatus.description, message.processStatus.status.name);
+      case ProcessAutomaticResponse_Result.checkResult:
+        // Always follows its status line, so the photo is normally flushed
+        // already; flush here too so the photo never waits behind a check.
+        if (chunks.length > 0) yield flush();
+        yield CaptureCheck(message.checkResult);
       case ProcessAutomaticResponse_Result.imageData:
         lastChunkAt = DateTime.now();
         firstChunkAt ??= lastChunkAt;

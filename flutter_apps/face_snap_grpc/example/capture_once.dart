@@ -19,6 +19,8 @@ Future<void> main(List<String> args) async {
         photos++;
         File(out).writeAsBytesSync(bytes);
         print('PHOTO(cam $cameraIndex): ${bytes.length} bytes -> $out');
+      case CaptureCheck(:final result):
+        print('CHECK: ${result.name} ${result.verdict.name}');
     }
   }
   print(photos > 0 ? 'CAPTURE-OK' : 'NO-PHOTO');

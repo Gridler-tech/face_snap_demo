@@ -16,7 +16,19 @@ import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 import '../util/jpeg_size.dart';
 
-enum _Verdict { pending, pass, fail, warn, info }
+enum _Verdict { pending, pass, fail, warn, info, advice }
+
+/// The server's advice rows ("Advice: skin colour too blue - raise the white
+/// balance temperature (now 4275) towards 6500 (Camera page)"): which setting to
+/// change for a measure the photo failed.
+bool isAdviceRow(String text) => text.startsWith('Advice: ');
+
+/// The OFIQ report's own row once measures failed: the overall score alone says
+/// how usable the face is for recognition, not whether the photo is good, so a
+/// dark or discoloured photo can still score high on it.
+String ofiqHeadline(String overallRow, int attention) => attention == 0
+    ? overallRow
+    : '$overallRow - $attention ${attention == 1 ? 'measure needs' : 'measures need'} attention';
 
 /// True for the status lines with which the server ends a capture WITHOUT a
 /// photo: "Could not take the photo with camera 4: the mouth was open in 30 of
@@ -29,6 +41,22 @@ bool captureGaveUp(String text) =>
     text.startsWith('Could not take the photo') ||
     text.startsWith('Could not find landmarks') ||
     text.trimRight().endsWith('Please try again');
+
+/// The verdict of an ICAO report row ("ICAO Sharp focus: passed (Sharpness
+/// 87/100)", "ICAO compliance: attention (2 of 19 requirements: ...)"): true for
+/// passed, false for attention or an incomplete report, null for "not checked"
+/// (and for a line that is not an ICAO row).
+bool? icaoRowPassed(String text) {
+  if (!text.startsWith('ICAO ')) return null;
+  final colon = text.indexOf(': ');
+  if (colon < 0) return null;
+  final verdict = text.substring(colon + 2);
+  if (verdict.startsWith('passed')) return true;
+  if (verdict.startsWith('attention') || verdict.startsWith('incomplete')) {
+    return false;
+  }
+  return null;
+}
 
 class _ResultItem {
   _ResultItem(this.key, this.text, this.verdict);
@@ -53,6 +81,8 @@ class _CapturePageState extends State<CapturePage> {
   final List<String?> _photoRes = []; // "W × H px" per photo, aligned to _photos
   bool _capturing = false;
   String? _message;
+  String? _ofiqOverall; // the "OFIQ overall quality" row as the server sent it
+  int _ofiqAttention = 0; // OFIQ measures of this capture that need attention
 
   // ---------- step timing ----------
   // Wall clock at the operator app from the moment the capture RPC is sent.
@@ -90,13 +120,36 @@ class _CapturePageState extends State<CapturePage> {
       ..start();
     _clockStartedAt = DateTime.now();
     _timedRunIsManual = manual;
-    _timedRunHasOfiq = SettingsState.current?.ofiqChecks ?? false;
+    // The ICAO report scores with OFIQ too, and ends the same timed stage.
+    _timedRunHasOfiq = (SettingsState.current?.ofiqChecks ?? false) ||
+        (SettingsState.current?.icaoReport ?? false);
     _tSelected = _tPhotoStart = _tFrame = _tPhoto = _tOfiq = _tEnd = null;
     _tManualPhotos.clear();
     // Repaint the running step's counter while the capture is in flight.
     _clockTicker?.cancel();
     _clockTicker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) setState(() {});
+    });
+  }
+
+  /// The Clear button: the page as it was before the first capture - no photo,
+  /// no message, no timing, and the checklist back to its pending rows. Only
+  /// this page's view is cleared; the captures kept for the Face recognition
+  /// page (PhotoStore) stay.
+  void _clear() {
+    setState(() {
+      _message = null;
+      _photos.clear();
+      _photoRes.clear();
+      _prepareChecklist();
+      _clock
+        ..stop()
+        ..reset();
+      _clockTicker?.cancel();
+      _clockTicker = null;
+      _clockStartedAt = null;
+      _tSelected = _tPhotoStart = _tFrame = _tPhoto = _tOfiq = _tEnd = null;
+      _tManualPhotos.clear();
     });
   }
 
@@ -127,7 +180,10 @@ class _CapturePageState extends State<CapturePage> {
     } else if (text.startsWith('Distance in cm')) {
       _tFrame ??= now;
     } else if (text.startsWith('OFIQ overall quality') ||
-        text.startsWith('OFIQ scoring')) {
+        text.startsWith('ICAO compliance')) {
+      _tOfiq ??= now;
+    } else if (text.startsWith('OFIQ scoring') && !_icaoMode) {
+      // In ICAO mode the report still follows an OFIQ failure line.
       _tOfiq ??= now;
     }
   }
@@ -139,6 +195,8 @@ class _CapturePageState extends State<CapturePage> {
   /// PrepareChecklist).
   void _prepareChecklist() {
     final s = SettingsState.current;
+    _ofiqOverall = null;
+    _ofiqAttention = 0;
     _results
       ..clear()
       ..add(_ResultItem('Distance', 'Distance', _Verdict.pending));
@@ -146,6 +204,12 @@ class _CapturePageState extends State<CapturePage> {
       if (enabled) _results.add(_ResultItem(key, label, _Verdict.pending));
     }
 
+    if (s?.icaoReport ?? false) {
+      // ICAO report mode (wins over OFIQ mode): one keyed row for the overall
+      // verdict; the per-requirement rows are appended as they arrive.
+      add(true, 'ICAOReport', 'ICAO compliance report');
+      return;
+    }
     final ofiq = s?.ofiqChecks ?? false;
     if (ofiq) {
       // OFIQ mode: the standardized report replaces ALL the kiosk's own check
@@ -164,6 +228,36 @@ class _CapturePageState extends State<CapturePage> {
     add(s?.gazeCheck ?? true, 'Gaze', 'Gaze');
     add(s?.lightingEvennessCheck ?? true, 'LightingEven', 'Lighting evenness');
     add(s?.headSizeCheck ?? true, 'HeadSize', 'Head size/position');
+  }
+
+  static bool _isLiveRow(_ResultItem r) => r.text.startsWith('Live person check');
+
+  /// Whether this capture's checklist is the ICAO report (see _prepareChecklist).
+  bool get _icaoMode => _results.any((r) => r.key == 'ICAOReport');
+
+  /// The rows in the order they are shown: the selected camera first (what the
+  /// capture is doing, always on top - 2026-10-06), then everything that is not
+  /// correct, so the operator sees at a glance what is wrong and what to do:
+  /// a report's own row when the report did not pass, then the server's advice,
+  /// then every other amber or red row; the rest keeps its place below. Within
+  /// each group the rows keep the order they have in [_results].
+  List<_ResultItem> get _shownResults {
+    // The live person check rows (depth, shading, colour) stay together: one
+    // amber verdict among them lifts the whole block.
+    final liveWarn = _results.any((r) => _isLiveRow(r) && r.verdict == _Verdict.warn);
+    int group(_ResultItem r) {
+      if (r.key == 'SelectedCamera') return -1;
+      final report = r.key == 'OFIQReport' || r.key == 'ICAOReport';
+      if (report && r.verdict == _Verdict.warn) return 0;
+      if (r.verdict == _Verdict.advice) return 1;
+      if (_isLiveRow(r)) return liveWarn ? 2 : 3;
+      if (r.verdict == _Verdict.warn || r.verdict == _Verdict.fail) return 2;
+      return 3;
+    }
+
+    return [
+      for (var g = -1; g <= 3; g++) ..._results.where((r) => group(r) == g),
+    ];
   }
 
   /// Classifies a server status line exactly like the MAUI
@@ -209,6 +303,10 @@ class _CapturePageState extends State<CapturePage> {
       setState(() => _results.insert(0, _ResultItem(null, text, _Verdict.warn)));
       return;
     }
+    if (isAdviceRow(text)) {
+      setState(() => _results.add(_ResultItem(null, text, _Verdict.advice)));
+      return;
+    }
     if (text.startsWith('Live person check')) {
       // Multi-view liveness (informational): amber when a flat photo/screen is
       // suspected so the operator's eye is drawn to it without a hard fail.
@@ -217,7 +315,13 @@ class _CapturePageState extends State<CapturePage> {
           : text.contains(': failed')
               ? _Verdict.warn
               : _Verdict.info;
-      setState(() => _results.insert(0, _ResultItem(null, text, verdict)));
+      // The light checks' rows ("Live person check (shading): ...") arrive after
+      // the photo; they go directly under the depth row sent before it, so the
+      // three verdicts read as one block (see _shownResults, which moves the
+      // block as a whole).
+      final last = _results.lastIndexWhere(_isLiveRow);
+      setState(() => _results.insert(
+          last < 0 ? 0 : last + 1, _ResultItem(null, text, verdict)));
       return;
     }
     // OFIQ report rows: the keyed row tracks progress (pending -> scoring ->
@@ -231,18 +335,56 @@ class _CapturePageState extends State<CapturePage> {
             ? _Verdict.warn
             : _Verdict.info;
 
-    if (text.startsWith('Scoring the photo with OFIQ')) {
+    // ICAO report rows ("ICAO <requirement>: passed|attention|not checked
+    // (...)" after one "ICAO compliance: ..." row): the keyed row carries the
+    // overall verdict, the requirement rows are appended below the checklist.
+    // "incomplete" (something could not be measured) is amber, never green.
+    if (_icaoMode && text.startsWith('Scoring the photo with OFIQ')) {
+      key = 'ICAOReport';
+      verdict = _Verdict.pending;
+    } else if (_icaoMode && text.startsWith('OFIQ scoring')) {
+      // "unavailable" / "failed": the report follows, without OFIQ's part.
+      setState(() => _results.add(_ResultItem(null, text, _Verdict.warn)));
+      return;
+    } else if (text.startsWith('ICAO compliance:')) {
+      key = 'ICAOReport';
+      verdict = icaoRowPassed(text) == true ? _Verdict.pass : _Verdict.warn;
+    } else if (text.startsWith('ICAO ')) {
+      final passed = icaoRowPassed(text);
+      setState(() => _results.add(_ResultItem(
+          null,
+          text,
+          passed == null
+              ? _Verdict.info
+              : passed
+                  ? _Verdict.pass
+                  : _Verdict.warn)));
+      return;
+    } else if (text.startsWith('Scoring the photo with OFIQ')) {
       key = 'OFIQReport';
       verdict = _Verdict.pending;
     } else if (text.startsWith('OFIQ overall quality')) {
       key = 'OFIQReport';
       verdict = ofiqVerdict(text);
+      _ofiqOverall = text;
     } else if (text.startsWith('OFIQ scoring')) {
       // "unavailable" / "failed"
       key = 'OFIQReport';
       verdict = _Verdict.warn;
     } else if (text.startsWith('OFIQ ')) {
-      setState(() => _results.add(_ResultItem(null, text, ofiqVerdict(text))));
+      final measure = ofiqVerdict(text);
+      setState(() {
+        _results.add(_ResultItem(null, text, measure));
+        if (measure != _Verdict.warn) return;
+        // A measure failed: the report's own row can no longer read as passed.
+        _ofiqAttention++;
+        final report = _results.where((r) => r.key == 'OFIQReport').firstOrNull;
+        if (report != null && _ofiqOverall != null) {
+          report
+            ..text = ofiqHeadline(_ofiqOverall!, _ofiqAttention)
+            ..verdict = _Verdict.warn;
+        }
+      });
       return;
     } else if (text.startsWith('Distance in cm')) {
       key = 'Distance';
@@ -339,6 +481,10 @@ class _CapturePageState extends State<CapturePage> {
               _photos.add((cameraIndex, bytes));
               _photoRes.add(resolutionLabel(bytes));
             });
+          case CaptureCheck():
+            // Structured check results: the status line before it already
+            // shows the check; this page does not use them.
+            break;
         }
       }
       if (_photos.isEmpty) {
@@ -391,7 +537,13 @@ class _CapturePageState extends State<CapturePage> {
     if (_tPhoto == null) return rows;
 
     if (_timedRunHasOfiq || _tOfiq != null) {
-      rows.add(('OFIQ scoring', _tPhoto!, _tOfiq));
+      rows.add((
+        (SettingsState.current?.icaoReport ?? false)
+            ? 'ICAO report (OFIQ scoring)'
+            : 'OFIQ scoring',
+        _tPhoto!,
+        _tOfiq
+      ));
     }
     return rows;
   }
@@ -493,6 +645,16 @@ class _CapturePageState extends State<CapturePage> {
                           text: 'Manual',
                           onPressed:
                               _capturing ? null : () => _capture(false))),
+                  const SizedBox(width: 12),
+                  // Empties the page between two customers; not while a
+                  // capture is still filling it.
+                  SizedBox(
+                    height: 50,
+                    child: QuietButton(
+                        text: 'Clear',
+                        width: 96,
+                        onPressed: _capturing ? null : _clear),
+                  ),
                 ]),
               ),
               const SizedBox(height: 14),
@@ -523,7 +685,7 @@ class _CapturePageState extends State<CapturePage> {
                 child: ListView.separated(
                   itemCount: _results.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (_, i) => _buildResultRow(_results[i]),
+                  itemBuilder: (_, i) => _buildResultRow(_shownResults[i]),
                 ),
               ),
             ),
@@ -606,6 +768,7 @@ class _CapturePageState extends State<CapturePage> {
       _Verdict.warn => (T.warnTint, T.warn, '!'),
       _Verdict.pending => (Colors.white, T.pending, '•'),
       _Verdict.info => (Colors.white, T.muted, 'i'),
+      _Verdict.advice => (const Color(0xFFE4EEF8), T.titleBlue, '→'),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

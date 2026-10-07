@@ -37,14 +37,48 @@ class ServerManager {
         "Start-Process -FilePath '$exePath' -WindowStyle Minimized");
   }
 
-  /// Stops whoever owns the port (the server may have been started elsewhere).
+  /// Stops the server listening on [port] — and only the server. The server
+  /// may have been started elsewhere (logon shortcut, by hand), so the port's
+  /// owner is looked up rather than a process this app started; but it is
+  /// killed only when its executable is [exePath]. Any other program on the
+  /// port is reported (the UI shows it as "Server control failed: …") and
+  /// left alone.
   /// The windowless server is force-killed, which skips its own shutdown
   /// steps, so the backlights are switched off first (as a normal stop does).
   static Future<void> stop(int port) async {
     await backlightsOff(port);
-    await _powershell(
-        '\$c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; '
-        'if (\$c) { \$c.OwningProcess | Sort-Object -Unique | ForEach-Object { Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue } }');
+    final out = await _powershell(stopCommand(port));
+    final other = portOwnerConflict(out);
+    if (other != null) {
+      throw Exception('port $port is in use by $other, not by the FaceSnap '
+          'server ($exePath) — not stopped');
+    }
+  }
+
+  static const _otherOwnerPrefix = 'OTHER:';
+
+  /// The stop script: every listener on [port] (IPv4 + IPv6 = two rows, one
+  /// process) is resolved to its process; it is killed when its executable
+  /// is [exePath] (case-insensitive) and reported as `OTHER:<name>:<pid>`
+  /// otherwise. A process whose Path cannot be read (another user's, a
+  /// service) is reported, never killed.
+  static String stopCommand(int port) =>
+      '\$c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; '
+      'if (\$c) { \$c.OwningProcess | Sort-Object -Unique | ForEach-Object { '
+      '\$p = Get-Process -Id \$_ -ErrorAction SilentlyContinue; '
+      "if (\$p -and \$p.Path -and \$p.Path -ieq '$exePath') { Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue } "
+      'elseif (\$p) { "$_otherOwnerPrefix" + \$p.ProcessName + ":" + \$_ } } }';
+
+  /// "name (PID n)" of a port owner [stopCommand] refused to kill, or null
+  /// when every listener was the server (or nothing listened at all).
+  static String? portOwnerConflict(String out) {
+    for (final line in out.split('\n')) {
+      final l = line.trim();
+      if (!l.startsWith(_otherOwnerPrefix)) continue;
+      final parts = l.substring(_otherOwnerPrefix.length).split(':');
+      return parts.length > 1 ? '${parts[0]} (PID ${parts[1]})' : parts[0];
+    }
+    return null;
   }
 
   /// Both backlights off on the local server, best effort: no relay module,
