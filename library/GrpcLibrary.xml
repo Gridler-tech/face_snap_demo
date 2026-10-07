@@ -284,16 +284,115 @@
         <member name="P:GrpcLibrary.Dto.CameraResolution.height">
             <summary>Height in pixels.</summary>
         </member>
+        <member name="T:GrpcLibrary.Dto.CheckKind">
+            <summary>
+            What kind of check a <see cref="T:GrpcLibrary.Dto.CheckResult"/> reports.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.Unspecified">
+            <summary>Not set by the server (a server newer than this library may send a kind it does not know yet).</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.Gate">
+            <summary>Decides whether a frame may become the photo: distance, eyes, lips.</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.KioskCheck">
+            <summary>The kiosk's informational checks: glasses, head pose, sharpness, red eye, head size, expression, gaze, lighting evenness.</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.Liveness">
+            <summary>The live-person checks: depth, shading, colour.</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.Ofiq">
+            <summary>One OFIQ quality measure (ISO/IEC 29794-5).</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckKind.Icao">
+            <summary>The ICAO compliance report: the overall row and one row per requirement.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CheckVerdict">
+            <summary>
+            The outcome of one check in a <see cref="T:GrpcLibrary.Dto.CheckResult"/>.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckVerdict.Unspecified">
+            <summary>Not set by the server.</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckVerdict.Passed">
+            <summary>The check passed.</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckVerdict.Failed">
+            <summary>The check failed. For ICAO rows this is "attention".</summary>
+        </member>
+        <member name="F:GrpcLibrary.Dto.CheckVerdict.NotChecked">
+            <summary>The check could not be evaluated (no face part found, OFIQ unavailable, ...).</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.CheckResult">
+            <summary>
+            A machine-readable check result. The automatic capture
+            (<c>KioskProcessor.StartAutomaticProcess()</c>) yields one right after the
+            <see cref="T:GrpcLibrary.Dto.ProcessStatus"/> line of the same check, and
+            <c>GetHighResolutionImageWithIcaoChecksFromCameraIndex</c> returns the results of the
+            photo in <see cref="P:GrpcLibrary.Dto.ImageData.Checks"/>. Only checks that ran produce a result.
+            </summary>
+            <remarks>
+            Note: the generated protobuf message is also called <c>CheckResult</c> (namespace
+            <c>GrpcLibrary</c>). A file with both <c>using GrpcLibrary;</c> and
+            <c>using GrpcLibrary.Dto;</c> names this type as <c>GrpcLibrary.Dto.CheckResult</c> or
+            through an alias (<c>using CheckResult = GrpcLibrary.Dto.CheckResult;</c>).
+            </remarks>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Index">
+            <summary>Camera index, the same value as the other items of the stream.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Kind">
+            <summary>What kind of check this is.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Name">
+            <summary>
+            The stable, documented name of the check, e.g. "distance", "eyes",
+            "liveness_colour", "ofiq.Sharpness", "icao.compliance". Match on this, not on
+            <see cref="P:GrpcLibrary.Dto.CheckResult.Description"/>.
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Verdict">
+            <summary>The outcome of the check.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.GatesPhoto">
+            <summary>
+            True when a <see cref="F:GrpcLibrary.Dto.CheckVerdict.Failed"/> result means the frame was not used
+            for the photo (the gates: distance, eyes, lips).
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Value">
+            <summary>The measured value, or null when the check has none.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Min">
+            <summary>The lower limit the value was compared with, or null.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Max">
+            <summary>The upper limit the value was compared with, or null.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Unit">
+            <summary>The unit of <see cref="P:GrpcLibrary.Dto.CheckResult.Value"/>, <see cref="P:GrpcLibrary.Dto.CheckResult.Min"/> and <see cref="P:GrpcLibrary.Dto.CheckResult.Max"/>: "cm", "%", "/100", or empty.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.CheckResult.Description">
+            <summary>
+            The same text as the human-readable status line of the check. It may change
+            between server versions; use <see cref="P:GrpcLibrary.Dto.CheckResult.Name"/> to identify the check.
+            </summary>
+        </member>
         <member name="T:GrpcLibrary.Dto.ImageData">
             <summary>
-            One chunk of a delivered photo. The capture flows stream the encoded photo
-            as one or more of these after the <see cref="T:GrpcLibrary.Dto.ProcessStatus"/> messages;
-            concatenate <see cref="P:GrpcLibrary.Dto.ImageData.data"/> of all chunks in <see cref="P:GrpcLibrary.Dto.ImageData.index"/> order
-            to obtain the complete image file.
+            A complete delivered photo (or preview frame). The server streams a photo in
+            chunks; <see cref="T:GrpcLibrary.KioskProcessor"/> concatenates them, so <see cref="P:GrpcLibrary.Dto.ImageData.data"/>
+            holds the whole encoded image file.
             </summary>
         </member>
         <member name="P:GrpcLibrary.Dto.ImageData.index">
-            <summary>Chunk sequence number, starting at 0.</summary>
+            <summary>
+            The camera the photo comes from, as the server sends it (not a chunk number).
+            Manual flow, high-resolution captures and the preview: the calibrated camera
+            index (1 = bottom). Automatic flow: the native (OS device) index of the selected
+            camera, the same index as its status lines, on both servers.
+            </summary>
         </member>
         <member name="P:GrpcLibrary.Dto.ImageData.width">
             <summary>Photo width in pixels.</summary>
@@ -305,7 +404,15 @@
             <summary>Encoding of the photo bytes (e.g. "JPG").</summary>
         </member>
         <member name="P:GrpcLibrary.Dto.ImageData.data">
-            <summary>The encoded image bytes of this chunk.</summary>
+            <summary>The encoded image bytes (all chunks of the photo, in order).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.ImageData.Checks">
+            <summary>
+            The check results of the photo, in the order the server sent them. Filled by
+            <c>KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex</c> (from the
+            first item of its stream); empty for every other call, and for a server that does
+            not send check results. Never null.
+            </summary>
         </member>
         <member name="T:GrpcLibrary.Dto.KioskData">
             <summary>
@@ -519,6 +626,11 @@
             <summary>LED hardware layout on the Plasma board: "strip" or "ring"
             (see <c>SetLedLayout</c>); "strip" for a server without the field. Added in 1.5.3.</summary>
         </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.photoLight">
+            <summary>Which LEDs light the photo: "all", or the "neighbours" of the
+            selected camera (see <c>SetPhotoLight</c>); "all" for a server without
+            the field. Added in 1.5.4.</summary>
+        </member>
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.focusColor">
             <summary>Focus-light colour as RRGGBB hex (see <c>SetFocusLight</c>);
             "00FF00" for a server without the field. Added in 1.5.3.</summary>
@@ -531,6 +643,23 @@
             <summary>Lights-off photo mode: the chosen camera's ring shows for a second,
             then all column LEDs go off and the backlights light the photo
             (see <c>SetLedsOffForPhoto</c>). Added in 1.5.3.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.icaoReport">
+            <summary>ICAO compliance report: after the photo, one verdict per ICAO
+            portrait requirement, from OFIQ plus the kiosk's own checks
+            (see <c>SetIcaoReport</c>). Added in 1.5.4.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.livenessCheck">
+            <summary>Live person check master switch: the depth check over the
+            selection scan runs with it (see <c>SetLivenessChecks</c>). Added in 1.5.4.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.livenessShadingCheck">
+            <summary>Light check: the face lit from above and from below in turn
+            (needs the LED board). Added in 1.5.4.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.KioskSettingsDto.livenessColourCheck">
+            <summary>Light check: a yellow flash that skin follows and a screen does
+            not (needs the LED board). Added in 1.5.4.</summary>
         </member>
         <member name="P:GrpcLibrary.Dto.KioskSettingsDto.cameraResolutions">
             <summary>The resolutions supported by the kiosk cameras.</summary>
@@ -687,6 +816,28 @@
         <member name="P:GrpcLibrary.Dto.LedLayout.layout">
             <summary>"strip" or "ring".</summary>
         </member>
+        <member name="T:GrpcLibrary.Dto.BoardGbl">
+            <summary>The gbl.py in force for an LED layout on the Plasma board
+            (<c>GetBoardGbl</c> / <c>SetBoardGbl</c>, added in 1.5.4).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BoardGbl.layout">
+            <summary>"strip" or "ring".</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BoardGbl.content">
+            <summary>The file's text: the operator's own, or the one the server ships.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BoardGbl.custom">
+            <summary>True when the operator's own file is in force.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.BoardGbl.message">
+            <summary>What a Set did ("stored; ..." or "rejected: ..."); empty on a Get.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.PhotoLight">
+            <summary>The photo light in force, echoed by <c>SetPhotoLight</c> (added in 1.5.4).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.PhotoLight.photoLight">
+            <summary>"all" or "neighbours".</summary>
+        </member>
         <member name="T:GrpcLibrary.Dto.FocusLight">
             <summary>The applied focus-light configuration, echoed by <c>SetFocusLight</c>.</summary>
         </member>
@@ -701,6 +852,24 @@
         </member>
         <member name="P:GrpcLibrary.Dto.OfiqChecks.ofiqChecks">
             <summary>Whether OFIQ quality checks are on.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.IcaoReport">
+            <summary>The applied ICAO compliance report mode, echoed by <c>SetIcaoReport</c> (added in 1.5.4).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.IcaoReport.icaoReport">
+            <summary>Whether the ICAO compliance report follows each photo.</summary>
+        </member>
+        <member name="T:GrpcLibrary.Dto.LivenessChecks">
+            <summary>The applied live person check switches, echoed by <c>SetLivenessChecks</c> (added in 1.5.4).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.LivenessChecks.livenessCheck">
+            <summary>The master switch: the depth check over the selection scan.</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.LivenessChecks.shadingCheck">
+            <summary>The shading check (lit from above and from below in turn).</summary>
+        </member>
+        <member name="P:GrpcLibrary.Dto.LivenessChecks.colourCheck">
+            <summary>The colour check (a yellow flash).</summary>
         </member>
         <member name="T:GrpcLibrary.Dto.GlassesLightsOff">
             <summary>The applied glasses lights-off mode, echoed by <c>SetGlassesLightsOff</c>.</summary>
@@ -1099,10 +1268,28 @@
             implement every member.
             </summary>
         </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.GetBoardGbl(System.String)">
+            <summary>The gbl.py in force for an LED layout on the Plasma board.</summary>
+        </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.SetBoardGbl(System.String,System.String)">
+            <summary>The operator's own gbl.py for an LED layout (empty content: the shipped file again).</summary>
+        </member>
         <member name="M:GrpcLibrary.ISettingsProcessor.SetLedsOffForPhoto(System.Boolean)">
             <summary>Lights-off photo mode: the chosen camera's ring shows for a second,
             then all column LEDs go off and the backlights light the photo.
             Server 1.1.15 / image 2.0.14 or newer.</summary>
+        </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.SetIcaoReport(System.Boolean)">
+            <summary>ICAO compliance report: after the photo, one verdict per ICAO
+            portrait requirement, from OFIQ plus the kiosk's own checks.</summary>
+        </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.SetLivenessChecks(System.Boolean,System.Boolean,System.Boolean)">
+            <summary>Live person check: the master switch (depth check over the
+            selection scan) and the two optional light checks on top of it.</summary>
+        </member>
+        <member name="M:GrpcLibrary.ISettingsProcessor.SetPhotoLight(System.String)">
+            <summary>Which LEDs light the photo: "all", or the "neighbours" of the
+            selected camera (its ring and one ring on each side).</summary>
         </member>
         <member name="T:GrpcLibrary.KioskProcessor">
             <summary>
@@ -1125,8 +1312,29 @@
             <returns>
             Before the photo is returned from the server a number of statusses are return.
             E.g. selected camera, face distance, cropping on/off etc.
+            A server that sends check results also yields a <see cref="T:GrpcLibrary.Dto.CheckResult"/>
+            right after the ProcessStatus line of each check that ran, in stream order (an
+            older server yields none).
             Finally the photo is returned in several chucks of data (stream).
+            When the server gives up (e.g. no face, a failed check) the enumeration ends
+            after the last ProcessStatus without an ImageData item — there is no photo.
+            Leaving the enumeration early (break, or an exception in the loop) cancels the
+            capture on the server; so does <c>.WithCancellation(token)</c> on the returned
+            enumerable, or the <see cref="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess(System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess(System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess"/> with a token that aborts the capture: the
+            token is passed to the server call, so cancelling it (or leaving the enumeration
+            early) stops the flow on the server instead of letting it run to the end.
+            </summary>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess"/>.</returns>
         </member>
         <member name="M:GrpcLibrary.KioskProcessor.StartManualProcess">
             <summary>
@@ -1135,8 +1343,26 @@
             <returns>
             For each camera a photo is returned.
             The flow does not use facial recognition, cropping etc.
-            Each photo is returned in several chucks of data (stream).
+            The server streams each photo in several chunks; they are assembled here into one
+            ImageData per camera, with that camera's calibrated index, width, height and format.
+            A camera that delivered no photo produces no ImageData (no 0-byte photo), so a
+            stream with status lines only ends without any ImageData item.
+            Leaving the enumeration early cancels the flow on the server; so does
+            <c>.WithCancellation(token)</c> on the returned enumerable, or the
+            <see cref="M:GrpcLibrary.KioskProcessor.StartManualProcess(System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.StartManualProcess(System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.KioskProcessor.StartManualProcess"/> with a token that aborts the flow on the
+            server (see <see cref="M:GrpcLibrary.KioskProcessor.StartAutomaticProcess(System.Threading.CancellationToken)"/>).
+            </summary>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.KioskProcessor.StartManualProcess"/>.</returns>
         </member>
         <member name="M:GrpcLibrary.KioskProcessor.GetFocusedCameraIndex(System.Int32)">
             <summary>
@@ -1157,6 +1383,20 @@
             The high resolution image data. The ImageData contains the index, width, height, format and the image data in bytes.
             </returns>
         </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageFromCameraIndex(System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageFromCameraIndex(System.Int32,System.Int32)"/> with a token that
+            aborts the capture on the server.
+            </summary>
+            <param name="index">The camera index</param>
+            <param name="timeout">The timeout in milliseconds</param>
+            <param name="cancellationToken">
+            Cancelling it fails the task with an <see cref="T:Grpc.Core.RpcException"/> whose StatusCode is
+            Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel created with
+            ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageFromCameraIndex(System.Int32,System.Int32)"/>.</returns>
+        </member>
         <member name="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex(System.Int32,System.Int32,System.Boolean,System.Boolean)">
             <summary>
             This method requests a high resolution image from a specific camera index with ICAO checks.
@@ -1166,8 +1406,26 @@
             <param name="eyesCheck">Eyes check on/off</param>
             <param name="lipsCheck">Lips check on/off</param>
             <returns>
-            The high resolution image data. The ImageData contains the index, width, height, format and the image data in bytes.
+            The high resolution image data. The ImageData contains the index, width, height, format and the image data in bytes,
+            and in <see cref="P:GrpcLibrary.Dto.ImageData.Checks"/> the check results of the photo (distance, eyes/lips per the flags,
+            the kiosk checks, OFIQ / ICAO per the settings) when the server sends them; empty for an older server.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex(System.Int32,System.Int32,System.Boolean,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex(System.Int32,System.Int32,System.Boolean,System.Boolean)"/>
+            with a token that aborts the capture on the server.
+            </summary>
+            <param name="index">The camera index</param>
+            <param name="timeout">The timeout in milliseconds</param>
+            <param name="eyesCheck">Eyes check on/off</param>
+            <param name="lipsCheck">Lips check on/off</param>
+            <param name="cancellationToken">
+            Cancelling it fails the task with an <see cref="T:Grpc.Core.RpcException"/> whose StatusCode is
+            Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel created with
+            ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.KioskProcessor.GetHighResolutionImageWithIcaoChecksFromCameraIndex(System.Int32,System.Int32,System.Boolean,System.Boolean)"/>.</returns>
         </member>
         <member name="M:GrpcLibrary.KioskProcessor.GetKioskInfo">
             <summary>
@@ -1218,7 +1476,26 @@
             <returns>
             One ImageData per frame (~15 fps): a complete JPEG with the camera index, width,
             height and format "jpeg".
+            Breaking out of the enumeration stops the stream on the server at once (the
+            camera is released; it does not run on until maxSeconds). So does
+            <c>.WithCancellation(token)</c> on the returned enumerable, or cancelling the
+            token of the <see cref="M:GrpcLibrary.KioskProcessor.StreamPreview(System.Int32,System.Int32,System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.KioskProcessor.StreamPreview(System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.KioskProcessor.StreamPreview(System.Int32,System.Int32)"/> with a token that stops the stream: the
+            token is passed to the server call, so cancelling it (or breaking out of the
+            enumeration) releases the camera on the server at once.
+            </summary>
+            <param name="index">The calibrated camera index (1 = bottom).</param>
+            <param name="maxSeconds">Safety cap in seconds; 0 uses the server default (60).</param>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.KioskProcessor.StreamPreview(System.Int32,System.Int32)"/>.</returns>
         </member>
         <member name="T:GrpcLibrary.LightProcessor">
             <summary>
@@ -1290,7 +1567,22 @@
             One update per tuning step; the last one has done set. On success the tuned
             R/G/B intensities are stored in the lighting settings; on failure the originals
             were restored and error says why.
+            Leaving the enumeration early cancels the tuning on the server; so does
+            <c>.WithCancellation(token)</c> on the returned enumerable, or the
+            <see cref="M:GrpcLibrary.LightProcessor.AutoTuneWhitePoint(System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.LightProcessor.AutoTuneWhitePoint(System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.LightProcessor.AutoTuneWhitePoint"/> with a token that aborts the tuning on the
+            server.
+            </summary>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.LightProcessor.AutoTuneWhitePoint"/>.</returns>
         </member>
         <member name="T:GrpcLibrary.MonitoringProcessor">
             <summary>
@@ -1307,8 +1599,22 @@
             This method retrieves health statusses from the server as a stream
             </summary>
             <returns>
-            A typle containing the status deswcription and a status
+            A tuple containing the status description and a status.
+            Leaving the enumeration early ends the stream on the server; so does
+            <c>.WithCancellation(token)</c> on the returned enumerable, or the
+            <see cref="M:GrpcLibrary.MonitoringProcessor.GetKioskStatus(System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.MonitoringProcessor.GetKioskStatus(System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.MonitoringProcessor.GetKioskStatus"/> with a token that ends the stream on the server.
+            </summary>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.MonitoringProcessor.GetKioskStatus"/>.</returns>
         </member>
         <member name="M:GrpcLibrary.MonitoringProcessor.OdroidUsage">
             <summary>
@@ -1316,7 +1622,21 @@
             </summary>
             <returns>
             The usage numbers for cpu etc.
+            Leaving the enumeration early ends the stream on the server; so does
+            <c>.WithCancellation(token)</c> on the returned enumerable, or the
+            <see cref="M:GrpcLibrary.MonitoringProcessor.OdroidUsage(System.Threading.CancellationToken)"/> overload.
             </returns>
+        </member>
+        <member name="M:GrpcLibrary.MonitoringProcessor.OdroidUsage(System.Threading.CancellationToken)">
+            <summary>
+            <see cref="M:GrpcLibrary.MonitoringProcessor.OdroidUsage"/> with a token that ends the stream on the server.
+            </summary>
+            <param name="cancellationToken">
+            Cancelling it ends the enumeration with an <see cref="T:Grpc.Core.RpcException"/> whose
+            StatusCode is Cancelled (an <see cref="T:System.OperationCanceledException"/> on a channel
+            created with ThrowOperationCanceledOnCancellation).
+            </param>
+            <returns>As <see cref="M:GrpcLibrary.MonitoringProcessor.OdroidUsage"/>.</returns>
         </member>
         <member name="M:GrpcLibrary.MonitoringProcessor.GetLightMeasurement">
             <summary>
@@ -1379,7 +1699,9 @@
         </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SaveSettings(System.Int32,System.Int32,System.Boolean,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Boolean,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Boolean)">
             <summary>
-            This method saves the settings to the server.
+            Obsolete: never stored anything. Both servers return the request unchanged and
+            persist nothing; the call dates from the first settings page (2023) and was replaced
+            by one Set call per setting. Use those, and <see cref="M:GrpcLibrary.SettingsProcessor.LoadSettings"/> to read back.
             </summary>
             <param name="width"></param>
             <param name="height"></param>
@@ -1398,7 +1720,7 @@
             <param name="eyeGlassesCheck"></param>
             <param name="redEyeDetectionCheck"></param>
             <returns>
-            The settings set by the server.
+            The request's values, echoed by the server (nothing is stored).
             </returns>
         </member>
         <member name="M:GrpcLibrary.SettingsProcessor.LoadSettings">
@@ -1640,6 +1962,42 @@
             <param name="color">The colour as an RRGGBB hex string, e.g. "FFFFFF".</param>
             <returns>The background colour set by the server.</returns>
         </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetPhotoLight(System.String)">
+            <summary>
+            This method sets which LEDs light the photo: "all" LEDs of the column, or
+            the "neighbours" of the selected camera (its ring and one ring on each
+            side; on a strip layout the stretch around its position). With
+            "neighbours" the current drawn for a photo does not grow with the number
+            of cameras, and the selection scan runs the column at half intensity.
+            An unknown value leaves the setting as it is; the response carries the
+            value in force. Requires a server with the setting; older servers answer
+            UNIMPLEMENTED.
+            </summary>
+            <param name="value">"all" or "neighbours".</param>
+            <returns>The photo light in force on the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.GetBoardGbl(System.String)">
+            <summary>
+            The gbl.py in force for an LED layout on the kiosk's Plasma board: the
+            operator's own file when one was stored with <c>SetBoardGbl</c>, otherwise
+            the one the server ships. Requires a server with the RPC; older servers
+            answer UNIMPLEMENTED.
+            </summary>
+            <param name="layout">"strip" or "ring"; empty for the layout in use.</param>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetBoardGbl(System.String,System.String)">
+            <summary>
+            Stores the operator's own gbl.py for an LED layout - the strip column's
+            geometry (LED count, the cameras' positions, the spans) - and writes it to
+            the Plasma board when that layout is in use (the board reboots, ~10 s).
+            The server validates the file against the names the layout's main.py
+            reads and rejects it otherwise; the response's <c>message</c> says which.
+            Empty content removes the operator's file: the shipped gbl.py applies
+            again. Requires a server with the RPC; older servers answer UNIMPLEMENTED.
+            </summary>
+            <param name="layout">"strip" or "ring"; empty for the layout in use.</param>
+            <param name="content">The file's text, or empty.</param>
+        </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SetLedLayout(System.String)">
             <summary>
             This method sets the LED hardware layout of the kiosk.
@@ -1662,6 +2020,38 @@
             </summary>
             <param name="ofiqChecks">OFIQ checks on/off.</param>
             <returns>The OFIQ checks value (on/off) set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetIcaoReport(System.Boolean)">
+            <summary>
+            This method sets the ICAO compliance report mode on or off. When on, the
+            photo is followed by one status line per ICAO portrait requirement
+            ("ICAO Sharp focus: passed (...)", verdict passed / attention / not checked)
+            after an overall "ICAO compliance: ..." line. The verdicts come from OFIQ
+            (ISO/IEC 29794-5) plus the kiosk's own checks for what OFIQ does not
+            measure: glasses, looking at the camera, red eyes, shadows and head size.
+            It replaces the OFIQ report and the informational check lines.
+            Requires a server with the ICAO report; older servers answer UNIMPLEMENTED.
+            </summary>
+            <param name="icaoReport">ICAO compliance report on/off.</param>
+            <returns>The ICAO report value (on/off) set by the server.</returns>
+        </member>
+        <member name="M:GrpcLibrary.SettingsProcessor.SetLivenessChecks(System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            This method sets the live person check switches. <paramref name="livenessCheck"/>
+            is the master switch: with it on, every automatic capture reports a
+            "Live person check: ..." status line from the depth measured over the
+            selection scan (a flat photo or screen has no depth). The two light checks
+            are optional on top of it and need the LED board: the shading check lights
+            the face from above and from below in turn after the photo ("Live person
+            check (shading): ..."), the colour check flashes the LEDs yellow once
+            ("Live person check (colour): ..."). Each adds about half a second to a
+            capture. All three are informational: they never block the photo.
+            Requires a server with the light checks; older servers answer UNIMPLEMENTED.
+            </summary>
+            <param name="livenessCheck">The master switch.</param>
+            <param name="shadingCheck">The shading check on/off (only runs with the master switch on).</param>
+            <param name="colourCheck">The colour check on/off (only runs with the master switch on).</param>
+            <returns>The three values set by the server.</returns>
         </member>
         <member name="M:GrpcLibrary.SettingsProcessor.SetExpectedCameras(System.Int32)">
             <summary>
@@ -2160,6 +2550,46 @@
             weights are non-commercial / require a separate InsightFace license).
             </summary>
         </member>
+        <member name="T:GrpcLibrary.CheckKind">
+            <summary>
+            What kind of check a CheckResult reports.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckKind.Gate">
+            <summary>
+            decides whether a frame may become the photo: distance, eyes, lips
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckKind.KioskCheck">
+            <summary>
+            the kiosk's informational checks: glasses, head pose, sharpness, ...
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckKind.Liveness">
+            <summary>
+            live person check: depth, shading, colour
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckKind.Ofiq">
+            <summary>
+            one OFIQ quality measure (ISO/IEC 29794-5)
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckKind.Icao">
+            <summary>
+            the ICAO compliance report: the overall row and one row per requirement
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckVerdict.Failed">
+            <summary>
+            for ICAO rows: "attention"
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckVerdict.NotChecked">
+            <summary>
+            the check could not run (no face part found, OFIQ unavailable, ...)
+            </summary>
+        </member>
         <member name="F:GrpcLibrary.PreviewRequest.CameraIndexFieldNumber">
             <summary>Field number for the "camera_index" field.</summary>
         </member>
@@ -2260,8 +2690,111 @@
         <member name="F:GrpcLibrary.ProcessAutomaticResponse.ImageDataFieldNumber">
             <summary>Field number for the "imageData" field.</summary>
         </member>
+        <member name="F:GrpcLibrary.ProcessAutomaticResponse.CheckResultFieldNumber">
+            <summary>Field number for the "checkResult" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.ProcessAutomaticResponse.CheckResult">
+            <summary>
+            One structured result per check, sent right after the check's text row
+            (the text rows are unchanged). Clients that do not know this field skip it.
+            </summary>
+        </member>
         <member name="T:GrpcLibrary.ProcessAutomaticResponse.ResultOneofCase">
             <summary>Enum of possible cases for the "result" oneof.</summary>
+        </member>
+        <member name="T:GrpcLibrary.CheckResult">
+            <summary>
+            A machine-readable check result. `name` is stable and documented; the text in
+            `description` is the same sentence as the human-readable status row and may change.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.IndexFieldNumber">
+            <summary>Field number for the "index" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Index">
+            <summary>
+            camera index, the same value as the other items of the stream
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.KindFieldNumber">
+            <summary>Field number for the "kind" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.NameFieldNumber">
+            <summary>Field number for the "name" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Name">
+            <summary>
+            e.g. "distance", "eyes", "liveness_colour", "ofiq.Sharpness", "icao.compliance"
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.VerdictFieldNumber">
+            <summary>Field number for the "verdict" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.GatesPhotoFieldNumber">
+            <summary>Field number for the "gates_photo" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.GatesPhoto">
+            <summary>
+            true when a FAILED result means the frame was not used for the photo
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Value">
+            <summary>
+            the measured value, when the check has one
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.HasValue">
+            <summary>Gets whether the "value" field is set</summary>
+        </member>
+        <member name="M:GrpcLibrary.CheckResult.ClearValue">
+            <summary>Clears the value of the "value" field</summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.MinFieldNumber">
+            <summary>Field number for the "min" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Min">
+            <summary>
+            the lower limit the value was compared with
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.HasMin">
+            <summary>Gets whether the "min" field is set</summary>
+        </member>
+        <member name="M:GrpcLibrary.CheckResult.ClearMin">
+            <summary>Clears the value of the "min" field</summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.MaxFieldNumber">
+            <summary>Field number for the "max" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Max">
+            <summary>
+            the upper limit the value was compared with
+            </summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.HasMax">
+            <summary>Gets whether the "max" field is set</summary>
+        </member>
+        <member name="M:GrpcLibrary.CheckResult.ClearMax">
+            <summary>Clears the value of the "max" field</summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.UnitFieldNumber">
+            <summary>Field number for the "unit" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Unit">
+            <summary>
+            "cm", "%", "/100", "" ...
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.CheckResult.DescriptionFieldNumber">
+            <summary>Field number for the "description" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.CheckResult.Description">
+            <summary>
+            the same text as the status row
+            </summary>
         </member>
         <member name="F:GrpcLibrary.ProcessManualResponse.ProcessStatusFieldNumber">
             <summary>Field number for the "processStatus" field.</summary>
@@ -2292,6 +2825,16 @@
         </member>
         <member name="F:GrpcLibrary.HighResImageResponse.StatusTypeFieldNumber">
             <summary>Field number for the "statusType" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.HighResImageResponse.ChecksFieldNumber">
+            <summary>Field number for the "checks" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.HighResImageResponse.Checks">
+            <summary>
+            GetHighResolutionImageWithIcaoChecksFromCameraIndex only: the check results of
+            the photo, on the FIRST item of the stream (empty on the later chunks and on the
+            plain GetHighResolutionImageFromCameraIndex).
+            </summary>
         </member>
         <member name="F:GrpcLibrary.HighResIcaoImageRequest.IndexFieldNumber">
             <summary>Field number for the "index" field.</summary>
@@ -2982,6 +3525,40 @@
             camera_ordering_automatic stays true only for "automatic".
             </summary>
         </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.IcaoReportFieldNumber">
+            <summary>Field number for the "icao_report" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.IcaoReport">
+            <summary>
+            ICAO compliance report: one verdict per ICAO portrait requirement after
+            the photo, from OFIQ plus the kiosk's own checks. Wins over ofiq_checks.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LivenessCheckFieldNumber">
+            <summary>Field number for the "liveness_check" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.LivenessCheck">
+            <summary>
+            Live person check: liveness_check is the master switch (the depth check
+            over the selection scan always runs with it); the two light checks are
+            optional on top of it and need the LED board.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LivenessShadingCheckFieldNumber">
+            <summary>Field number for the "liveness_shading_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.LivenessColourCheckFieldNumber">
+            <summary>Field number for the "liveness_colour_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LoadSettingsResponse.PhotoLightFieldNumber">
+            <summary>Field number for the "photo_light" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.LoadSettingsResponse.PhotoLight">
+            <summary>
+            Which LEDs light the photo: "all", or the "neighbours" of the selected
+            camera (its ring and one ring on each side).
+            </summary>
+        </member>
         <member name="T:GrpcLibrary.ResolutionRequest">
             <summary>
             The request message containing the resolution value.
@@ -3374,6 +3951,56 @@
         <member name="F:GrpcLibrary.OfiqChecksResponse.MessageFieldNumber">
             <summary>Field number for the "message" field.</summary>
         </member>
+        <member name="T:GrpcLibrary.IcaoReportRequest">
+            <summary>
+            The request/response for the ICAO compliance report mode (one verdict per
+            ICAO portrait requirement, from OFIQ plus the kiosk's own checks).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.IcaoReportRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.IcaoReportResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.LivenessChecksRequest">
+            <summary>
+            The request/response for the live person check switches: the master
+            switch (depth check over the selection scan) and the two optional light
+            checks on top of it (shading from above/below, a yellow flash).
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksRequest.LivenessCheckFieldNumber">
+            <summary>Field number for the "liveness_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksRequest.ShadingCheckFieldNumber">
+            <summary>Field number for the "shading_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksRequest.ColourCheckFieldNumber">
+            <summary>Field number for the "colour_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksResponse.LivenessCheckFieldNumber">
+            <summary>Field number for the "liveness_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksResponse.ShadingCheckFieldNumber">
+            <summary>Field number for the "shading_check" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.LivenessChecksResponse.ColourCheckFieldNumber">
+            <summary>Field number for the "colour_check" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.PhotoLightRequest">
+            <summary>
+            The request/response for the photo light: "all" LEDs, or the "neighbours"
+            of the selected camera. An unknown value leaves the setting as it is; the
+            response carries the value in force.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.PhotoLightRequest.ValueFieldNumber">
+            <summary>Field number for the "value" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.PhotoLightResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
         <member name="T:GrpcLibrary.LedLayoutRequest">
             <summary>
             The request/response for the LED hardware layout ("strip"/"ring").
@@ -3384,6 +4011,65 @@
         </member>
         <member name="F:GrpcLibrary.LedLayoutResponse.MessageFieldNumber">
             <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="T:GrpcLibrary.BoardGblRequest">
+            <summary>
+            The operator's own gbl.py for an LED layout (the strip column's geometry: LED
+            count, camera positions, spans). The server validates it against the names
+            the layout's main.py reads, stores it, and writes it to the Plasma board when
+            that layout is in use. Empty content removes it: the shipped file applies.
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblRequest.LayoutFieldNumber">
+            <summary>Field number for the "layout" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblRequest.Layout">
+            <summary>
+            "strip" or "ring"; empty = the layout in use
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblRequest.ContentFieldNumber">
+            <summary>Field number for the "content" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblRequest.Content">
+            <summary>
+            the file's text; empty = back to the shipped gbl.py
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblLayoutRequest.LayoutFieldNumber">
+            <summary>Field number for the "layout" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblLayoutRequest.Layout">
+            <summary>
+            "strip" or "ring"; empty = the layout in use
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblResponse.LayoutFieldNumber">
+            <summary>Field number for the "layout" field.</summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblResponse.ContentFieldNumber">
+            <summary>Field number for the "content" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblResponse.Content">
+            <summary>
+            the gbl.py in force for the layout
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblResponse.CustomFieldNumber">
+            <summary>Field number for the "custom" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblResponse.Custom">
+            <summary>
+            true = the operator's file, false = the shipped one
+            </summary>
+        </member>
+        <member name="F:GrpcLibrary.BoardGblResponse.MessageFieldNumber">
+            <summary>Field number for the "message" field.</summary>
+        </member>
+        <member name="P:GrpcLibrary.BoardGblResponse.Message">
+            <summary>
+            what happened ("stored; ..." or "rejected: ..."); empty on a Get
+            </summary>
         </member>
         <member name="T:GrpcLibrary.FocusLightRequest">
             <summary>

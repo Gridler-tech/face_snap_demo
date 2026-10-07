@@ -48,6 +48,10 @@ try
         {
             Console.WriteLine($"  [{status.status}] {status.description}");
         }
+        else if (message is Dto.CheckResult check)  // machine-readable twin of the check's line (server 1.1.23+)
+        {
+            Console.WriteLine($"    {check.Name}: {check.Verdict} {check.Value} {check.Unit}".TrimEnd());
+        }
         else if (message is Dto.ImageData image)
         {
             photo = image.data;

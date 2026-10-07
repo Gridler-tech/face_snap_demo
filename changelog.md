@@ -2,10 +2,66 @@
 
 
 
+## Version 1.5.4, 07-10-2026
+
+Structured check results, cancellation for every stream, and the settings for the
+ICAO report, the live person check, the photo light and the strip layout's own
+`gbl.py`. The assembly version stays 1.0.0.0 and the dependencies are those of 1.5.3,
+so replace `GrpcLibrary.dll` and `GrpcLibrary.xml` in `library/`; an application built
+against 1.5.x keeps working without a rebuild.
+
+- **Structured check results.** `KioskProcessor.StartAutomaticProcess()` now also
+  yields a `GrpcLibrary.Dto.CheckResult` right after the status line of each check that
+  ran: a stable `Name` ("distance", "eyes", "liveness_colour", "ofiq.Sharpness",
+  "icao.compliance", ...), `Kind`, `Verdict` (`Passed`, `Failed`, `NotChecked`),
+  `GatesPhoto` and, when the check has them, `Value` / `Min` / `Max` in `Unit`.
+  `GetHighResolutionImageWithIcaoChecksFromCameraIndex` returns the photo's results in
+  the new `ImageData.Checks` (never null; empty for every other call). Key on `Name`
+  and `Verdict`, not on the status text. A `switch` without a `CheckResult` case simply
+  skips the items. The generated protobuf types share the names `CheckResult`,
+  `CheckKind` and `CheckVerdict`, so alias the ones you use
+  (`using CheckResult = GrpcLibrary.Dto.CheckResult;`). The names and values are listed
+  in [Check results](https://gridler-tech.github.io/face_snap/docs/reference/check-results.html).
+  Needs Windows server 1.1.23 or kiosk image 2.0.20; an older server sends no
+  results and everything else works as before.
+- **Cancellation for every stream.** `StartAutomaticProcess`, `StartManualProcess`,
+  `GetHighResolutionImageFromCameraIndex`,
+  `GetHighResolutionImageWithIcaoChecksFromCameraIndex`, `StreamPreview`,
+  `LightProcessor.AutoTuneWhitePoint`, `MonitoringProcessor.GetKioskStatus` and
+  `OdroidUsage` have an overload with a `CancellationToken` that ends the call on the
+  server. Leaving an `await foreach` early (`break`) now also disposes the call, so a
+  stopped preview releases the camera. The existing signatures are unchanged.
+- **New settings.** `SettingsProcessor.SetIcaoReport(bool)` (after the photo, one
+  verdict per ICAO portrait requirement), `SetLivenessChecks(livenessCheck,
+  shadingCheck, colourCheck)` (the live person check: the depth check over the
+  selection scan, and two optional checks with the kiosk's own light),
+  `SetPhotoLight("all" | "neighbours")` (light the photo with every ring, or with the
+  selected camera's ring and one on each side) and `GetBoardGbl(layout)` /
+  `SetBoardGbl(layout, content)` (the operator's own `gbl.py` for an LED layout, kept
+  across layout switches and server updates; empty content restores the shipped file).
+  `KioskSettingsDto` reads them back as `icaoReport`, `livenessCheck`,
+  `livenessShadingCheck`, `livenessColourCheck` and `photoLight`.
+- **`SettingsProcessor.SaveSettings` is `[Obsolete]`.** It never stored anything: both
+  servers return the request unchanged. Use the `Set` call of each setting and
+  `LoadSettings` to read them back. The RPC stays, so existing code still compiles (with
+  a warning) and runs.
+- **Fixes.** `StartAutomaticProcess` and `StartManualProcess` no longer yield an
+  `ImageData` with 0 bytes when the server gave up: a capture without a photo ends
+  after its last `ProcessStatus`. The manual flow keeps each camera's own photo width
+  and height. `ImageData.index` is documented as what it is, the camera index (not a
+  chunk number).
+- The new interface members have default bodies, like those added in 1.5: an
+  implementation written against 1.5.3 still loads and throws `NotSupportedException`
+  for them, now naming the release that added the member (`CalibrateByPerson`: 1.5.3).
+
+Needs a server that supports these: Windows server 1.1.23 or kiosk image 2.0.20 and
+later carry all of it; older servers answer the new RPCs with `UNIMPLEMENTED` and send
+no check results.
+
 ## Repository note, 07-10-2026 (operator app 1.1.23)
 
-Release 1.5.3 now carries `FaceSnapOperatorSetup-1.1.23.exe`, and the sources in
-`flutter_apps/` match it. The new check results need Windows server 1.1.23 or later;
+Release 1.5.4 carries `FaceSnapOperatorSetup-1.1.23.exe` (the installer moved from
+1.5.3), and the sources in `flutter_apps/` match it. The new check results need Windows server 1.1.23 or later;
 older servers still work, the results simply do not appear.
 
 - **Structured check results.** Every check of a capture also arrives as a
