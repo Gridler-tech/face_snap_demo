@@ -39,7 +39,10 @@ class _UpdaterPageState extends State<UpdaterPage> {
   // config.json (%APPDATA%\FaceSnapUpdater) and are saved back when a run
   // starts. A clean-board pick from Search still prefills the published
   // vendor default for that board.
-  final _host = TextEditingController(text: AppConfig.host);
+  final _host = TextEditingController(
+      text: AppConfig.updaterHost.isNotEmpty
+          ? AppConfig.updaterHost
+          : AppConfig.host);
   final _user = TextEditingController(text: AppConfig.boardUser);
   final _password = TextEditingController(text: AppConfig.boardPassword);
   bool _obscurePassword = true;
@@ -181,11 +184,11 @@ class _UpdaterPageState extends State<UpdaterPage> {
 
   List<String> get _activeSummary => _runSummary ?? const [];
 
-  /// Remembers the working connection settings for the next launch.
+  /// Remembers the working connection settings for the next launch. Not the
+  /// app's connected server: see AppConfig.updaterHost.
   void _saveConfig() {
-    AppConfig.host = _host.text.trim();
-    AppConfig.boardUser = _user.text.trim();
-    AppConfig.boardPassword = _password.text;
+    AppConfig.rememberUpdaterBoard(
+        _host.text.trim(), _user.text.trim(), _password.text);
     unawaited(AppConfig.save());
   }
 

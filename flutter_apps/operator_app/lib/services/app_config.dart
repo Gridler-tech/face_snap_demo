@@ -15,6 +15,14 @@ class AppConfig {
   static String boardUser = 'root';
   static String boardPassword = '';
 
+  // The board the Updater page last worked on. Kept apart from [host]: [host]
+  // is the server the app is CONNECTED to (the shared gRPC channel follows it
+  // at startup and connectTo sets both together). Until 2026-10-08 the
+  // Updater saved its board into [host], so after updating a kiosk the Kiosk
+  // page marked that kiosk "Connected" while every call (a capture included)
+  // still went to the old server.
+  static String updaterHost = '';
+
   // Developer mode: shows the </> badges that explain how to implement each
   // control with the FaceSnap SDKs (see ui/dev_info.dart).
   static bool devMode = false;
@@ -43,10 +51,20 @@ class AppConfig {
       port = json['port'] as int? ?? port;
       boardUser = json['board_user'] as String? ?? boardUser;
       boardPassword = json['board_password'] as String? ?? boardPassword;
+      updaterHost = json['updater_host'] as String? ?? updaterHost;
       devMode = json['dev_mode'] as bool? ?? devMode;
     } catch (_) {
       // Corrupt/missing config falls back to defaults.
     }
+  }
+
+  /// What the Updater page remembers when a run starts: its board and the
+  /// SSH credentials. Never the connected server ([host]).
+  static void rememberUpdaterBoard(
+      String board, String user, String password) {
+    updaterHost = board;
+    boardUser = user;
+    boardPassword = password;
   }
 
   static Future<void> save() async {
@@ -57,6 +75,7 @@ class AppConfig {
       'port': port,
       'board_user': boardUser,
       'board_password': boardPassword,
+      'updater_host': updaterHost,
       'dev_mode': devMode,
     }));
   }

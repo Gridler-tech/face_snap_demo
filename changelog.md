@@ -2,6 +2,29 @@
 
 
 
+## Repository note, 08-10-2026 (operator app 1.1.24)
+
+Release 1.5.4 now carries `FaceSnapOperatorSetup-1.1.24.exe`, and the sources in
+`flutter_apps/operator_app` match it. `face_snap_grpc` is unchanged.
+
+- **Camera page.** The Camera properties card keeps the three switches plus
+  brightness, white balance temperature, exposure and focus; contrast, saturation,
+  hue, gamma, sharpness, zoom, gain, backlight compensation, pan and tilt sit under a
+  collapsed **Advanced** row. Sliders the camera does not support are hidden (on a
+  kiosk board this needs image 2.0.22 or later), and the Advanced row disappears when
+  none of its sliders is supported.
+- **Sliders whose range starts at 0 work.** proto3 does not send a 0, so a camera
+  range of 0..64 (gamma, hue, ...) fell back to the built-in limits and the slider
+  was frozen or drawn on the wrong scale. A supported range is now used as a whole.
+- **Updater page.** It keeps its own board (`updater_host` in config.json) and no
+  longer changes the server the app is connected to; before, after an update the
+  Kiosk page showed that board as connected while captures still went to the old
+  server.
+- **Developer info** updated for the Camera page.
+
+The operator app has 284 tests (new: `test/app_config_test.dart`, and 0-based range
+and Advanced-section cases in `test/camera_page_test.dart`).
+
 ## Version 1.5.4, 07-10-2026
 
 Structured check results, cancellation for every stream, and the settings for the

@@ -1,5 +1,6 @@
 // Camera page — port of the MAUI CameraPage: resolution dropdown plus every
-// camera property as a slider/switch, gated by the server's runtime probe
+// camera property as a slider/switch (the main four up front, the rest under a
+// collapsed "Advanced" row), gated by the server's runtime probe
 // (unsupported_properties hides controls; property_ranges sizes each slider to
 // what this camera really accepts), plus a live single-camera preview.
 import 'dart:async';
@@ -15,7 +16,7 @@ import '../ui/ui.dart';
 
 class _SliderSpec {
   const _SliderSpec(this.name, this.label, this.fallbackMin, this.fallbackMax,
-      this.read, this.write);
+      this.read, this.write, {this.advanced = false});
 
   final String name; // server property name (matches ranges/unsupported lists)
   final String label;
@@ -27,24 +28,20 @@ class _SliderSpec {
 
   /// Push a new value to the server.
   final Future<dynamic> Function(CameraClient, int) write;
+
+  /// Shown under the collapsed "Advanced" row instead of the main block.
+  final bool advanced;
 }
 
 // One row per camera property: label, fallback range, and how to read/push
 // it - _load and the slider callbacks iterate this instead of restating the
-// property list per use.
+// property list per use. The four an operator tunes come first; the rest sit
+// under the card's collapsed "Advanced" row (gain, backlight compensation, pan
+// and tilt are missing on the ELP cameras, so the server's probe usually hides
+// them — a camera that has them still shows them there).
 final _sliderSpecs = [
   _SliderSpec('brightness', 'Brightness', 0, 255, (s) => s.brightness,
       (c, v) => c.setBrightness(BrightnessRequest(value: v))),
-  _SliderSpec('contrast', 'Contrast', 0, 255, (s) => s.contrast,
-      (c, v) => c.setContrast(ContrastRequest(value: v))),
-  _SliderSpec('saturation', 'Saturation', 0, 255, (s) => s.saturation,
-      (c, v) => c.setSaturation(SaturationRequest(value: v))),
-  _SliderSpec('hue', 'Hue', -180, 180, (s) => s.hue,
-      (c, v) => c.setHue(HueRequest(value: v))),
-  _SliderSpec('gamma', 'Gamma', 64, 300, (s) => s.gamma,
-      (c, v) => c.setGamma(GammaRequest(value: v))),
-  _SliderSpec('gain', 'Gain', 0, 255, (s) => s.gain,
-      (c, v) => c.setGain(GainRequest(value: v))),
   _SliderSpec(
       'white_balance_temperature',
       'White balance temperature',
@@ -53,8 +50,33 @@ final _sliderSpecs = [
       (s) => s.whiteBalanceTemperature,
       (c, v) => c.setWhiteBalanceTemperature(
           WhiteBalanceTemperatureRequest(value: v))),
+  _SliderSpec('exposure_absolute', 'Exposure', 10, 1250,
+      (s) => s.exposureAbsolute,
+      (c, v) => c.setExposureAbsolute(ExposureAbsoluteRequest(value: v))),
+  _SliderSpec('focus_absolute', 'Focus', 0, 120, (s) => s.focusAbsolute,
+      (c, v) => c.setFocusAbsolute(FocusAbsoluteRequest(value: v))),
+  // ---- Advanced ----
+  _SliderSpec('contrast', 'Contrast', 0, 255, (s) => s.contrast,
+      (c, v) => c.setContrast(ContrastRequest(value: v)),
+      advanced: true),
+  _SliderSpec('saturation', 'Saturation', 0, 255, (s) => s.saturation,
+      (c, v) => c.setSaturation(SaturationRequest(value: v)),
+      advanced: true),
+  _SliderSpec('hue', 'Hue', -180, 180, (s) => s.hue,
+      (c, v) => c.setHue(HueRequest(value: v)),
+      advanced: true),
+  _SliderSpec('gamma', 'Gamma', 64, 300, (s) => s.gamma,
+      (c, v) => c.setGamma(GammaRequest(value: v)),
+      advanced: true),
   _SliderSpec('sharpness', 'Sharpness', 0, 6, (s) => s.sharpness,
-      (c, v) => c.setSharpness(SharpnessRequest(value: v))),
+      (c, v) => c.setSharpness(SharpnessRequest(value: v)),
+      advanced: true),
+  _SliderSpec('zoom_absolute', 'Zoom', -3, 3, (s) => s.zoomAbsolute,
+      (c, v) => c.setZoomAbsolute(ZoomAbsoluteRequest(value: v)),
+      advanced: true),
+  _SliderSpec('gain', 'Gain', 0, 255, (s) => s.gain,
+      (c, v) => c.setGain(GainRequest(value: v)),
+      advanced: true),
   _SliderSpec(
       'backlight_compensation',
       'Backlight compensation',
@@ -62,18 +84,14 @@ final _sliderSpecs = [
       2,
       (s) => s.backlightCompensation,
       (c, v) =>
-          c.setBacklightCompensation(BacklightCompensationRequest(value: v))),
+          c.setBacklightCompensation(BacklightCompensationRequest(value: v)),
+      advanced: true),
   _SliderSpec('pan_absolute', 'Pan', -180, 180, (s) => s.panAbsolute,
-      (c, v) => c.setPanAbsolute(PanAbsoluteRequest(value: v))),
+      (c, v) => c.setPanAbsolute(PanAbsoluteRequest(value: v)),
+      advanced: true),
   _SliderSpec('tilt_absolute', 'Tilt', -180, 180, (s) => s.tiltAbsolute,
-      (c, v) => c.setTiltAbsolute(TiltAbsoluteRequest(value: v))),
-  _SliderSpec('zoom_absolute', 'Zoom', -3, 3, (s) => s.zoomAbsolute,
-      (c, v) => c.setZoomAbsolute(ZoomAbsoluteRequest(value: v))),
-  _SliderSpec('exposure_absolute', 'Exposure', 10, 1250,
-      (s) => s.exposureAbsolute,
-      (c, v) => c.setExposureAbsolute(ExposureAbsoluteRequest(value: v))),
-  _SliderSpec('focus_absolute', 'Focus', 0, 120, (s) => s.focusAbsolute,
-      (c, v) => c.setFocusAbsolute(FocusAbsoluteRequest(value: v))),
+      (c, v) => c.setTiltAbsolute(TiltAbsoluteRequest(value: v)),
+      advanced: true),
 ];
 
 class CameraPage extends StatefulWidget {
@@ -90,6 +108,9 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
   final Map<String, CameraPropertyRange> _ranges = {};
   final Set<String> _unsupported = {};
   String? _resolution;
+
+  /// The "Advanced" row of the Camera properties card; collapsed by default.
+  bool _advancedOpen = false;
 
   // Camera distance + Windows camera options (moved here from the old Settings
   // page). These live in the kiosk settings snapshot and push via SettingsClient.
@@ -314,7 +335,8 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
               }),
               const SizedBox(height: 6),
               for (final spec in _sliderSpecs)
-                if (_supported(spec.name)) _buildSlider(spec),
+                if (!spec.advanced && _supported(spec.name)) _buildSlider(spec),
+              ..._buildAdvanced(),
             ],
           ),
         ),
@@ -449,6 +471,49 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
     ]);
   }
 
+  /// The collapsed "Advanced" row and, when open, its sliders. Absent when the
+  /// camera supports none of them.
+  List<Widget> _buildAdvanced() {
+    final specs = [
+      for (final spec in _sliderSpecs)
+        if (spec.advanced && _supported(spec.name)) spec,
+    ];
+    if (specs.isEmpty) return const [];
+    return [
+      const SizedBox(height: 4),
+      InkWell(
+        onTap: () => setState(() => _advancedOpen = !_advancedOpen),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Icon(
+                _advancedOpen ? Icons.expand_more : Icons.chevron_right,
+                size: 20,
+                color: T.muted,
+              ),
+              const SizedBox(width: 6),
+              const RowLabel('Advanced'),
+              const SizedBox(width: 8),
+              Text(
+                '${specs.length} more',
+                style: const TextStyle(color: T.muted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (_advancedOpen)
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [for (final spec in specs) _buildSlider(spec)],
+          ),
+        ),
+    ];
+  }
+
   Widget _switchRow(String label, bool value, void Function(bool) onChanged) {
     return Row(children: [
       SizedBox(
@@ -461,12 +526,13 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
 
   Widget _buildSlider(_SliderSpec spec) {
     final range = _range(spec.name);
-    final min = (range?.hasMin() ?? false) && range!.supported
-        ? range.min.toDouble()
-        : spec.fallbackMin;
-    final max = (range?.hasMax() ?? false) && range!.supported && range.max > range.min
-        ? range.max.toDouble()
-        : spec.fallbackMax;
+    // A probed range is used as a whole when it is a real range. Not via
+    // hasMin()/hasMax(): proto3 does not send a 0, so the ELP cameras' 0..64
+    // ranges read as "no min", and the fallback minimum (gamma: 64, equal to
+    // the max) froze the slider (2026-10-08).
+    final probed = range != null && range.supported && range.max > range.min;
+    final min = probed ? range.min.toDouble() : spec.fallbackMin;
+    final max = probed ? range.max.toDouble() : spec.fallbackMax;
     final value = (_values[spec.name] ?? min).clamp(min, max);
     // A manual value is meaningless while the camera's own automatic mode
     // owns the property (the server does not even write it then).
