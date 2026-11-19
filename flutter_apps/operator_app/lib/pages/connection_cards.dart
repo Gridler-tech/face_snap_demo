@@ -2,6 +2,9 @@
 // autostart, only where the server runs locally) and for a remote kiosk board
 // (over SSH). Formerly their own Connection page; now embedded on the Kiosk
 // page. Manual address entry lives in the server picker dialog.
+import 'dart:async';
+
+import 'package:face_snap_grpc/face_snap_grpc.dart' show LocalServerConfig;
 import 'package:flutter/material.dart';
 
 import '../services/app_config.dart';
@@ -25,6 +28,9 @@ class _ConnectionCardsState extends State<ConnectionCards> {
   bool? _serverRunning;
   bool _serverBusy = false;
   bool _autostart = false;
+  // A 1.1.25+ install runs the server as the FaceSnapServer service.
+  bool _serviceInstalled = false;
+  ServiceState? _serviceState;
 
   // Board server card state (remote kiosk board over SSH).
   BoardServerStatus? _boardStatus;
@@ -38,15 +44,25 @@ class _ConnectionCardsState extends State<ConnectionCards> {
   }
 
   Future<void> _refreshServerState() async {
-    // Independent PowerShell probes — run them concurrently.
-    final [running, autostart] = await Future.wait([
-      ServerManager.isRunning(AppConfig.port),
-      ServerManager.isAutostartEnabled(),
+    final service = await ServerManager.serviceInstalled();
+    // The service replaces the logon shortcut; an old one of this user's
+    // would start a second server at logon. Once per app run, in the
+    // background (it does not change what the card shows).
+    if (service) unawaited(ServerManager.removeLogonShortcutUnderService());
+    // Independent PowerShell probes — run them concurrently. The second one
+    // is the service's state on a service install, else the logon shortcut.
+    final [running as bool, detail] = await Future.wait<Object>([
+      ServerManager.isRunning(LocalServerConfig.port),
+      service
+          ? ServerManager.serviceState()
+          : ServerManager.isAutostartEnabled(),
     ]);
     if (!mounted) return;
     setState(() {
+      _serviceInstalled = service;
       _serverRunning = running;
-      _autostart = autostart;
+      if (detail is ServiceState) _serviceState = detail;
+      if (detail is bool) _autostart = detail;
     });
   }
 
@@ -57,7 +73,7 @@ class _ConnectionCardsState extends State<ConnectionCards> {
       if (starting) {
         await ServerManager.start();
       } else {
-        await ServerManager.stop(AppConfig.port);
+        await ServerManager.stop(LocalServerConfig.port);
       }
       // Poll until the port reaches the expected state: the frozen server
       // needs tens of seconds to boot (model imports) before it binds, so a
@@ -65,7 +81,7 @@ class _ConnectionCardsState extends State<ConnectionCards> {
       for (var attempt = 0; attempt < 40; attempt++) {
         await Future.delayed(const Duration(seconds: 2));
         if (!mounted) return;
-        if (await ServerManager.isRunning(AppConfig.port) == starting) break;
+        if (await ServerManager.isRunning(LocalServerConfig.port) == starting) break;
       }
       if (starting) {
         // The server is up — load the settings snapshot so every page leaves
@@ -152,11 +168,8 @@ class _ConnectionCardsState extends State<ConnectionCards> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(
-          child: RowLabel(running == null
-              ? 'Checking…'
-              : running
-                  ? 'Server is running'
-                  : 'Server is not running'),
+          child: RowLabel(ServerManager.serverStatusText(
+              running, _serviceInstalled ? _serviceState : null)),
         ),
         const SizedBox(width: 24),
         QuietButton(
@@ -170,24 +183,29 @@ class _ConnectionCardsState extends State<ConnectionCards> {
         ),
       ]),
       const SizedBox(height: 8),
-      Row(children: [
-        Switch(
-            value: _autostart,
-            onChanged: (v) async {
-              setState(() => _autostart = v);
-              try {
-                await ServerManager.setAutostart(v);
-              } catch (e) {
-                if (mounted) {
-                  setState(() =>
-                      _message = 'Autostart change failed: ${operatorMessage(e)}');
+      // The service starts at boot; the logon shortcut is for 1.1.24 and
+      // older installs only.
+      if (_serviceInstalled)
+        const RowLabel('Runs as a Windows service, starts at boot (LocalSystem)')
+      else
+        Row(children: [
+          Switch(
+              value: _autostart,
+              onChanged: (v) async {
+                setState(() => _autostart = v);
+                try {
+                  await ServerManager.setAutostart(v);
+                } catch (e) {
+                  if (mounted) {
+                    setState(() => _message =
+                        'Autostart change failed: ${operatorMessage(e)}');
+                  }
                 }
-              }
-            }),
-        const SizedBox(width: 8),
-        const Expanded(
-            child: RowLabel('Start the server automatically at logon')),
-      ]),
+              }),
+          const SizedBox(width: 8),
+          const Expanded(
+              child: RowLabel('Start the server automatically at logon')),
+        ]),
     ]);
   }
 

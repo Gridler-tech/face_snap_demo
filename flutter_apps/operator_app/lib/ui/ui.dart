@@ -2,6 +2,7 @@
 // the updater app) plus the widgets only this app uses.
 import 'package:flutter/material.dart';
 
+import '../services/column_state.dart';
 import '../services/rpc_error.dart';
 import 'ui_shared.dart';
 
@@ -10,13 +11,15 @@ export 'ui_shared.dart';
 
 /// The settings pages' shared server-call state: run an RPC, clear the error
 /// line on success, show an operator-readable failure otherwise. Pages render
-/// [message] through [ErrorLine].
+/// [message] through [ErrorLine]. A call that went through may have changed a
+/// column setting: the column profile is read again (ColumnState.touch).
 mixin ServerCallState<T extends StatefulWidget> on State<T> {
   String? message;
 
   Future<void> runServerCall(Future<dynamic> Function() action) async {
     try {
       await action();
+      ColumnState.touch();
       if (mounted) setState(() => message = null);
     } catch (e) {
       if (mounted) {

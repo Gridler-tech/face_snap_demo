@@ -53,11 +53,15 @@ class PreflightResult {
 
 /// Outcome of one board's pipeline.
 class BatchOutcome {
-  BatchOutcome(this.target, this.succeeded, this.elapsed, this.summary);
+  BatchOutcome(this.target, this.succeeded, this.elapsed, this.summary,
+      {this.skipped = false});
 
   final BatchTarget target;
   final bool succeeded;
   final Duration elapsed;
+
+  /// Never started: the batch stopped at its failure limit (X-9).
+  final bool skipped;
 
   /// The engine's own summary lines.
   final List<String> summary;
@@ -78,9 +82,15 @@ class BatchProgress {
 }
 
 /// Runs [action] over [targets], at most [concurrency] at a time. A board's
-/// failure never stops the others — [action] is expected to resolve false
-/// rather than throw (runGuarded already guarantees that), but a throw is
-/// caught here too so one broken engine cannot abort the batch.
+/// failure never stops the boards already running — [action] is expected to
+/// resolve false rather than throw (runGuarded already guarantees that), but
+/// a throw is caught here too (and counts as a failure) so one broken engine
+/// cannot abort the batch.
+///
+/// [maxFailures] (null: no limit): once that many boards have failed, no
+/// further board is started (X-9: one bad image must not go through the
+/// whole fleet); the boards in flight finish, and the rest come back as
+/// [BatchOutcome.skipped] (reported to [onDone] too).
 ///
 /// Results come back in the order of [targets], not the order they finished,
 /// so the report reads like the fleet list.
@@ -88,6 +98,7 @@ Future<List<BatchOutcome>> runBatch({
   required List<BatchTarget> targets,
   required Future<bool> Function(BatchTarget target) action,
   int concurrency = 2,
+  int? maxFailures,
   void Function(BatchTarget target)? onStart,
   void Function(BatchOutcome outcome)? onDone,
 }) async {
@@ -95,13 +106,24 @@ Future<List<BatchOutcome>> runBatch({
   final slots = concurrency < 1 ? 1 : concurrency;
   final outcomes = List<BatchOutcome?>.filled(targets.length, null);
   var next = 0;
+  var failures = 0;
+  bool stopped() => maxFailures != null && failures >= maxFailures;
+
+  // A throwing listener (a page that is gone) must not kill the worker: the
+  // boards it would run next would never start.
+  void notify(void Function() callback) {
+    try {
+      callback();
+    } catch (_) {}
+  }
 
   Future<void> worker() async {
     while (true) {
+      if (stopped()) return;
       final index = next++;
       if (index >= targets.length) return;
       final target = targets[index];
-      onStart?.call(target);
+      if (onStart != null) notify(() => onStart(target));
       final clock = Stopwatch()..start();
       var ok = false;
       var summary = <String>[];
@@ -113,13 +135,23 @@ Future<List<BatchOutcome>> runBatch({
         summary = ['${target.title} failed: $e'];
       }
       clock.stop();
+      if (!ok) failures++;
       final outcome = BatchOutcome(target, ok, clock.elapsed, summary);
       outcomes[index] = outcome;
-      onDone?.call(outcome);
+      if (onDone != null) notify(() => onDone(outcome));
     }
   }
 
   await Future.wait([for (var i = 0; i < slots; i++) worker()]);
+  for (var i = 0; i < targets.length; i++) {
+    if (outcomes[i] != null) continue;
+    final outcome = BatchOutcome(targets[i], false, Duration.zero, [
+      'not started: the batch stopped after $failures '
+          'failure${failures == 1 ? '' : 's'}',
+    ], skipped: true);
+    outcomes[i] = outcome;
+    if (onDone != null) notify(() => onDone(outcome));
+  }
   return [for (final o in outcomes) o!];
 }
 
@@ -161,15 +193,20 @@ Future<List<PreflightResult>> runPreflight({
 /// One line per board plus a headline, for the end-of-batch report.
 List<String> batchReport(String action, List<BatchOutcome> outcomes,
     {List<PreflightResult> skipped = const []}) {
-  final done = outcomes.length;
-  final ok = outcomes.where((o) => o.succeeded).length;
+  final ran = outcomes.where((o) => !o.skipped).toList();
+  final notStarted = outcomes.where((o) => o.skipped).toList();
+  final ok = ran.where((o) => o.succeeded).length;
+  final skips = skipped.length + notStarted.length;
   final lines = <String>[
-    '$action: $ok of $done succeeded'
-        '${skipped.isEmpty ? '' : ', ${skipped.length} skipped'}.',
+    '$action: $ok of ${ran.length} succeeded'
+        '${skips == 0 ? '' : ', $skips skipped'}.',
   ];
-  for (final o in outcomes) {
+  for (final o in ran) {
     lines.add('  ${o.succeeded ? 'OK  ' : 'FAIL'}  ${o.target.title}  '
         '(${_short(o.elapsed)})');
+  }
+  for (final o in notStarted) {
+    lines.add('  SKIP  ${o.target.title}  (${o.summary.join('; ')})');
   }
   for (final s in skipped) {
     lines.add('  SKIP  ${s.target.title}  '

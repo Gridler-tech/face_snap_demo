@@ -30,12 +30,26 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  final engine = UpdateEngine(
+  // Transfer progress in the log: every 10% of the image stream.
+  late final UpdateEngine engine;
+  var lastTenth = -1;
+  void logProgress() {
+    final install = engine.installStep;
+    final pct = RegExp(r'(\d+)%$').firstMatch(install.detail);
+    if (install.status != StepStatus.running || pct == null) return;
+    final tenth = int.parse(pct.group(1)!) ~/ 10;
+    if (tenth != lastTenth) {
+      lastTenth = tenth;
+      stdout.writeln('  … ${install.detail}');
+    }
+  }
+
+  engine = UpdateEngine(
     host: args[0],
     user: args[1],
     password: args[2],
     tarFile: requireFile(args[3]),
-    onChanged: () {},
+    onChanged: logProgress,
     onLog: (line) => stdout.writeln(line),
     profile: profile,
   );

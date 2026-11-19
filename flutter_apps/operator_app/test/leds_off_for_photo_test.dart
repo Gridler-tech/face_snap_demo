@@ -3,14 +3,14 @@
 // shared settings snapshot, and springs back when the server refuses (an older
 // server answers UNIMPLEMENTED). Talks to an in-process fake server over a real
 // loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/lighting_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 class _FakeSettings extends SettingsServiceBase {
   _FakeSettings({this.refuse = false});
@@ -54,8 +54,7 @@ Future<_FakeSettings> _pumpPage(WidgetTester tester,
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final settings = _FakeSettings(refuse: refuse);
-  final server = Server.create(services: [_NoLights(), settings]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes([_NoLights(), settings]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
 
   SettingsState.current = LoadSettingsResponse(ledsOffForPhoto: ledsOffForPhoto);

@@ -1,13 +1,13 @@
 // The Photo page's background "Erasing strength" selector (1 mild - 5 heavy),
 // against an in-process fake Settings server over a real loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/photo_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 class _FakeSettings extends SettingsServiceBase {
   _FakeSettings({required this.accept});
@@ -50,8 +50,7 @@ Future<_FakeSettings> _pump(WidgetTester tester, LoadSettingsResponse settings,
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final fake = _FakeSettings(accept: accept);
-  final server = Server.create(services: [fake]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes([fake]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
 

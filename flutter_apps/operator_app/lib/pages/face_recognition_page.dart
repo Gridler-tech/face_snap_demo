@@ -12,7 +12,7 @@ import '../ui/ui.dart';
 
 /// Calibrated decision threshold + a sensible slider ceiling per model/metric
 /// combination. Distances live on completely different scales per combination
-/// (Dlib cosine ~0.0-0.2, Facenet512 euclidean ~0-40), so one fixed slider
+/// (Dlib cosine ~0.0-0.2, SFace euclidean ~0-13), so one fixed slider
 /// range would be meaningless.
 ///
 /// The values were measured on 2026-10-04 with the servers as they compare
@@ -20,22 +20,18 @@ import '../ui/ui.dart';
 /// pairs of kiosk captures, 41 same-person pairs of everyday photos and 3,244
 /// pairs of different people. Each value accepts every kiosk pair and is the
 /// lowest round value that does so with some room; that lets through about
-/// 0.2 % of the different-people pairs for Facenet512 and SFace and about 1 %
-/// for Dlib, whose distances overlap. They are NOT deepface's own defaults
-/// any more (Dlib 0.07 / 0.6 / 0.4, Facenet512 0.30 / 23.56 / 1.04, SFace
-/// 0.593 / 10.73 / 1.06) - those are what the servers still use when a
-/// request carries no threshold. Euclidean L2 follows cosine: sqrt(2 x cosine).
+/// 0.2 % of the different-people pairs for SFace and about 1 % for Dlib,
+/// whose distances overlap. They are NOT deepface's own defaults any more
+/// (Dlib 0.07 / 0.6 / 0.4, SFace 0.593 / 10.73 / 1.06) - those are what the
+/// servers still use when a request carries no threshold. Euclidean L2
+/// follows cosine: sqrt(2 x cosine). Facenet512 is retired (its weights carry
+/// no licence statement); the servers refuse it with INVALID_ARGUMENT.
 ({double calibrated, double max}) faceRecognitionThresholdSpec(
     Model model, DistanceMetric metric) {
   if (model == Model.DLIB) {
     if (metric == DistanceMetric.COSINE) return (calibrated: 0.07, max: 0.2);
     if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 0.54, max: 1.2);
     return (calibrated: 0.38, max: 0.8); // euclidean L2
-  }
-  if (model == Model.FACENET512) {
-    if (metric == DistanceMetric.COSINE) return (calibrated: 0.42, max: 0.8);
-    if (metric == DistanceMetric.EUCLIDEAN) return (calibrated: 22.0, max: 44);
-    return (calibrated: 0.92, max: 1.8);
   }
   // SFace
   if (metric == DistanceMetric.COSINE) return (calibrated: 0.45, max: 0.9);
@@ -107,10 +103,13 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
       _second ??= photo;
     }
   }
-  Model _model = Model.FACENET512; // best all-round in the 2026-10-04 measurement
+  // SFace: Facenet512 (best all-round on 2026-10-04) is retired, and SFace
+  // measured in the same class that day (about 0.2 % of the different-people
+  // pairs let through at a threshold that accepts every kiosk pair).
+  Model _model = Model.SFACE;
   DistanceMetric _metric = DistanceMetric.COSINE;
   double _threshold =
-      faceRecognitionThresholdSpec(Model.FACENET512, DistanceMetric.COSINE)
+      faceRecognitionThresholdSpec(Model.SFACE, DistanceMetric.COSINE)
           .calibrated;
   bool _busy = false;
 
@@ -218,8 +217,6 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
                 width: 160,
                 dropdownMenuEntries: const [
                   DropdownMenuEntry(value: Model.DLIB, label: 'Dlib'),
-                  DropdownMenuEntry(
-                      value: Model.FACENET512, label: 'Facenet512'),
                   DropdownMenuEntry(value: Model.SFACE, label: 'SFace'),
                 ],
                 onSelected: (v) => setState(() {

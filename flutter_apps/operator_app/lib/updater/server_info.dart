@@ -21,7 +21,7 @@ class ServerInfo {
       final result = ServerInfoResult();
       await _serverSection(ssh, result);
       await _systemSection(ssh, result);
-      await _configSection(ssh, result);
+      await configSection(ssh, result);
       return result;
     } finally {
       ssh.close();
@@ -113,10 +113,15 @@ class ServerInfo {
     result.system.add(('Docker', docker.isEmpty ? 'not installed' : docker));
   }
 
-  static Future<void> _configSection(
+  /// The settings files: data/'s, else a first-generation board's next to
+  /// docker-compose.yml (FL-8). Public for the tests.
+  static Future<void> configSection(
       SshRunner ssh, ServerInfoResult result) async {
     for (final name in kSettingsFiles) {
-      final content = await ssh.run('cat $kKioskDir/data/$name 2>/dev/null');
+      var content = await ssh.run('cat $kKioskDir/data/$name 2>/dev/null');
+      if (content.stdout.trim().isEmpty) {
+        content = await ssh.run('cat $kKioskDir/$name 2>/dev/null');
+      }
       final text = content.stdout.trim();
       if (text.isEmpty) {
         result.configs[name] = '(not present)';

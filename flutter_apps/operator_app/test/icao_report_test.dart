@@ -3,16 +3,16 @@
 // Capture page shows the server's "ICAO ..." rows with their verdict - passed
 // green, attention amber, and an incomplete report amber, never green. Against
 // in-process fake servers over a real loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/capture_page.dart';
 import 'package:operator_app/pages/photo_page.dart';
 import 'package:operator_app/services/settings_state.dart';
 import 'package:operator_app/updater/settings_profile.dart';
+
+import 'fake_server.dart';
 
 class _FakeKiosk extends KioskServiceBase {
   List<String> lines = const [];
@@ -48,9 +48,9 @@ class _FakeSettings extends SettingsServiceBase {
 }
 
 // ONE server and ONE client connection for the whole file, never shut down (the
-// test process ends with the file): closing a connection between tests trips an
-// http2 assertion ("_stream2messageQueue.isEmpty") in the NEXT test whenever the
-// machine is busy - it failed about one full-suite run in three.
+// test process ends with the file). The http2 assertion once blamed on closing a
+// connection between tests came from calls to services the fake server did not
+// have; fake_server.dart explains it.
 final _kiosk = _FakeKiosk();
 final _settings = _FakeSettings();
 
@@ -77,8 +77,7 @@ Future<void> _capture(WidgetTester tester, List<String> lines,
   await tester.pump();
   await tester.tap(find.text('Automatic'));
   // Until the last line is on screen (every test ends on an ICAO row, shown
-  // verbatim), not a fixed wait: tearing the connection down while the stream
-  // still has queued messages trips an http2 assertion on a busy machine.
+  // verbatim), not a fixed wait: a busy machine can take longer.
   for (var i = 0; i < 100 && find.text(lines.last).evaluate().isEmpty; i++) {
     await _settle(tester, 1);
   }
@@ -106,8 +105,7 @@ Finder _icaoSwitch() => find.descendant(
 
 void main() {
   setUpAll(() async {
-    final server = Server.create(services: [_kiosk, _settings]);
-    await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+    final server = await serveFakes([_kiosk, _settings]);
     await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
   });
 

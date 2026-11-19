@@ -102,9 +102,13 @@ class RemoveEngine extends KioskEngine {
       log('No configuration files on the kiosk — nothing to back up.');
       return;
     }
-    // Settings/calibration (data/) plus the compose file; tolerate either
-    // being absent on a partial installation.
-    await backupKioskConfigTo(ssh, path);
+    // Settings/calibration (data/, or a first-generation board's files next
+    // to the compose file, FL-8) plus the compose file; whichever exist.
+    if (!await backupKioskConfigTo(ssh, path)) {
+      setStep(_backup, StepStatus.warn, 'nothing to back up');
+      log('No configuration files on the kiosk — nothing to back up.');
+      return;
+    }
     setStep(_backup, StepStatus.ok, basenameOf(path));
     log('Configuration backed up to $path');
     summary.add('Configuration backed up to $path');

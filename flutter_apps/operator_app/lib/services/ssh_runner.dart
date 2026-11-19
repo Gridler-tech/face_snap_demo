@@ -22,6 +22,29 @@ class CmdResult {
       [stdout, stderr].where((s) => s.trim().isNotEmpty).join('\n');
 }
 
+/// Cipher/MAC preference for every connection. dartssh2's own default puts
+/// AES-GCM first, and its pure-Dart GCM (pointycastle) runs at about
+/// 0.8 MB/s — measured 2026-10-08, it was the whole reason a 2 GB image
+/// update took 40 minutes. ChaCha20-Poly1305 and AES-CTR + HMAC-SHA2 are
+/// 30-50x faster in Dart; all of them are in OpenSSH's default server list.
+/// GCM stays last, for a server that offers nothing else.
+const kSshAlgorithms = SSHAlgorithms(
+  cipher: [
+    SSHCipherType.chacha20poly1305,
+    SSHCipherType.aes128ctr,
+    SSHCipherType.aes256ctr,
+    SSHCipherType.aes128gcm,
+    SSHCipherType.aes256gcm,
+  ],
+  mac: [
+    SSHMacType.hmacSha256Etm,
+    SSHMacType.hmacSha256,
+    SSHMacType.hmacSha1,
+    SSHMacType.hmacSha512Etm,
+    SSHMacType.hmacSha512,
+  ],
+);
+
 class SshRunner {
   SshRunner._(this._client);
 
@@ -35,6 +58,7 @@ class SshRunner {
       socket,
       username: user,
       onPasswordRequest: () => password,
+      algorithms: kSshAlgorithms,
     );
     await client.authenticated;
     return SshRunner._(client);
@@ -80,7 +104,15 @@ class SshRunner {
   /// Stream a local file into `command`'s stdin (e.g. `docker load`).
   /// [onProgress] receives the number of bytes sent so far.
   Future<CmdResult> runWithFileStdin(String command, File file,
-      {void Function(int sentBytes)? onProgress}) async {
+          {void Function(int sentBytes)? onProgress}) =>
+      runWithStreamStdin(command, file.openRead(), onProgress: onProgress);
+
+  /// Stream [data] into `command`'s stdin. [onProgress] counts the bytes of
+  /// [data] (before [encoder], e.g. gzip, transforms them for the wire), so
+  /// a percentage of the source size stays a percentage.
+  Future<CmdResult> runWithStreamStdin(String command, Stream<List<int>> data,
+      {void Function(int sentBytes)? onProgress,
+      Converter<List<int>, List<int>>? encoder}) async {
     final session = await _client.execute(command);
     try {
       final out = BytesBuilder(copy: false);
@@ -90,15 +122,18 @@ class SshRunner {
 
       var sent = 0;
       var lastReport = 0;
-      await session.stdin.addStream(file.openRead().map((chunk) {
+      Stream<List<int>> source = data.map((chunk) {
         sent += chunk.length;
         // Throttle progress callbacks to every 4 MB.
         if (onProgress != null && sent - lastReport >= 4 * 1024 * 1024) {
           lastReport = sent;
           onProgress(sent);
         }
-        return chunk is Uint8List ? chunk : Uint8List.fromList(chunk);
-      }));
+        return chunk;
+      });
+      if (encoder != null) source = source.transform(encoder);
+      await session.stdin.addStream(source.map(
+          (chunk) => chunk is Uint8List ? chunk : Uint8List.fromList(chunk)));
       onProgress?.call(sent);
       await session.stdin.close();
 
@@ -140,6 +175,12 @@ class SshRunner {
       session.close();
     }
   }
+
+  /// A channel to [host]:[port] as seen from the remote machine (e.g. its
+  /// own 127.0.0.1), through this connection — `ssh -L` without a local
+  /// listener. The caller closes it.
+  Future<SSHSocket> forwardLocal(String host, int port) =>
+      _client.forwardLocal(host, port);
 
   void close() => _client.close();
 }

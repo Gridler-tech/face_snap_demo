@@ -3,6 +3,9 @@
 // Wi-Fi did exactly that today), so rows must key on the base name — but the
 // counter is 1–2 digits and a MAC can be all decimal digits, so the strip
 // must be bounded or it would eat a whole name.
+import 'dart:io';
+
+import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:operator_app/services/discovery.dart';
 import 'package:operator_app/services/server_connector.dart';
@@ -10,7 +13,34 @@ import 'package:operator_app/services/server_connector.dart';
 DiscoveredKiosk k(String name, String ip) =>
     DiscoveredKiosk(hostName: name, ip: ip);
 
+/// A loopback port with nothing listening on it: bound, then released.
+Future<int> deadPort() async {
+  final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+  final port = socket.port;
+  await socket.close();
+  return port;
+}
+
 void main() {
+  group('connectTo', () {
+    // FL-3: connectTo points the SHARED channel at the new address before it
+    // proves the server answers. A failed connect must put the channel back on
+    // the server the app still shows as connected, and still fail the caller.
+    test('a failed connect restores the previous address and rethrows', () async {
+      // The old server is never called: setAddress and the channel getter do
+      // not connect, so any address will do.
+      const oldHost = '10.255.0.1', oldPort = 50051;
+      await GrpcChannelProvider.setAddress(oldHost, oldPort);
+      GrpcChannelProvider.channel; // the old server's channel is live
+
+      final badPort = await deadPort();
+      await expectLater(connectTo('127.0.0.1', badPort), throwsA(isA<GrpcError>()));
+
+      expect(GrpcChannelProvider.host, oldHost);
+      expect(GrpcChannelProvider.port, oldPort);
+    });
+  });
+
   group('baseName', () {
     test('strips .local', () {
       expect(baseName('facesnap-001e064358ca.local'), 'facesnap-001e064358ca');

@@ -19,6 +19,8 @@ import 'package:protobuf/protobuf.dart' as $pb;
 /// weights are non-commercial / require a separate InsightFace license).
 class Model extends $pb.ProtobufEnum {
   static const Model DLIB = Model._(0, _omitEnumNames ? '' : 'DLIB');
+
+  /// Retired (no licence statement for its weights): refused with INVALID_ARGUMENT.
   static const Model FACENET512 =
       Model._(1, _omitEnumNames ? '' : 'FACENET512');
   static const Model SFACE = Model._(2, _omitEnumNames ? '' : 'SFACE');
@@ -81,6 +83,67 @@ class StatusType extends $pb.ProtobufEnum {
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const StatusType._(super.value, super.name);
+}
+
+/// Settings for one capture (spec 2026-10-11, section 3.2). Every field is optional: a
+/// field that is set overrides the kiosk's value for this capture only; an absent field
+/// means the kiosk's value in force. A value outside its rule is refused with
+/// INVALID_ARGUMENT before any light or camera is touched, and so is a field this server
+/// does not know (by field number). A manual capture uses only jpeg_quality,
+/// glare_free_light, photo_light, leds_off_for_photo and colour_correction; any other
+/// field is refused there.
+/// A child on a parent's lap (spec 2026-10-19): the subject is the LOWER face in the
+/// frame (the child), not the nearest one. A baby under 1 also gets no head turn, and its
+/// eyes, lips, distance and expression rows are advice instead of gates.
+class LapSubject extends $pb.ProtobufEnum {
+  static const LapSubject LAP_NONE =
+      LapSubject._(0, _omitEnumNames ? '' : 'LAP_NONE');
+  static const LapSubject LAP_CHILD =
+      LapSubject._(1, _omitEnumNames ? '' : 'LAP_CHILD');
+  static const LapSubject LAP_BABY =
+      LapSubject._(2, _omitEnumNames ? '' : 'LAP_BABY');
+
+  static const $core.List<LapSubject> values = <LapSubject>[
+    LAP_NONE,
+    LAP_CHILD,
+    LAP_BABY,
+  ];
+
+  static final $core.List<LapSubject?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static LapSubject? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const LapSubject._(super.value, super.name);
+}
+
+/// What the person in front of the kiosk is asked to do during the head turn.
+class InstructionKind extends $pb.ProtobufEnum {
+  static const InstructionKind INSTRUCTION_UNKNOWN =
+      InstructionKind._(0, _omitEnumNames ? '' : 'INSTRUCTION_UNKNOWN');
+  static const InstructionKind TURN_LEFT =
+      InstructionKind._(1, _omitEnumNames ? '' : 'TURN_LEFT');
+  static const InstructionKind TURN_RIGHT =
+      InstructionKind._(2, _omitEnumNames ? '' : 'TURN_RIGHT');
+  static const InstructionKind LOOK_STRAIGHT =
+      InstructionKind._(3, _omitEnumNames ? '' : 'LOOK_STRAIGHT');
+  static const InstructionKind DONE =
+      InstructionKind._(4, _omitEnumNames ? '' : 'DONE');
+
+  static const $core.List<InstructionKind> values = <InstructionKind>[
+    INSTRUCTION_UNKNOWN,
+    TURN_LEFT,
+    TURN_RIGHT,
+    LOOK_STRAIGHT,
+    DONE,
+  ];
+
+  static final $core.List<InstructionKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static InstructionKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const InstructionKind._(super.value, super.name);
 }
 
 /// What kind of check a CheckResult reports.

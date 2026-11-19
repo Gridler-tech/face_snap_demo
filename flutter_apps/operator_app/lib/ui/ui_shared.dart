@@ -86,6 +86,19 @@ class SectionCard extends StatelessWidget {
   }
 }
 
+/// A small rounded status pill: [color] text on a light tint of it (the
+/// updater's batch phases, the Capture page's override count).
+Widget pill(Color color, String text, {Key? key}) => Container(
+      key: key,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20)),
+      child: Text(text,
+          style: TextStyle(
+              color: color, fontSize: 11.5, fontWeight: FontWeight.w600)),
+    );
+
 /// Green primary action button.
 class GoButton extends StatelessWidget {
   const GoButton({super.key, required this.text, this.onPressed});

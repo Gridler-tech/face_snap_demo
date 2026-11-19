@@ -48,6 +48,15 @@ abstract class KioskEngine {
 
   void log(String line) => onLog(line);
 
+  /// What [pause] waits with; tests set it to return at once, so they
+  /// never sleep (a test seam: production code leaves it alone). No
+  /// @visibleForTesting: this file is part of the command-line tools, which
+  /// must not import Flutter (test/cli_imports_test.dart).
+  Future<void> Function(Duration duration) delay = Future<void>.delayed;
+
+  /// Every fixed wait of a pipeline (the verify polls, the reboot wait).
+  Future<void> pause(Duration duration) => delay(duration);
+
   void setStep(UpdateStep step, StepStatus status, [String detail = '']) {
     step.status = status;
     if (detail.isNotEmpty) step.detail = detail;
@@ -109,11 +118,14 @@ abstract class KioskEngine {
     return (await ssh.run(containerLogsCmd(tail))).stdout;
   }
 
+  /// Opens the SSH connection of [connectStep] (tests substitute a fake).
+  Future<SshRunner> openSsh() => SshRunner.connect(host, user, password);
+
   /// First step of every pipeline: connect and identify the board.
   Future<void> connectStep(UpdateStep step) async {
     setStep(step, StepStatus.running);
     log('Connecting to $user@$host …');
-    sshOrNull = await SshRunner.connect(host, user, password);
+    sshOrNull = await openSsh();
     final id = await identifyBoard(ssh);
     if (id.arch != 'aarch64') {
       throw Exception('Target is ${id.arch}, expected aarch64 (Odroid). '

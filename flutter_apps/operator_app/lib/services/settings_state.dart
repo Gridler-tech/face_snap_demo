@@ -1,6 +1,8 @@
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/foundation.dart';
 
+import 'column_state.dart';
+
 /// The kiosk settings snapshot, loaded at connect and refreshed on demand —
 /// the Flutter counterpart of the MAUI app's KioskSettings globals.
 class SettingsState {
@@ -34,6 +36,8 @@ class SettingsState {
         options: CallOptions(timeout: timeout));
     current = response;
     revision.value++;
+    // The column profile of this server (the Column page, the ● marks); never throws.
+    ColumnState.refresh();
     return response;
   }
 }

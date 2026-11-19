@@ -3,14 +3,14 @@
 // alone can be high for a dark or discoloured photo), the failing rows and the
 // server's advice sit directly under that row, and the rows that passed follow.
 // Against an in-process fake server over a real loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/capture_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 class _FakeKiosk extends KioskServiceBase {
   List<String> lines = const [];
@@ -93,8 +93,7 @@ const _adviceDark = 'Advice: face too dark with the exposure at its limit - rais
 
 void main() {
   setUpAll(() async {
-    final server = Server.create(services: [_kiosk, _FakeSettings()]);
-    await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+    final server = await serveFakes([_kiosk, _FakeSettings()]);
     await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
   });
 

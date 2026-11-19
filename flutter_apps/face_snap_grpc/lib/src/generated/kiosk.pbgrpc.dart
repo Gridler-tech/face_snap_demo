@@ -54,6 +54,28 @@ class KioskClient extends $grpc.Client {
         options: options);
   }
 
+  /// Per-capture settings (spec 2026-10-11): the same flows as StartAutomaticProcess /
+  /// StartManualProcess, with settings that apply to this one capture only (nothing is
+  /// stored). An empty CaptureRequest behaves exactly like the old RPCs. A server from
+  /// before these RPCs answers UNIMPLEMENTED before it touches any light or camera.
+  $grpc.ResponseStream<$1.ProcessAutomaticResponse> startAutomaticCapture(
+    $1.CaptureRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$startAutomaticCapture, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
+  $grpc.ResponseStream<$1.ProcessManualResponse> startManualCapture(
+    $1.CaptureRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createStreamingCall(
+        _$startManualCapture, $async.Stream.fromIterable([request]),
+        options: options);
+  }
+
   /// Get focused camera index
   $grpc.ResponseFuture<$1.FocusedCameraResponse> getFocusedCameraIndex(
     $1.FocusedCameraRequest request, {
@@ -113,6 +135,15 @@ class KioskClient extends $grpc.Client {
         options: options);
   }
 
+  /// Colour calibration from a hand-held card: lights the column for one light, finds
+  /// the card, measures its 24 patches and restores the kiosk. One photo, about 2-4 s.
+  $grpc.ResponseFuture<$1.ColourCardResponse> measureColourCard(
+    $1.ColourCardRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$measureColourCard, request, options: options);
+  }
+
   // method descriptors
 
   static final _$startAutomaticProcess =
@@ -124,6 +155,16 @@ class KioskClient extends $grpc.Client {
       $grpc.ClientMethod<$0.Empty, $1.ProcessManualResponse>(
           '/kiosk.Kiosk/StartManualProcess',
           ($0.Empty value) => value.writeToBuffer(),
+          $1.ProcessManualResponse.fromBuffer);
+  static final _$startAutomaticCapture =
+      $grpc.ClientMethod<$1.CaptureRequest, $1.ProcessAutomaticResponse>(
+          '/kiosk.Kiosk/StartAutomaticCapture',
+          ($1.CaptureRequest value) => value.writeToBuffer(),
+          $1.ProcessAutomaticResponse.fromBuffer);
+  static final _$startManualCapture =
+      $grpc.ClientMethod<$1.CaptureRequest, $1.ProcessManualResponse>(
+          '/kiosk.Kiosk/StartManualCapture',
+          ($1.CaptureRequest value) => value.writeToBuffer(),
           $1.ProcessManualResponse.fromBuffer);
   static final _$getFocusedCameraIndex =
       $grpc.ClientMethod<$1.FocusedCameraRequest, $1.FocusedCameraResponse>(
@@ -155,6 +196,11 @@ class KioskClient extends $grpc.Client {
           '/kiosk.Kiosk/StreamPreview',
           ($1.PreviewRequest value) => value.writeToBuffer(),
           $1.ProcessImageData.fromBuffer);
+  static final _$measureColourCard =
+      $grpc.ClientMethod<$1.ColourCardRequest, $1.ColourCardResponse>(
+          '/kiosk.Kiosk/MeasureColourCard',
+          ($1.ColourCardRequest value) => value.writeToBuffer(),
+          $1.ColourCardResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('kiosk.Kiosk')
@@ -175,6 +221,22 @@ abstract class KioskServiceBase extends $grpc.Service {
         false,
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($1.ProcessManualResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$1.CaptureRequest, $1.ProcessAutomaticResponse>(
+            'StartAutomaticCapture',
+            startAutomaticCapture_Pre,
+            false,
+            true,
+            ($core.List<$core.int> value) =>
+                $1.CaptureRequest.fromBuffer(value),
+            ($1.ProcessAutomaticResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.CaptureRequest, $1.ProcessManualResponse>(
+        'StartManualCapture',
+        startManualCapture_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $1.CaptureRequest.fromBuffer(value),
         ($1.ProcessManualResponse value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$1.FocusedCameraRequest, $1.FocusedCameraResponse>(
@@ -226,6 +288,13 @@ abstract class KioskServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $1.PreviewRequest.fromBuffer(value),
         ($1.ProcessImageData value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.ColourCardRequest, $1.ColourCardResponse>(
+        'MeasureColourCard',
+        measureColourCard_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $1.ColourCardRequest.fromBuffer(value),
+        ($1.ColourCardResponse value) => value.writeToBuffer()));
   }
 
   $async.Stream<$1.ProcessAutomaticResponse> startAutomaticProcess_Pre(
@@ -243,6 +312,24 @@ abstract class KioskServiceBase extends $grpc.Service {
 
   $async.Stream<$1.ProcessManualResponse> startManualProcess(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Stream<$1.ProcessAutomaticResponse> startAutomaticCapture_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.CaptureRequest> $request) async* {
+    yield* startAutomaticCapture($call, await $request);
+  }
+
+  $async.Stream<$1.ProcessAutomaticResponse> startAutomaticCapture(
+      $grpc.ServiceCall call, $1.CaptureRequest request);
+
+  $async.Stream<$1.ProcessManualResponse> startManualCapture_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.CaptureRequest> $request) async* {
+    yield* startManualCapture($call, await $request);
+  }
+
+  $async.Stream<$1.ProcessManualResponse> startManualCapture(
+      $grpc.ServiceCall call, $1.CaptureRequest request);
 
   $async.Future<$1.FocusedCameraResponse> getFocusedCameraIndex_Pre(
       $grpc.ServiceCall $call,
@@ -298,4 +385,13 @@ abstract class KioskServiceBase extends $grpc.Service {
 
   $async.Stream<$1.ProcessImageData> streamPreview(
       $grpc.ServiceCall call, $1.PreviewRequest request);
+
+  $async.Future<$1.ColourCardResponse> measureColourCard_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$1.ColourCardRequest> $request) async {
+    return measureColourCard($call, await $request);
+  }
+
+  $async.Future<$1.ColourCardResponse> measureColourCard(
+      $grpc.ServiceCall call, $1.ColourCardRequest request);
 }

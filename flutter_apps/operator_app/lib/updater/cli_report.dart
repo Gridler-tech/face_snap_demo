@@ -22,14 +22,19 @@ File requireFile(String path) {
   return file;
 }
 
-/// Prints the step table and the summary, then exits 0/1.
-Never reportAndExit(KioskEngine engine, bool ok) {
-  stdout.writeln('\n--- steps ---');
+/// Writes the step table and the summary to [out].
+void writeReport(KioskEngine engine, StringSink out) {
+  out.writeln('\n--- steps ---');
   for (final step in engine.steps) {
-    stdout.writeln('${step.status.name.padRight(8)} ${step.title}'
+    out.writeln('${step.status.name.padRight(8)} ${step.title}'
         '${step.detail.isEmpty ? '' : '  [${step.detail}]'}');
   }
-  stdout.writeln('\n--- summary ---');
-  engine.summary.forEach(stdout.writeln);
+  out.writeln('\n--- summary ---');
+  engine.summary.forEach(out.writeln);
+}
+
+/// Prints the step table and the summary, then exits 0/1.
+Never reportAndExit(KioskEngine engine, bool ok) {
+  writeReport(engine, stdout);
   exit(ok ? 0 : 1);
 }

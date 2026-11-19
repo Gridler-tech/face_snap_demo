@@ -1,6 +1,7 @@
 // The Face recognition page's calibrated thresholds (measured 2026-10-04 with
 // the servers' face-first comparison): the table itself, that euclidean L2
-// follows cosine, and that the slider can reach every calibrated value.
+// follows cosine, and that the slider can reach every calibrated value. The
+// page offers Dlib and SFace only: Facenet512 is retired (the servers refuse it).
 import 'dart:math' as math;
 
 import 'package:face_snap_grpc/face_snap_grpc.dart';
@@ -9,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:operator_app/pages/face_recognition_page.dart';
 
 void main() {
-  const models = [Model.DLIB, Model.FACENET512, Model.SFACE];
+  const models = [Model.DLIB, Model.SFACE];
   const metrics = [
     DistanceMetric.COSINE,
     DistanceMetric.EUCLIDEAN,
@@ -19,7 +20,6 @@ void main() {
   test('the calibrated thresholds are the measured ones', () {
     final expected = {
       Model.DLIB: [0.07, 0.54, 0.38],
-      Model.FACENET512: [0.42, 22.0, 0.92],
       Model.SFACE: [0.45, 6.5, 0.95],
     };
     for (final model in models) {
@@ -31,7 +31,7 @@ void main() {
     }
   });
 
-  testWidgets('the page opens on Facenet512 with its calibrated threshold',
+  testWidgets('the page opens on SFace with its calibrated threshold, Dlib and SFace offered',
       (tester) async {
     tester.view.physicalSize = const Size(1600, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -40,9 +40,11 @@ void main() {
         home: Scaffold(body: SingleChildScrollView(child: FaceRecognitionPage()))));
     final model = tester.widget<DropdownMenu<Model>>(
         find.byWidgetPredicate((w) => w is DropdownMenu<Model>));
-    expect(model.initialSelection, Model.FACENET512);
-    expect(find.text('Threshold 0.42'), findsOneWidget);
-    expect(find.text('calibrated default 0.42'), findsOneWidget);
+    expect(model.initialSelection, Model.SFACE);
+    expect(model.dropdownMenuEntries.map((e) => (e.value, e.label)),
+        [(Model.DLIB, 'Dlib'), (Model.SFACE, 'SFace')]);
+    expect(find.text('Threshold 0.45'), findsOneWidget);
+    expect(find.text('calibrated default 0.45'), findsOneWidget);
   });
 
   test('euclidean L2 judges like cosine: sqrt(2 x cosine)', () {

@@ -11,12 +11,14 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show Server, ServiceCall;
+import 'package:grpc/grpc.dart' show ServiceCall;
 import 'package:operator_app/home_shell.dart';
 import 'package:operator_app/services/settings_state.dart';
 import 'package:operator_app/ui/dev_info.dart';
 import 'package:operator_app/ui/rpc_console.dart';
 import 'package:operator_app/ui/ui.dart';
+
+import 'fake_server.dart';
 
 class _Settings extends SettingsServiceBase {
   @override
@@ -73,8 +75,7 @@ class _Kiosk extends KioskServiceBase {
 
 /// Serves the fakes and points the shared channel at them.
 Future<void> _serve(WidgetTester tester) async {
-  final server = Server.create(services: [_Settings(), _Kiosk()]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes([_Settings(), _Kiosk()]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
   addTearDown(

@@ -3,15 +3,15 @@
 // load succeeds. It used to stay, so a correctly loaded page still said
 // "kiosk not reachable — is the server running?". The pages talk to an
 // in-process fake server that refuses the first load and answers after that.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, Service, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, Service, ServiceCall;
 import 'package:operator_app/pages/calibration_page.dart';
 import 'package:operator_app/pages/camera_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 /// Fails the first [failures] calls of each load with UNAVAILABLE, the code a
 /// server that is not answering produces.
@@ -54,8 +54,7 @@ Future<void> _serve(WidgetTester tester, List<Service> services) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final server = Server.create(services: services);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes(services);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   SettingsState.current = LoadSettingsResponse();
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);

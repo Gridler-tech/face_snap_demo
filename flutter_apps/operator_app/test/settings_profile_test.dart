@@ -49,7 +49,13 @@ void main() {
       final sharpness = byId['kiosk.face_quality.sharpness_check']!;
       expect(sharpness.currentText, 'not set');
       expect(sharpness.newText, 'on');
-      expect(byId['kiosk.background_method']!.newText, 'mediapipe');
+      // The 1.1.27 defaults (owner 2026-11-19): no background erasing, ICAO, OFIQ and the
+      // live person check off, nothing preloaded at server start.
+      expect(byId['kiosk.background_method']!.newText, 'none');
+      expect(byId['kiosk.icao_report']!.newText, 'off');
+      expect(byId['kiosk.ofiq_checks']!.newText, 'off');
+      expect(byId['kiosk.liveness_check']!.newText, 'off');
+      expect(byId['kiosk.capture_warm_up']!.newText, 'none');
       // width/height are ONE row.
       expect(byId.containsKey('camera.width'), isFalse);
     });
@@ -107,6 +113,11 @@ void main() {
           () => SettingsProfile.parse(
               _profile('{"kiosk": {"expected_cameras": 4}}')),
           _rejects('belongs to the individual kiosk'));
+      // The column's hub orientation, the twin of camera.rotate_frames (spec 2026-10-15).
+      expect(
+          () => SettingsProfile.parse(
+              _profile('{"kiosk": {"camera_hub_upside_down": true}}')),
+          _rejects('belongs to the individual kiosk (depends on how the USB hub is mounted)'));
     });
 
     test('tries to carry calibration or camera tuning', () {
@@ -178,5 +189,44 @@ void main() {
     expect(parseKioskSettings(''), isEmpty);
     expect(parseKioskSettings('{broken'), isEmpty);
     expect(parseKioskSettings('[1, 2]'), isEmpty);
+  });
+
+  test('an older profile with the retired light-check switches still loads, without them', () {
+    final profile = SettingsProfile.parse(_profile(
+        '{"kiosk": {"liveness_check": true, "liveness_shading_check": true, "liveness_colour_check": false}}'));
+    expect(profile.diff(const {}).map((r) => r.id).toList(), ['kiosk.liveness_check']);
+  });
+
+  test('a profile that only holds the retired light-check switches has no setting', () {
+    expect(
+        () => SettingsProfile.parse(_profile(
+            '{"kiosk": {"liveness_shading_check": true, "liveness_colour_check": false}}')),
+        _rejects('at least one'));
+  });
+
+  test('the head turn survives the dropping of the retired keys', () {
+    final profile = SettingsProfile.parse(_profile(
+        '{"kiosk": {"liveness_shading_check": true, "liveness_head_turn_check": true}}'));
+    expect(profile.diff(const {}).map((r) => r.id).toList(), ['kiosk.liveness_head_turn_check']);
+  });
+
+  test('a settings profile accepts kiosk.colour_correction and refuses a non-bool', () {
+    final profile = SettingsProfile.parse(_profile('{"kiosk": {"colour_correction": false}}'));
+    final rows = profile.diff(const {
+      'kiosk': {'colour_correction': true},
+    });
+    expect(rows.single.id, 'kiosk.colour_correction');
+    expect(rows.single.label, 'Photo colour correction');
+    expect(rows.single.currentText, 'on');
+    expect(rows.single.newText, 'off');
+    expect(rows.single.differs, isTrue);
+    expect(
+        () => SettingsProfile.parse(_profile('{"kiosk": {"colour_correction": "yes"}}')),
+        _rejects('true or false'));
+    // The matrices are measured per kiosk: a column property, never a profile's.
+    expect(
+        () => SettingsProfile.parse(_profile(
+            '{"kiosk": {"colour_matrices": {"all": {"matrix": [1, 0, 0, 0, 1, 0, 0, 0, 1]}}}}')),
+        _rejects('belongs to the individual kiosk'));
   });
 }

@@ -96,7 +96,7 @@ class BatchBoardCard extends StatelessWidget {
                     style: const TextStyle(color: T.muted, fontSize: 12)),
               ],
               const SizedBox(width: 6),
-              _pill(look.color, batchPhaseLabel(phase)),
+              pill(look.color, batchPhaseLabel(phase)),
               if (canExpand)
                 Icon(expanded ? Icons.expand_less : Icons.expand_more,
                     size: 18, color: T.muted),
@@ -138,16 +138,6 @@ class BatchBoardCard extends StatelessWidget {
       ]),
     );
   }
-
-  static Widget _pill(Color color, String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20)),
-        child: Text(text,
-            style: TextStyle(
-                color: color, fontSize: 11.5, fontWeight: FontWeight.w600)),
-      );
 
   static IconData _stepIcon(StepStatus s) => switch (s) {
         StepStatus.ok => Icons.check_circle,

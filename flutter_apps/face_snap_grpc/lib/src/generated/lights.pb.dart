@@ -287,10 +287,12 @@ class BacklightRequest extends $pb.GeneratedMessage {
   factory BacklightRequest({
     Backlight? backlight,
     $core.bool? on,
+    $core.int? percent,
   }) {
     final result = create();
     if (backlight != null) result.backlight = backlight;
     if (on != null) result.on = on;
+    if (percent != null) result.percent = percent;
     return result;
   }
 
@@ -310,6 +312,7 @@ class BacklightRequest extends $pb.GeneratedMessage {
     ..aE<Backlight>(1, _omitFieldNames ? '' : 'backlight',
         enumValues: Backlight.values)
     ..aOB(2, _omitFieldNames ? '' : 'on')
+    ..aI(3, _omitFieldNames ? '' : 'percent')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -348,20 +351,40 @@ class BacklightRequest extends $pb.GeneratedMessage {
   $core.bool hasOn() => $_has(1);
   @$pb.TagNumber(2)
   void clearOn() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get percent => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set percent($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPercent() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPercent() => $_clearField(3);
 }
 
-/// connected = the USB relay module is attached; the two states are read back
-/// from the module (both false while it is not connected).
+/// connected = the backlight output (the LED board or the USB relay module) is
+/// attached; source says which. The states are the board's levels as set, or read back
+/// from the relay module (all false / 0 while nothing is connected). backlight_bottom /
+/// backlight_top = on (level > 0). On a relay, percent is ignored (> 0 = on) and the
+/// levels report 0 or 100.
 class BacklightStatus extends $pb.GeneratedMessage {
   factory BacklightStatus({
     $core.bool? connected,
     $core.bool? backlightBottom,
     $core.bool? backlightTop,
+    $core.String? source,
+    $core.int? bottomPercent,
+    $core.int? topPercent,
+    $core.Iterable<BacklightBrightness>? brightness,
   }) {
     final result = create();
     if (connected != null) result.connected = connected;
     if (backlightBottom != null) result.backlightBottom = backlightBottom;
     if (backlightTop != null) result.backlightTop = backlightTop;
+    if (source != null) result.source = source;
+    if (bottomPercent != null) result.bottomPercent = bottomPercent;
+    if (topPercent != null) result.topPercent = topPercent;
+    if (brightness != null) result.brightness.addAll(brightness);
     return result;
   }
 
@@ -381,6 +404,11 @@ class BacklightStatus extends $pb.GeneratedMessage {
     ..aOB(1, _omitFieldNames ? '' : 'connected')
     ..aOB(2, _omitFieldNames ? '' : 'backlightBottom')
     ..aOB(3, _omitFieldNames ? '' : 'backlightTop')
+    ..aOS(4, _omitFieldNames ? '' : 'source')
+    ..aI(5, _omitFieldNames ? '' : 'bottomPercent')
+    ..aI(6, _omitFieldNames ? '' : 'topPercent')
+    ..pPM<BacklightBrightness>(7, _omitFieldNames ? '' : 'brightness',
+        subBuilder: BacklightBrightness.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -428,6 +456,254 @@ class BacklightStatus extends $pb.GeneratedMessage {
   $core.bool hasBacklightTop() => $_has(2);
   @$pb.TagNumber(3)
   void clearBacklightTop() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get source => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set source($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSource() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSource() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get bottomPercent => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set bottomPercent($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasBottomPercent() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearBottomPercent() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get topPercent => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set topPercent($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTopPercent() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTopPercent() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<BacklightBrightness> get brightness => $_getList(6);
+}
+
+class BacklightBrightness extends $pb.GeneratedMessage {
+  factory BacklightBrightness({
+    $core.String? light,
+    $core.int? bottom,
+    $core.int? top,
+  }) {
+    final result = create();
+    if (light != null) result.light = light;
+    if (bottom != null) result.bottom = bottom;
+    if (top != null) result.top = top;
+    return result;
+  }
+
+  BacklightBrightness._();
+
+  factory BacklightBrightness.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BacklightBrightness.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BacklightBrightness',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'lights'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'light')
+    ..aI(2, _omitFieldNames ? '' : 'bottom')
+    ..aI(3, _omitFieldNames ? '' : 'top')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightness clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightness copyWith(void Function(BacklightBrightness) updates) =>
+      super.copyWith((message) => updates(message as BacklightBrightness))
+          as BacklightBrightness;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightness create() => BacklightBrightness._();
+  @$core.override
+  BacklightBrightness createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightness getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BacklightBrightness>(create);
+  static BacklightBrightness? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get light => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set light($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get bottom => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set bottom($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBottom() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBottom() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get top => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set top($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTop() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTop() => $_clearField(3);
+}
+
+class BacklightBrightnessRequest extends $pb.GeneratedMessage {
+  factory BacklightBrightnessRequest({
+    $core.String? light,
+    $core.int? bottom,
+    $core.int? top,
+  }) {
+    final result = create();
+    if (light != null) result.light = light;
+    if (bottom != null) result.bottom = bottom;
+    if (top != null) result.top = top;
+    return result;
+  }
+
+  BacklightBrightnessRequest._();
+
+  factory BacklightBrightnessRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BacklightBrightnessRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BacklightBrightnessRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'lights'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'light')
+    ..aI(2, _omitFieldNames ? '' : 'bottom')
+    ..aI(3, _omitFieldNames ? '' : 'top')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightnessRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightnessRequest copyWith(
+          void Function(BacklightBrightnessRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as BacklightBrightnessRequest))
+          as BacklightBrightnessRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightnessRequest create() => BacklightBrightnessRequest._();
+  @$core.override
+  BacklightBrightnessRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightnessRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BacklightBrightnessRequest>(create);
+  static BacklightBrightnessRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get light => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set light($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get bottom => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set bottom($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBottom() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBottom() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get top => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set top($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTop() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTop() => $_clearField(3);
+}
+
+class BacklightBrightnessResponse extends $pb.GeneratedMessage {
+  factory BacklightBrightnessResponse({
+    BacklightBrightness? brightness,
+  }) {
+    final result = create();
+    if (brightness != null) result.brightness = brightness;
+    return result;
+  }
+
+  BacklightBrightnessResponse._();
+
+  factory BacklightBrightnessResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BacklightBrightnessResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BacklightBrightnessResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'lights'),
+      createEmptyInstance: create)
+    ..aOM<BacklightBrightness>(1, _omitFieldNames ? '' : 'brightness',
+        subBuilder: BacklightBrightness.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightnessResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BacklightBrightnessResponse copyWith(
+          void Function(BacklightBrightnessResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as BacklightBrightnessResponse))
+          as BacklightBrightnessResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightnessResponse create() =>
+      BacklightBrightnessResponse._();
+  @$core.override
+  BacklightBrightnessResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BacklightBrightnessResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BacklightBrightnessResponse>(create);
+  static BacklightBrightnessResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  BacklightBrightness get brightness => $_getN(0);
+  @$pb.TagNumber(1)
+  set brightness(BacklightBrightness value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasBrightness() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearBrightness() => $_clearField(1);
+  @$pb.TagNumber(1)
+  BacklightBrightness ensureBrightness() => $_ensure(0);
 }
 
 const $core.bool _omitFieldNames =

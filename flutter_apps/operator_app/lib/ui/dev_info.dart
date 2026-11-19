@@ -66,7 +66,8 @@ final Map<String, _DevTopic> _devTopics = {
     title: 'Finding and connecting to kiosks',
     rpc: 'mDNS _facesnap._tcp + GetKioskInfo / LoadSettings',
     summary: 'The list merges four sources: a FaceSnap server on this PC '
-        '(it announces nothing, so 127.0.0.1:<port> is probed directly and '
+        '(it announces nothing, so 127.0.0.1:<port> — 50051, or the port '
+        'chosen in the setup — is probed directly and '
         'listed first); provisioned kiosk boards, found with a one-shot mDNS '
         'PTR query for _facesnap._tcp (the SRV record carries the gRPC port); '
         'clean, not yet provisioned boards, found by their stock host names '
@@ -115,7 +116,8 @@ await GrpcChannelProvider.setAddress(kiosk.hostName, kiosk.port ?? 50051);
 await SettingsClient(GrpcChannelProvider.channel).loadSettings(Empty(),
     options: CallOptions(timeout: const Duration(seconds: 5)));''',
       'Protocol': r'''
-this PC   : TCP connect 127.0.0.1:<port>  (a local server announces nothing)
+this PC   : TCP connect 127.0.0.1:<port>  (a local server announces nothing;
+            <port> = 50051, or the port chosen in the setup)
 kiosks    : PTR _facesnap._tcp.local      (multicast 224.0.0.251:5353, one-shot)
             SRV facesnap-<mac>._facesnap._tcp.local -> port, target host
             A   facesnap-<mac>.local                -> 192.168.x.x
@@ -132,7 +134,8 @@ transport : gRPC over plain HTTP/2 (h2c), no TLS - keep kiosks on a
     title: 'Managing a server on this PC',
     rpc: 'ServerProcessManager (C#)',
     summary: 'This card controls the FaceSnap server installed on this Windows '
-        'PC: whether it runs (is its gRPC port listening?), Start / Stop, and '
+        'PC: whether it runs (is its gRPC port — 50051, or the port chosen in '
+        'the setup — listening?), Start / Stop, and '
         '"start at logon" — a "FaceSnap Server.lnk" shortcut in the Windows '
         'Startup folder. Lifecycle is not an RPC. The C# SDK has '
         'ServerProcessManager(serverAddress, executablePath): IsRunningAsync() '
@@ -142,11 +145,18 @@ transport : gRPC over plain HTTP/2 (h2c), no TLS - keep kiosks on a
         'port is open; false when the exe is missing or did not come up in '
         'time); Stop() kills only a process this manager started; '
         'StopAnyAsync(timeout) stops whichever process owns the port (the '
-        'logon autostart, a developer\'s server). This card\'s Stop is the '
-        'latter with two extras: it switches both backlights off first (a '
-        'killed server skips its own shutdown) and only kills the port\'s '
-        'owner when that is face_snap_server.exe. The autostart shortcut has '
-        'no SDK helper.',
+        'logon autostart, a developer\'s server). Without the service, this '
+        'card\'s Stop first sets the event `Global\\FaceSnapServerStop` and '
+        'waits up to 10 s for the port to close (a developer\'s server run '
+        'from source shuts down cleanly that way; a 1.1.24 server has no '
+        'event); only a server still listening then is stopped like '
+        'StopAnyAsync, with two extras: both backlights are switched off '
+        'first (a killed server skips its own shutdown) and the port\'s owner '
+        'is killed only when it is face_snap_server.exe. The autostart '
+        'shortcut has no SDK helper. On a service install (1.1.25+) Start/Stop drive the '
+        'Windows service `FaceSnapServer`; the service\'s pre-stop hook sets '
+        'the event `Global\\FaceSnapServerStop` so the server shuts down '
+        'cleanly before NSSM ends it.',
     snippets: {
       'C# — facesnap-sdk': r'''
 using var manager = new ServerProcessManager(
@@ -164,15 +174,24 @@ await manager.StopAnyAsync(TimeSpan.FromSeconds(10));    // whoever owns the por
       'Dart (this app)': r'''
 // face_snap_grpc has no lifecycle helper; this app runs PowerShell
 // (operator_app/lib/services/server_manager.dart):
-//   running   : Get-NetTCPConnection -LocalPort 50051 -State Listen
+//   running   : Get-NetTCPConnection -LocalPort <port> -State Listen
+//               (<port> = LocalServerConfig.port: 50051, or the port chosen
+//               in the setup, "grpc_port" in
+//               %ProgramData%\FaceSnap\server_config.json)
+//   service   : Get-Service FaceSnapServer (exists on a 1.1.25+ install)
+// Service install:
+//   start     : Start-Service FaceSnapServer
+//   stop      : Stop-Service FaceSnapServer (its pre-stop hook sets Global\FaceSnapServerStop and waits for the port to close)
+// Without the service (1.1.24 and older, or a server run from source):
 //   start     : Start-Process face_snap_server.exe -WindowStyle Minimized
-//   stop      : both backlights off over gRPC, then Stop-Process on the
+//   stop      : both backlights off over gRPC, set Global\FaceSnapServerStop
+//               and wait up to 10 s; if still listening, Stop-Process on the
 //               port's owner - only when its path is face_snap_server.exe
 //   autostart : "FaceSnap Server.lnk" in [Environment]::GetFolderPath("Startup")
 final result = await Process.run('powershell', [
   '-NoProfile',
   '-Command',
-  'if (Get-NetTCPConnection -LocalPort 50051 -State Listen '
+  'if (Get-NetTCPConnection -LocalPort ${LocalServerConfig.port} -State Listen '
       '-ErrorAction SilentlyContinue) { "True" } else { "False" }',
 ]);
 final running = (result.stdout as String).trim() == 'True';
@@ -238,10 +257,10 @@ try {
         'capture, a calibration, GetKioskStatus) gets RESOURCE_EXHAUSTED '
         '"capture in progress" at once — nothing queues — and a running '
         'preview stops itself. The automatic stream: progress lines first ("Best '
-        'Camera was determined", "Live person check: …", "Taking a high res '
+        'Camera was determined", "Live person check: …", "Live person check (face angle): …", "Taking a high res '
         'photo using camera N"), then "Distance in cm" and the own-check rows, '
-        'the photo, then the OFIQ / ICAO / advice rows, and the light-check '
-        'rows last. After every check row it also carries a structured '
+        'the photo, then the OFIQ / ICAO / advice rows, and the head-turn row '
+        'last. After every check row it also carries a structured '
         'CheckResult (C#: a Dto.CheckResult item; Dart: a CaptureCheck event) — '
         'key on those, not on the texts. Only three refusals carry status '
         'ERROR (no cameras, not calibrated, no face; Server 2.0 also "Capture '
@@ -249,7 +268,16 @@ try {
         'camera N: …") is status OK and the stream simply ends WITHOUT a photo '
         '— check whether one arrived. Cancel by leaving the loop or cancelling '
         'the token (C#) / the subscription (Dart): the server stops, darkens '
-        'the column and releases the camera.',
+        'the column and releases the camera. With the head turn on, the photo '
+        'frame is taken first (the first valid frame, kept) and the head turn '
+        'runs on the frames after it; its instructions come after "Taking a '
+        'high res photo using camera N" and before anything of the photo, '
+        'which is processed and sent only after the head turn ends (C#: a '
+        'Dto.CaptureInstruction item; Dart: a CaptureInstruction event). A '
+        'server with per-capture settings starts every stream with the '
+        'settings the capture runs with (C#: a Dto.CaptureSettingsUsed item; '
+        'Dart: a CaptureSettingsReport event) — see "Settings for one '
+        'capture" for StartAutomaticCapture / StartManualCapture.',
     snippets: {
       'C# — facesnap-sdk': r'''
 var kiosk = new KioskProcessor();
@@ -268,6 +296,9 @@ try
             case GrpcLibrary.Dto.CheckResult c
                 when c.Verdict == GrpcLibrary.Dto.CheckVerdict.Failed:
                 Console.WriteLine($"{c.Kind} {c.Name} failed");   // stable name
+                break;
+            case GrpcLibrary.Dto.CaptureInstruction step:   // the head turn
+                Console.WriteLine($"{step.Kind}: {step.Text}");
                 break;
             case ImageData img:               // the photo, chunks assembled
                 photo = img;
@@ -295,10 +326,15 @@ try {
         print('$description [$status]');
       case CaptureCheck(:final result):        // after each check row (automatic)
         if (result.verdict == CheckVerdict.FAILED) print('${result.name} failed');
+      case CaptureInstruction(:final kind, :final text):  // the head turn (automatic)
+        print('${kind.name}: $text');
       case CapturePhoto():                     // automatic: the one photo
         photo = event;
       case CameraPhoto(:final cameraIndex, :final bytes):  // manual: per camera
         File('camera$cameraIndex.jpg').writeAsBytesSync(bytes);
+      case CaptureSettingsReport(:final values, :final overridden):  // always first
+        print('format ${values.photoFormat}, ICAO report ${values.icaoReport}'
+            '${overridden.isEmpty ? '' : '; only this capture: ${overridden.join(', ')}'}');
     }
     if (stopPressed) break;  // leaving the loop cancels the call on the server
   }
@@ -392,22 +428,24 @@ for (final c in checks) {
         '"Capture failed, Please try again"). In the automatic flow index is '
         'the selected camera\'s NATIVE (OS) index (0 on the refusals); the '
         'calibrated position is only in the "using camera N" text. Before the '
-        'photo: the progress rows, the live person depth check, "Distance in '
+        'photo: the progress rows, the live person depth and face-angle checks, "Distance in '
         'cm" and the own-check rows (head size last; red eyes on a face with '
         'a colour cast add an "Advice: …" row right after the red-eye row). '
         'After the photo: the '
         'OFIQ rows, "ICAO compliance: …" with one row per requirement, the '
-        '"Advice: …" rows, and the light-check rows (shading, colour) last. A '
+        '"Advice: …" rows, and the head-turn row last. A '
         'give-up ("Could not take the photo with camera N: the eyes were '
         'closed in K of T frames…") ends the stream with no photo. NEW: right '
         'after each check row the automatic stream carries a CheckResult — '
         'kind GATE / KIOSK_CHECK / LIVENESS / OFIQ / ICAO, a stable name '
-        '("distance", "eyes", "head_pose", "liveness_colour", '
+        '("distance", "eyes", "head_pose", "liveness_face_angle", '
         '"ofiq.Sharpness", "icao.compliance", …), verdict PASSED / FAILED / '
         'NOT_CHECKED, gates_photo, value / min / max / unit and the row\'s text. '
         'Program against those and only show the texts; progress, advice and '
         'give-up rows have none. Liveness results exist only in the automatic '
-        'capture.',
+        'capture. A server with per-capture settings sends the settings used '
+        'first (C#: Dto.CaptureSettingsUsed; Dart: CaptureSettingsReport): the '
+        'checks this capture really runs, to seed the checklist from.',
     snippets: {
       'C# — facesnap-sdk': r'''
 await foreach (var item in new KioskProcessor().StartAutomaticProcess())
@@ -429,7 +467,7 @@ await foreach (var item in new KioskProcessor().StartAutomaticProcess())
                 Console.WriteLine($"{c.Name} = {v}{c.Unit} (min {c.Min}, max {c.Max})");
             break;
         case ImageData img:
-            break;   // own-check rows came before it; OFIQ/ICAO/advice/light rows follow
+            break;   // own-check rows came before it; OFIQ/ICAO/advice/head-turn rows follow
     }
 }''',
       'Dart — face_snap_grpc': r'''
@@ -446,6 +484,12 @@ await for (final event in startAutomaticCapture()) {
         print('${result.name} = ${result.value}${result.unit}'
             '${result.hasMin() ? ' (min ${result.min})' : ''}');
       }
+    case CaptureSettingsReport(:final values):
+      // First: the checks THIS capture runs (an override can switch them), so
+      // the checklist can be seeded before the first row arrives.
+      seedChecklist(icao: values.icaoReport, ofiq: values.ofiqChecks,
+          eyes: values.eyesCheck, lips: values.lipsCheck);
+    case CaptureInstruction():
     case CapturePhoto():
     case CameraPhoto():
       break;
@@ -455,7 +499,13 @@ await for (final event in startAutomaticCapture()) {
 row (status OK unless noted)                         structured result after it
 Best Camera was determined                           -
 Live person check: passed (3D face confirmed ...)    LIVENESS liveness_depth
+Live person check (face angle): passed               LIVENESS liveness_face_angle
 Taking a high res photo using camera 3               -   (3 = calibrated position)
+  (head turn on: the photo frame is taken first, then the head turn on the next frames)
+Turn your head to the left                           -   + Instruction TURN_LEFT (progress items follow)
+Turn your head to the right                          -   + Instruction TURN_RIGHT
+Look straight ahead                                  -   + Instruction LOOK_STRAIGHT
+  (no row)                                           -     Instruction DONE: the photo is processed now
 Distance in cm: 52                                   GATE distance  52 cm, min/max
 Lips are closed (certainty 97%)                      GATE lips
 Both eyes are opened (certainty 99%)                 GATE eyes
@@ -466,12 +516,186 @@ OFIQ overall quality: 71/100 - passed (min 40)       OFIQ ofiq.UnifiedQualitySco
 ICAO compliance: attention (1 of 19 ...: Glasses)    ICAO icao.compliance  FAILED
 ICAO Glasses: attention (...)                        ICAO icao.<requirement>
 Advice: ...                                          -
-Live person check (colour): passed (...)             LIVENESS liveness_colour
+Live person check (head turn): passed                LIVENESS liveness_head_turn
 
 refusal (status ERROR, only item): No cameras detected - check the camera connections
 give-up (status OK, no photo):     Could not take the photo with camera 3: ...''',
     },
     docsUrl: '$_docsBase/docs/reference/status-texts.html',
+  ),
+  'capture-instruction': _DevTopic(
+    title: 'The head turn',
+    rpc: 'ProcessAutomaticResponse.instruction',
+    summary: 'With the live person check\'s head turn on (SetLivenessChecks '
+        'headTurnCheck, under the master switch) the automatic stream carries '
+        'Instruction items between the photo frame and the photo: the photo '
+        'frame is taken first (the first valid frame, kept), the head turn runs '
+        'on the frames after it, and the photo is processed and sent once it '
+        'ends - nothing of the photo arrives before DONE. Kind '
+        'TURN_LEFT / TURN_RIGHT / LOOK_STRAIGHT / DONE, progress 0..1 towards '
+        'the 20 degree turn, repeat (the second ask), seconds_left (the time '
+        'left of the ask when the item was SENT) and the English text. One per '
+        'new instruction, in between when the progress moved 5 points (at most '
+        '~10 per second) - a person who does not move gets no new item, so '
+        'seconds_left is a snapshot: count it down locally from the item\'s '
+        'arrival and restart from the next item\'s value. Every new '
+        'instruction is ALSO a status row with the same text, so a client '
+        'that skips the item still shows it. Left is the person\'s own left: '
+        'on the kiosk screen the person faces, the screen\'s left. DONE ends '
+        'it; after the photo the row "Live person check (head turn): passed", '
+        '"failed - no head turn to the left / right / left and right" or '
+        '"skipped (face not measurable)" with the CheckResult '
+        'liveness_head_turn. Informational: it never blocks the photo.',
+    snippets: {
+      'C# — facesnap-sdk': r'''
+var kiosk = new KioskProcessor();
+await foreach (var item in kiosk.StartAutomaticProcess())
+{
+    if (item is GrpcLibrary.Dto.CaptureInstruction step)
+    {
+        // Kind: TurnLeft / TurnRight / LookStraight / Done (the person's own left)
+        if (step.Kind == GrpcLibrary.Dto.CaptureInstructionKind.Done) { HideArrow(); continue; }
+        // SecondsLeft is a snapshot at send time and items come only on a change:
+        // count down locally to this deadline (a UI timer); the next item restarts it.
+        DateTime deadline = DateTime.UtcNow.AddSeconds(step.SecondsLeft);
+        ShowArrow(step.Kind, step.Progress, step.Repeat, deadline, step.Text);
+    }
+}''',
+      'Dart — face_snap_grpc': r'''
+await for (final event in startAutomaticCapture()) {
+  if (event is CaptureInstruction) {
+    // kind: TURN_LEFT / TURN_RIGHT / LOOK_STRAIGHT / DONE (the person's own left)
+    if (event.kind == InstructionKind.DONE) {
+      hideArrow();
+    } else {
+      // secondsLeft is a snapshot at send time and items come only on a change:
+      // count down locally to this deadline (a UI timer); the next item restarts it.
+      final deadline = DateTime.now()
+          .add(Duration(milliseconds: (event.secondsLeft * 1000).round()));
+      showArrow(event.kind, event.progress, event.repeat, deadline, event.text);
+    }
+  }
+}''',
+    },
+    docsUrl: '$_docsBase/docs/automatic-capture.html',
+  ),
+
+  'capture-overrides': _DevTopic(
+    title: 'Settings for one capture',
+    rpc: 'Kiosk.StartAutomaticCapture / StartManualCapture (CaptureRequest)',
+    summary: 'The "Only for this capture" panel sends its values WITH the '
+        'capture command; they apply to that capture only and nothing is '
+        'saved: no Set… call, no settings file, no column profile change, also '
+        'after an error or a cancel. A field you leave unset keeps the kiosk\'s '
+        'value. CaptureSettings has 28 optional fields, most named after the kiosk '
+        'settings: photo_format, crop, crop_width, jpeg_quality, '
+        'background_method / _color / _strength, glare_free_light (off / '
+        'glasses / everyone), photo_light (all / neighbours), '
+        'leds_off_for_photo, the ten check switches, ofiq_checks, '
+        'icao_report, liveness_check, liveness_head_turn_check, distance_min, '
+        'distance_max, colour_correction (the photo colour matrices) and lap '
+        '(a child on a parent\'s lap: LAP_CHILD photographs the lower face, '
+        'LAP_BABY also turns the eyes / lips / distance / expression gates into '
+        'advice and the head turn off; automatic capture only). A '
+        'manual capture uses only jpeg_quality, glare_free_light, photo_light, '
+        'leds_off_for_photo and colour_correction and refuses any other. Refusals come before any light or camera is touched: a value '
+        'outside its rule, an unknown field or a field a manual capture does '
+        'not use is INVALID_ARGUMENT with the server\'s text ("per-capture '
+        'setting jpeg_quality: jpeg quality should be between 50 and 100"); a '
+        'server from before per-capture settings answers UNIMPLEMENTED (C#: '
+        'NotSupportedException; Dart: PerCaptureSettingsNotSupported). Every '
+        'stream starts with the settings used: the values in force (28 fields '
+        'automatic, 5 manual) and the names that came from the request — the '
+        '"Settings used" card, overrides marked ◆. Without settings, call '
+        'StartAutomaticProcess / StartManualProcess (Dart: no settings '
+        'argument) as before.',
+    snippets: {
+      'C# — facesnap-sdk': r'''
+var kiosk = new KioskProcessor();
+// Only for this capture; the kiosk's own settings stay as they are.
+var settings = new CaptureSettings { PhotoFormat = "us_2x2", BackgroundStrength = 2, IcaoReport = true };
+try
+{
+    await foreach (var item in kiosk.StartAutomaticCapture(settings))
+    {
+        switch (item)
+        {
+            case GrpcLibrary.Dto.CaptureSettingsUsed used:   // always the first item
+                Console.WriteLine($"format {used.Values.PhotoFormat}; " +
+                    $"only this capture: {string.Join(", ", used.Overridden)}");
+                break;
+            case ProcessStatus s:
+                Console.WriteLine(s.description);
+                break;
+            case ImageData img:
+                File.WriteAllBytes("passport.jpg", img.data);
+                break;
+        }
+    }
+    // Manual: only JpegQuality, GlareFreeLight, PhotoLight, LedsOffForPhoto and ColourCorrection.
+    var glareFree = new CaptureSettings { GlareFreeLight = "everyone" };
+    await foreach (var item in kiosk.StartManualCapture(glareFree))
+        if (item is ImageData photo) File.WriteAllBytes($"camera{photo.index}.jpg", photo.data);
+}
+catch (NotSupportedException e)
+{
+    Console.WriteLine(e.Message);         // the server predates per-capture settings
+}
+catch (Grpc.Core.RpcException e) when (e.StatusCode == Grpc.Core.StatusCode.InvalidArgument)
+{
+    Console.WriteLine(e.Status.Detail);   // "per-capture setting jpeg_quality: ..."
+}''',
+      'Dart — face_snap_grpc': r'''
+// Only for this capture; the kiosk's own settings stay as they are.
+final settings =
+    CaptureSettings(photoFormat: 'us_2x2', backgroundStrength: 2, icaoReport: true);
+try {
+  await for (final event in startAutomaticCapture(settings: settings)) {
+    switch (event) {
+      case CaptureSettingsReport(:final values, :final overridden):  // always first
+        print('format ${values.photoFormat}; only this capture: ${overridden.join(', ')}');
+      case CaptureStatus(:final description):
+        print(description);
+      case CapturePhoto(:final bytes):
+        File('passport.jpg').writeAsBytesSync(bytes);
+      case CaptureCheck():
+      case CaptureInstruction():
+      case CameraPhoto():
+        break;
+    }
+  }
+  // A child on a parent's lap: the lower face is the subject (LAP_BABY: relaxed checks).
+  final child = CaptureSettings(lap: LapSubject.LAP_CHILD);
+  await for (final event in startAutomaticCapture(settings: child)) {
+    if (event is CapturePhoto) File('child.jpg').writeAsBytesSync(event.bytes);
+  }
+  // Manual: only jpegQuality, glareFreeLight, photoLight, ledsOffForPhoto and colourCorrection.
+  final glareFree = CaptureSettings(glareFreeLight: 'everyone');
+  await for (final event in startManualCapture(settings: glareFree)) {
+    if (event is CameraPhoto) {
+      File('camera${event.cameraIndex}.jpg').writeAsBytesSync(event.bytes);
+    }
+  }
+} on PerCaptureSettingsNotSupported catch (e) {
+  print(e);          // the server predates per-capture settings
+} on GrpcError catch (e) {
+  print(e.message);  // INVALID_ARGUMENT: "per-capture setting jpeg_quality: ..."
+}''',
+      'Protocol': r'''
+rpc StartAutomaticCapture(CaptureRequest) returns (stream ProcessAutomaticResponse)
+rpc StartManualCapture(CaptureRequest)    returns (stream ProcessManualResponse)
+CaptureRequest { CaptureSettings settings = 1 }   every field optional; unset = kiosk
+  1 photo_format  2 crop  3 crop_width  4 jpeg_quality*  5 background_method
+  6 background_color  7 background_strength  8 glare_free_light*  9 photo_light*
+  10 leds_off_for_photo*  11-20 the check switches  21 ofiq_checks  22 icao_report
+  23 liveness_check  24 liveness_head_turn_check  25 distance_min  26 distance_max
+  27 colour_correction*  28 lap (LapSubject: LAP_NONE / LAP_CHILD / LAP_BABY)
+  (* = used by a manual capture; any other field there is INVALID_ARGUMENT)
+first item: settings_used { values (28 automatic / 5 manual), overridden [names] }
+refusals  : INVALID_ARGUMENT (rule, unknown field, manual field), UNIMPLEMENTED
+            (older server), RESOURCE_EXHAUSTED (capture in progress)''',
+    },
+    docsUrl: '$_docsBase/docs/per-capture-settings.html',
   ),
 
   // ---- Photo page ---------------------------------------------------------
@@ -488,8 +712,9 @@ give-up (status OK, no photo):     Could not take the photo with camera 3: ...''
         'carries the key and the crop_height the server derived from the '
         'stored crop width. Crop width (SetCropResolution): this field takes '
         '100–3000 px and sends the height that follows from the format. '
-        'Background erasing (SetBackgroundMethod): none / mediapipe / modnet '
-        '(default) / withoutbg; "rembg" is accepted and stored as "withoutbg" '
+        'Background erasing (SetBackgroundMethod): none (default since 1.1.27) / '
+        'mediapipe / modnet / withoutbg / gridler (the Gridler eraser); "rembg" is '
+        'accepted and stored as "withoutbg" '
         '(the reply is what was set); anything else is INVALID_ARGUMENT. Colour '
         '(SetBackgroundColor): surrounding spaces and a leading # are dropped, '
         'lower case is accepted, it is stored upper-cased; anything else is '
@@ -547,11 +772,13 @@ await c.setJpegQuality(JpegQualityRequest(value: 95));              // 50-100'''
         'portrait requirement, from OFIQ plus the kiosk\'s own checks, which '
         'then run whatever their switches say; it needs OFIQ installed, and an '
         'older server answers UNIMPLEMENTED. LIVE PERSON CHECK — the master '
-        '(default on: the depth check over the camera scan) and the Shading '
-        'and Colour light checks (default off) are ONE call, '
-        'SetLivenessChecks(livenessCheck, shadingCheck, colourCheck); the light '
-        'checks need the LED board and the master on, add about half a second '
-        'before the photo and hold the backlights off until they are done. '
+        '(default off since 1.1.27: the depth and face-angle checks over the '
+        'camera scan) and '
+        'the head turn under it are ONE call, SetLivenessChecks(livenessCheck) '
+        'or SetLivenessChecks(livenessCheck, headTurnCheck). '
+        'The head turn (default off) asks the person to turn the head to the '
+        'left and to the right, just after the photo frame is taken and before '
+        'the photo is sent, on the kiosk screen and the LED column. '
         'Every check that ran also yields a CheckResult in the capture stream.',
     snippets: {
       'C# — facesnap-sdk': r'''
@@ -571,9 +798,8 @@ await settings.SetLightingEvennessCheck(false);
 // Reports (ICAO wins over OFIQ; both need OFIQ on the server)
 await settings.SetOfiqChecks(false);
 await settings.SetIcaoReport(true);
-// Live person check: the master and the two light checks in ONE call
-LivenessChecks live = await settings.SetLivenessChecks(
-    livenessCheck: true, shadingCheck: true, colourCheck: false);''',
+// Live person check: the master switch and the head turn under it, in ONE call
+LivenessChecks live = await settings.SetLivenessChecks(livenessCheck: true, headTurnCheck: true);''',
       'Dart — face_snap_grpc': r'''
 final c = SettingsClient(GrpcChannelProvider.channel);
 await c.setEyesCheck(EyesCheckRequest(value: true));              // gate
@@ -588,10 +814,50 @@ await c.setGazeCheck(GazeCheckRequest(value: false));
 await c.setLightingEvennessCheck(LightingEvennessCheckRequest(value: false));
 await c.setOfiqChecks(OfiqChecksRequest(value: false));
 await c.setIcaoReport(IcaoReportRequest(value: true));
-await c.setLivenessChecks(LivenessChecksRequest(
-    livenessCheck: true, shadingCheck: true, colourCheck: false));''',
+await c.setLivenessChecks(LivenessChecksRequest(livenessCheck: true, headTurnCheck: true));''',
     },
     docsUrl: '$_docsBase/docs/commissioning/checks-policy.html',
+  ),
+
+  'capture-warm-up': _DevTopic(
+    title: 'Loading models at server start',
+    rpc: 'Settings.SetCaptureWarmUp / LoadSettings.capture_warm_up',
+    summary: 'A capture that needs a model the server has not loaded yet '
+        'loads it first and says so in a status row: "Loading the background '
+        'method withoutbg (first use, a few seconds)" or "Loading OFIQ (first '
+        'use, about 8 s)". That happens when a per-capture setting (or a '
+        'changed kiosk setting) asks for a background method or the OFIQ / '
+        'ICAO report the kiosk does not normally use. The kiosk setting '
+        'capture_warm_up lists the models the server loads in the background '
+        'at its start: names from modnet, withoutbg, gridler (the Gridler eraser, '
+        'from release 1.1.27 on) and ofiq, empty by default (the card\'s "None"). '
+        'SetCaptureWarmUp replaces the whole list, loads a newly listed model '
+        'at once and answers with the stored list (in that order, without '
+        'duplicates); an unknown name refuses the whole list with '
+        'INVALID_ARGUMENT and nothing is stored. LoadSettings returns the list '
+        'in capture_warm_up. A listed model stays in memory from the start, '
+        'used or not — mind the memory on an Odroid. On Server 2.0 ofiq adds '
+        'nothing (OFIQ starts at every start there). An older server answers '
+        'UNIMPLEMENTED. It is a server setting, not a column setting.',
+    snippets: {
+      'C# — facesnap-sdk': r'''
+var settings = new SettingsProcessor();
+// Names from "modnet", "withoutbg", "gridler", "ofiq"; an unknown name refuses the whole list.
+CaptureWarmUp stored = await settings.SetCaptureWarmUp(new[] { "withoutbg", "ofiq" });
+Console.WriteLine(string.Join(", ", stored.captureWarmUp));   // the stored list
+IReadOnlyList<string> atStart = (await settings.LoadSettings()).captureWarmUp;
+await settings.SetCaptureWarmUp(Array.Empty<string>());      // the default: nothing extra''',
+      'Dart — face_snap_grpc': r'''
+final c = SettingsClient(GrpcChannelProvider.channel);
+// Names from 'modnet', 'withoutbg', 'gridler', 'ofiq'; an unknown name refuses the whole list.
+final stored =
+    await c.setCaptureWarmUp(CaptureWarmUpRequest(items: ['withoutbg', 'ofiq']));
+print(stored.items);                                   // the stored list
+final atStart = (await c.loadSettings(Empty())).captureWarmUp;
+print(atStart);
+await c.setCaptureWarmUp(CaptureWarmUpRequest());      // the default: nothing extra''',
+    },
+    docsUrl: '$_docsBase/docs/per-capture-settings.html',
   ),
 
   // ---- Lighting page ------------------------------------------------------
@@ -615,17 +881,32 @@ await c.setLivenessChecks(LivenessChecksRequest(
         'INVALID_ARGUMENT. LED hardware (SetLedLayout "strip" / "ring") decides '
         'which MicroPython files the server writes to the Plasma board; the '
         'board reboots (~10 s); an unknown layout is ignored (the reply carries '
-        'the layout in force). Strip file gbl.py (strip only): GetBoardGbl reads '
-        'the file in force (custom = your own); Edit… and Load file… send yours '
-        'with SetBoardGbl, which validates it — "rejected: …" in message and '
-        'nothing stored, or stored and written to the board, which reboots; '
-        'Restore default sends empty content. Photo light (SetPhotoLight): '
+        'the layout in force). The LED geometry gbl.py (GetBoardGbl / '
+        'SetBoardGbl) is edited on the Column page; SetBoardGbl validates it — '
+        '"rejected: …" in message and nothing stored, or stored and written to '
+        'the board, which reboots; empty content puts the shipped file back. '
+        'Photo light (SetPhotoLight): '
         '"all", or the "neighbours" (the camera\'s ring and one each side; the '
         'camera scan then runs at half intensity); an unknown value is ignored. '
-        'Glasses mode (SetGlassesLightsOff): with glasses on the first valid '
-        'frame the photo is lit from above the camera only. Lights off for the '
+        'Glare-free light (SetGlareFreeLight: GlareFreeLight.Off / Glasses / '
+        'Everyone): the normal light; for glasses, when the first valid frame '
+        'shows glasses, the photo is lit from above the next camera up and by the '
+        'backlights; for everyone, that light for every photo (a face that stays '
+        'too dark gets the normal light). Its camera white balance in Kelvin: '
+        'SetGlareFreeWhiteBalance (0 = the camera\'s own value). The old '
+        'SetGlassesLightsOff(bool) sets Glasses or Off. In every light but '
+        'lights-off the chosen camera\'s ring fades out for the photo and back in '
+        'after it. Lights off for the '
         'photo (SetLedsOffForPhoto): the ring shows 1 s, then every LED goes '
-        'dark and the backlights light the photo.',
+        'dark and the backlights light the photo. Photo colour correction '
+        '(SetColourCorrectionEnabled(bool)): the kiosk-wide switch for the colour '
+        'matrices of the Calibration page\'s Photo colour card; off, no photo is '
+        'corrected (a server without it answers UNIMPLEMENTED and sends no '
+        'colour_corrections in LoadSettings). In every mode, from the photo '
+        'taken until it is delivered (cropping, background, reports), the column '
+        'shows the comet of the camera scan at the same brightness (rings and '
+        'strips: a slow comet whose tail fades to blue), then goes dark; '
+        'dark throughout with Lighting off.',
     snippets: {
       'C# — facesnap-sdk': r'''
 var settings = new SettingsProcessor();
@@ -642,8 +923,10 @@ if (stored.message.StartsWith("rejected")) Console.WriteLine(stored.message);
 await settings.SetBoardGbl("strip", "");                   // back to the shipped file
 
 await settings.SetPhotoLight("neighbours");                // or "all"
-await settings.SetGlassesLightsOff(true);
+await settings.SetGlareFreeLight(GlareFreeLight.Everyone);   // Off / Glasses / Everyone
+await settings.SetGlareFreeWhiteBalance(5300);              // Kelvin; 0 = the camera's own
 await settings.SetLedsOffForPhoto(false);
+await settings.SetColourCorrectionEnabled(true);          // the photo colour matrices
 
 // Live focus-colour preview, as this card does: light the top camera.
 var lights = new LightProcessor();
@@ -666,8 +949,12 @@ if (stored.message.startsWith('rejected')) print(stored.message);
 await c.setBoardGbl(BoardGblRequest(layout: 'strip', content: ''));  // default
 
 await c.setPhotoLight(PhotoLightRequest(value: 'neighbours'));
-await c.setGlassesLightsOff(GlassesLightsOffRequest(value: true));
-await c.setLedsOffForPhoto(LedsOffForPhotoRequest(value: false));''',
+await c.setGlareFreeLight(
+    GlareFreeLightRequest(value: GlareFreeLight.GLARE_FREE_LIGHT_EVERYONE));
+await c.setGlareFreeWhiteBalance(GlareFreeWhiteBalanceRequest(value: 5300));
+await c.setLedsOffForPhoto(LedsOffForPhotoRequest(value: false));
+await c.setColourCorrectionEnabled(
+    ColourCorrectionEnabledRequest(value: true));          // the photo colour matrices''',
     },
     docsUrl: '$_docsBase/docs/commissioning/led-column.html',
   ),
@@ -714,45 +1001,65 @@ await lights.setGlareSafeLights(LightIndexRequest(index: 3));''',
   ),
   'backlights': _DevTopic(
     title: 'The two LED backlights',
-    rpc: 'Lights.SetBacklight / GetBacklights',
-    summary: 'Two LED backlights on a USB relay module (relay 1 = bottom, '
-        'relay 2 = top); this card switches each by hand for testing, Refresh '
-        're-reads them. The server switches them itself: a capture turns both '
-        'on for the high-resolution photo and off as soon as it is taken (with '
-        'a light check of the live person check on, they wait until the checks '
-        'are done), the single-camera photo RPCs keep them on for the whole '
-        'call, and server start and stop switch them off. GetBacklights reads '
-        'the module and never fails for a missing one: connected = false, both '
-        'states false. SetBacklight(backlight, on) answers the state read back '
-        'from the module and is the only call that fails: FAILED_PRECONDITION '
-        '"USB relay module not connected", INVALID_ARGUMENT for '
-        'BACKLIGHT_UNSPECIFIED, UNAVAILABLE "USB relay module write failed: '
-        '…". Server 1.1.15 / image 2.0.14 or newer (older: UNIMPLEMENTED).',
+    rpc: 'Lights.SetBacklight / GetBacklights / SetBacklightBrightness',
+    summary: 'Two LED backlights (bottom and top) on one of two outputs, chosen by the '
+        'server: the LED board (dimmable, on the Qw/ST pins or the header A0/A1 pins, '
+        'found by the board files) or a USB relay module (relay 1 = bottom, relay 2 = top, '
+        'on or off only); the board wins when both are there. BacklightStatus.source says '
+        'which: board_qwst, board_header, relay or none; bottom_percent / top_percent are '
+        'the levels now (a relay reports 0 or 100) and brightness the stored brightness '
+        'per light, standard then glare_free (the column setting backlight_brightness, '
+        'saved with the column; default 100 %). A capture turns both on for the '
+        'high-resolution photo at the brightness of its light (the glare-free light uses '
+        'glare_free, every other light standard) and off as soon as it is taken; the '
+        'single-camera photo RPCs keep them on for the whole call, and server start and '
+        'stop switch them off. This card switches each by hand for testing, Refresh '
+        're-reads them; per light a Bottom and a Top slider (0-100 % in steps of 5) '
+        'previews the level live through SetBacklight with percent while that backlight '
+        'is on and stores it on release through SetBacklightBrightness(light, bottom, top), '
+        'which switches nothing. On a relay or none the sliders are greyed out '
+        '("Dimming needs backlights on the LED board"; a relay takes any percent > 0 as on). '
+        'GetBacklights never fails for missing backlights: connected = false, source '
+        'none. SetBacklight answers the state read back: FAILED_PRECONDITION when nothing '
+        'is connected, INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED or a percent outside '
+        '0-100, UNAVAILABLE "LED board backlight command failed: …" / "USB relay module '
+        'write failed: …". SetBacklightBrightness: INVALID_ARGUMENT "backlight light must '
+        'be standard or glare_free, not \'…\'" / "backlight brightness must be 0-100, got '
+        '…". Switching: server 1.1.15 / image 2.0.14 or newer (older: UNIMPLEMENTED); a '
+        'server from before the dimming sends no source and no brightness and answers '
+        'SetBacklightBrightness UNIMPLEMENTED (the card hides the sliders).',
     snippets: {
       'C# — facesnap-sdk': r'''
 var lights = new LightProcessor();
-var state = await lights.GetBacklights();   // no error without a module
-if (!state.connected) { Console.WriteLine("no relay module"); return; }
+var state = await lights.GetBacklights();   // no error without backlights
+Console.WriteLine($"{state.source}: bottom {state.bottomPercent} %, top {state.topPercent} %");
+foreach (var b in state.brightness)          // standard, then glare_free
+    Console.WriteLine($"{b.light}: bottom {b.bottom} %, top {b.top} %");
 try
 {
-    state = await lights.SetBacklight(Backlight.Top, true);   // or Backlight.Bottom
-    Console.WriteLine($"top {state.backlightTop}, bottom {state.backlightBottom}");
+    state = await lights.SetBacklight(Backlight.Bottom, true, 60);   // live, at 60 %
+    var stored = await lights.SetBacklightBrightness("glare_free", 80, 100);   // SDK 1.5.5
+    state = await lights.SetBacklight(Backlight.Top, true);   // at the stored standard level
 }
 catch (Grpc.Core.RpcException e)
     when (e.StatusCode == Grpc.Core.StatusCode.FailedPrecondition)
 {
-    // unplugged in between (Unavailable = the relay write failed)
+    // nothing connected (Unavailable = the board or relay command failed,
+    // InvalidArgument = a refused light or level)
 }''',
       'Dart — face_snap_grpc': r'''
 final lights = LightsClient(GrpcChannelProvider.channel);
 var state = await lights.getBacklights(Empty());
+print('${state.source}: bottom ${state.bottomPercent} %, top ${state.topPercent} %');
 if (state.connected) {
   try {
-    state = await lights.setBacklight(
-        BacklightRequest(backlight: Backlight.BACKLIGHT_TOP, on: true));
-    print('top ${state.backlightTop}, bottom ${state.backlightBottom}');
+    state = await lights.setBacklight(BacklightRequest(
+        backlight: Backlight.BACKLIGHT_BOTTOM, on: true, percent: 60));
+    final stored = await lights.setBacklightBrightness(BacklightBrightnessRequest(
+        light: 'glare_free', bottom: 80, top: 100));
+    print('${stored.brightness.light}: ${stored.brightness.bottom} %');
   } on GrpcError catch (e) {
-    print('${e.code}: ${e.message}');  // FAILED_PRECONDITION / UNAVAILABLE
+    print('${e.code}: ${e.message}');  // FAILED_PRECONDITION / UNAVAILABLE / INVALID_ARGUMENT
   }
 }''',
     },
@@ -969,8 +1276,9 @@ print(reply.enabled);   // the stored value''',
   // ---- Calibration page ---------------------------------------------------
   'calibration-positions': _DevTopic(
     title: 'Camera positions',
-    rpc: 'GetCalibration / SetCalibration / CalibrateByPerson + '
-        'SetCameraOrderingMode',
+    rpc: 'GetCalibration / SetCalibration / CalibrateByPerson / '
+        'CalibrateBySurroundings + SetCameraOrderingMode / '
+        'SetCameraHubUpsideDown',
     summary: 'Which physical camera is at which height (1 = bottom). '
         'GetCalibration returns one entry per ATTACHED camera — idModelId, '
         'linuxCameraIndex (the device index) and calibratedCameraIndex (0 = no '
@@ -990,9 +1298,23 @@ print(reply.enabled);   // the stored value''',
         'It scans the cameras, so it takes the capture gate (RESOURCE_EXHAUSTED '
         'during a capture); an older server answers UNIMPLEMENTED. The ordering '
         'selector is SetCameraOrderingMode: "manual" (the saved positions), '
-        '"person" (the same, worked out by CalibrateByPerson) or "automatic" '
+        '"person" (the same, worked out by CalibrateByPerson), "surroundings" '
+        '(the same, worked out by CalibrateBySurroundings) or "automatic" '
         '(from the USB socket via the standard-hub map, no calibration; the '
-        'saved positions for a socket it does not know).',
+        'saved positions for a socket it does not know). '
+        '"From the surroundings" calls CalibrateBySurroundings: with NOBODY in '
+        'front of the column the server compares neighbouring cameras\' views '
+        'twice (about 8-22 s for six cameras; this card allows 180 s) and '
+        'returns the same kind of proposal, with each camera\'s fitted '
+        'vertical offset in pixels instead of a face height; a plain backdrop '
+        'gives success = false. It needs server 1.1.25 or newer (Server 2.0: the '
+        'matching image). The switch '
+        'under the selector is SetCameraHubUpsideDown: on, the automatic '
+        'order is mirrored (position p becomes N + 1 - p of the matched '
+        'wiring) for a column whose USB hub is mounted upside down; the reply '
+        'carries the value the server applied, LoadSettings reports it as '
+        'cameraHubUpsideDown, and it is a column setting (hub_upside_down). An '
+        'older server answers UNIMPLEMENTED.',
     snippets: {
       'C# — facesnap-sdk': r'''
 var calibration = new CalibrationProcessor();
@@ -1006,8 +1328,19 @@ if (!proposal.success) { Console.WriteLine(proposal.message); return; }
 CalibratedResponse saved = await calibration.SetCalibration(proposal.ToCalibration());
 Console.WriteLine(saved.success ? "stored" : saved.message);
 
-// The ordering selector: "manual", "automatic" or "person".
-CameraOrderingMode mode = await new SettingsProcessor().SetCameraOrderingMode("person");''',
+// The ordering selector: "manual", "automatic", "person" or "surroundings".
+var settings = new SettingsProcessor();
+CameraOrderingMode mode = await settings.SetCameraOrderingMode("person");
+
+// Nobody in front of the column: the server proposes from what the cameras see.
+SurroundingsCalibrationResult fromView = await calibration.CalibrateBySurroundings();
+if (fromView.success) await calibration.SetCalibration(fromView.ToCalibration());
+else Console.WriteLine(fromView.message);   // e.g. a plain backdrop
+await settings.SetCameraOrderingMode("surroundings");
+
+// The column's USB hub is mounted upside down: mirror the automatic order.
+CameraHubUpsideDown hub = await settings.SetCameraHubUpsideDown(true);
+Console.WriteLine(hub.upsideDown);   // the value the server applied''',
       'Dart — face_snap_grpc': r'''
 final calibration = CalibrationClient(GrpcChannelProvider.channel);
 final rows = (await calibration.getCalibration(Empty())).calibrate.toList();
@@ -1029,8 +1362,20 @@ if (proposal.success) {
 }
 
 // Send the old flag too, so an older server understands "automatic".
-await SettingsClient(GrpcChannelProvider.channel).setCameraOrderingMode(
-    CameraOrderingModeRequest(mode: 'person', automatic: false));''',
+final settings = SettingsClient(GrpcChannelProvider.channel);
+await settings.setCameraOrderingMode(
+    CameraOrderingModeRequest(mode: 'person', automatic: false));
+
+// Nobody in front of the column: the same proposal from what the cameras see
+// (cam.offset = the fitted vertical offset in pixels).
+final fromView = await calibration.calibrateBySurroundings(Empty(),
+    options: CallOptions(timeout: const Duration(seconds: 180)));
+print(fromView.success ? fromView.cameras : fromView.message);
+
+// The column's USB hub is mounted upside down: mirror the automatic order.
+final hub = await settings.setCameraHubUpsideDown(
+    CameraHubUpsideDownRequest(upsideDown: true));
+print(hub.upsideDown);   // the value the server applied''',
     },
     docsUrl: '$_docsBase/docs/commissioning/calibration.html',
   ),
@@ -1061,9 +1406,12 @@ print(reply.message);   // the stored count; 0 = automatic''',
     rpc: 'SetFocusAbsolute + StartAutomaticProcess · Camera.CalibrateFocus',
     summary: 'This card\'s button does NOT call CalibrateFocus: it runs a '
         'sharpness sweep in the app, with a person standing at the marking. It '
-        'switches autofocus off (SetAutofocus(false)) and the two light checks '
-        'off (SetLivenessChecks with shading and colour false, restored '
-        'afterwards), then per focus value: SetFocusLight in a colour that runs '
+        'switches autofocus off (SetAutofocus(false)) and, when it is on, the '
+        'live person check\'s head turn off (SetLivenessChecks with '
+        'headTurnCheck false, switched back on afterwards; headTurnCheck is '
+        'sent explicitly, as unset keeps the stored value; stored off, the '
+        'sweep sends no SetLivenessChecks), then per focus value: '
+        'SetFocusLight in a colour that runs '
         'from red to green as the search converges, SetFocusAbsolute(value), '
         'ONE automatic capture, and a Laplacian-variance sharpness score of the '
         'photo\'s centre computed in Dart. A coarse pass over 0–120 in steps of '
@@ -1089,7 +1437,9 @@ if (locked.focusAbsolute < 0) Console.WriteLine("no focus lock, try again");
 // What this card does: a sharpness sweep over SetFocusAbsolute.
 var settings = new SettingsProcessor();
 var before = await settings.LoadSettings();
-await settings.SetLivenessChecks(before.livenessCheck, false, false);  // light checks off
+bool headTurn = before.livenessHeadTurnCheck;
+if (headTurn)
+    await settings.SetLivenessChecks(before.livenessCheck, headTurnCheck: false);   // head turn off
 await camera.SetAutofocus(false);
 var kiosk = new KioskProcessor();
 var scores = new Dictionary<int, double>();
@@ -1100,8 +1450,8 @@ foreach (int focus in new[] { 0, 20, 40, 60, 80, 100, 120 })   // then ±10/5, �
         if (item is ImageData photo) scores[focus] = Sharpness(photo.data);  // your scorer
 }
 await camera.SetFocusAbsolute(scores.MaxBy(kv => kv.Value).Key);
-await settings.SetLivenessChecks(before.livenessCheck,
-    before.livenessShadingCheck, before.livenessColourCheck);''',
+if (headTurn)
+    await settings.SetLivenessChecks(before.livenessCheck, headTurnCheck: true);   // back on''',
       'Dart — face_snap_grpc': r'''
 final camera = CameraClient(GrpcChannelProvider.channel);
 final settings = SettingsClient(GrpcChannelProvider.channel);
@@ -1113,8 +1463,12 @@ if (locked.message < 0) print('no focus lock');
 
 // This card's sweep (calibration_page.dart).
 final s = await settings.loadSettings(Empty());
-await settings.setLivenessChecks(LivenessChecksRequest(
-    livenessCheck: s.livenessCheck, shadingCheck: false, colourCheck: false));
+final headTurn = s.livenessHeadTurnCheck;   // stored off: no SetLivenessChecks at all
+if (headTurn) {
+  await settings.setLivenessChecks(LivenessChecksRequest(
+      livenessCheck: s.livenessCheck,
+      headTurnCheck: false));   // present false: unset keeps the stored value
+}
 await camera.setAutofocus(AutofocusRequest(value: false));
 final scores = <int, double>{};
 for (var focus = 0; focus <= 120; focus += 20) {     // then ±10/5, ±4/2
@@ -1127,12 +1481,110 @@ for (var focus = 0; focus <= 120; focus += 20) {     // then ±10/5, ±4/2
 }
 final best = scores.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
 await camera.setFocusAbsolute(FocusAbsoluteRequest(value: best));
-await settings.setLivenessChecks(LivenessChecksRequest(
-    livenessCheck: s.livenessCheck,
-    shadingCheck: s.livenessShadingCheck,
-    colourCheck: s.livenessColourCheck));''',
+if (headTurn) {
+  await settings.setLivenessChecks(LivenessChecksRequest(
+      livenessCheck: s.livenessCheck, headTurnCheck: true));   // back on, present
+}''',
     },
     docsUrl: '$_docsBase/docs/commissioning/camera-image.html',
+  ),
+  'photo-colour': _DevTopic(
+    title: 'Photo colour (measuring a kiosk)',
+    rpc: 'StartManualCapture + Settings.SetColourCorrection',
+    summary: 'Every photo\'s colours are corrected with a 3×3 matrix (row-major, '
+        'R G B, linear light) per light: "all", "neighbours" and "glare_free"; '
+        'the photo light "off" is never corrected. LoadSettings reports the '
+        'kiosk-wide switch (colour_correction) and per light the matrix in force '
+        '(colour_corrections: source "shipped" for the LED hardware, or "kiosk" '
+        'with its measurement); a server without the feature sends none of them. '
+        'Measure runs a manual capture with CaptureSettings colour_correction '
+        'false and that light (photo_light "all" / "neighbours" with '
+        'glare_free_light "off", or glare_free_light "everyone"), checks the '
+        'settings used (correction on, or LEDs off for the photo: refused), '
+        'shows the middle camera\'s photo, and the operator taps the centres of '
+        'the SpyderCheckr 24\'s four corner patches (1E, 1H, 6H, 6E, any order). '
+        'The app reads the 24 patches, leaves clipped ones out, fits the matrix '
+        'with every row summing to 1 (white stays white) and shows the mean and '
+        'worst ΔE2000 before → after; a white patch clipped, patches under 17 px, '
+        'taps that do not match the card or a fit that would not improve the '
+        'colours are refused and nothing is stored. Save sends '
+        'SetColourCorrection(light, matrix, measurement); Back to shipped sends '
+        'it with clear. A matrix the server refuses is INVALID_ARGUMENT with its '
+        'reason (9 finite numbers within ±4, rows summing to 1 ± 0.05, '
+        'invertible). It is a column setting (colour_correction in the column '
+        'profile): the matrices travel with the column\'s LED board.',
+    snippets: {
+      'C# — facesnap-sdk': r'''
+var settings = new SettingsProcessor();
+var kiosk = new KioskProcessor();
+var snapshot = await settings.LoadSettings();
+foreach (var state in snapshot.colourCorrections)   // empty: a server without it
+    Console.WriteLine($"{state.light}: {state.source}");
+
+// The photo for the measurement: uncorrected, in the light measured.
+var request = new CaptureSettings { ColourCorrection = false, PhotoLight = "all", GlareFreeLight = "off" };
+byte[]? photo = null;
+await foreach (var item in kiosk.StartManualCapture(request))
+{
+    if (item is GrpcLibrary.Dto.CaptureSettingsUsed used && used.Values.ColourCorrection)
+        throw new InvalidOperationException("the correction could not be switched off");
+    if (item is ImageData img && img.index == 3) photo = img.data;   // the middle camera
+}
+
+// Fit the matrix from the chart in the photo (your code, or cc_probe.py --fit), then:
+double[] matrix = Fit(photo!);                       // 9 numbers, each row sums to 1
+await settings.SetColourCorrection("all", matrix, new ColourMeasurementDto
+{
+    measured = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+    camera = 3, chart = "spyder24", meanDeBefore = 6.0, meanDeAfter = 2.0,
+});
+await settings.ClearColourCorrection("all");         // back to the shipped matrix
+await settings.SetColourCorrectionEnabled(true);     // the kiosk-wide switch''',
+      'Dart — face_snap_grpc': r'''
+final settings = SettingsClient(GrpcChannelProvider.channel);
+final snapshot = await settings.loadSettings(Empty());
+for (final state in snapshot.colourCorrections) {    // empty: a server without it
+  print('${state.light}: ${state.source}');
+}
+
+// The photo for the measurement: uncorrected, in the light measured.
+final photos = <CameraPhoto>[];
+await for (final event in startManualCapture(
+    settings: CaptureSettings(colourCorrection: false, glareFreeLight: 'everyone'))) {
+  if (event is CaptureSettingsReport && event.values.colourCorrection) {
+    throw StateError('the correction could not be switched off');
+  }
+  if (event is CameraPhoto) photos.add(event);
+}
+
+// This app: readChart (four taps) + fitColourMatrixGuarded (lib/util/colour_fit.dart)
+// against the card's reference (lib/util/card_reference.dart): skin weight 3, 6, 12, 24, 48
+// until no skin patch gets more than 0.5 dE worse; save only what is not refused.
+final reference = await loadCardReference('spyder24');
+final fit = fitColourMatrixGuarded(patchMeans, usable, reference: reference);
+if (colourFitRefusal(fit, reference: reference) != null) return;
+await settings.setColourCorrection(ColourCorrectionRequest(
+    light: 'glare_free',
+    matrix: fit.matrix,
+    measurement: ColourMeasurement(
+        measured: '2026-10-20T14:05:00Z', camera: 3, chart: 'spyder24',
+        meanDeBefore: fit.meanDeBefore, meanDeAfter: fit.meanDeAfter)));
+await settings.setColourCorrection(
+    ColourCorrectionRequest(light: 'glare_free', clear_4: true));   // shipped''',
+      'Protocol': r'''
+rpc SetColourCorrection (ColourCorrectionRequest) returns (ColourCorrectionResponse)
+rpc SetColourCorrectionEnabled (ColourCorrectionEnabledRequest)
+                                returns (ColourCorrectionEnabledResponse)
+ColourCorrectionRequest { light, repeated double matrix (9), ColourMeasurement
+                          measurement, bool clear }
+ColourMeasurement { measured (ISO 8601 UTC), camera, chart "spyder24",
+                    mean_de_before, mean_de_after }
+LoadSettingsResponse: bool colour_correction = 52;
+                      repeated ColourCorrectionState colour_corrections = 53;
+                      (all, neighbours, glare_free; source "kiosk" / "shipped")
+CaptureSettings.colour_correction = 27   (optional; a manual capture may use it)''',
+    },
+    docsUrl: '$_docsBase/docs/commissioning/photo-colour.html',
   ),
 
   // ---- Face recognition page ----------------------------------------------
@@ -1145,13 +1597,14 @@ await settings.setLivenessChecks(LivenessChecksRequest(
         'passport scan. The server first cuts the face out of each image (no '
         'face found: the whole image is '
         'compared — expect a larger distance), embeds both with the chosen '
-        'model (Dlib, Facenet512, SFace; the first call per model also loads '
-        'it) and measures the distance with the chosen metric (cosine, '
+        'model (Dlib or SFace; the first call per model also loads it; the '
+        'retired Facenet512 is refused with INVALID_ARGUMENT) and measures '
+        'the distance with the chosen metric (cosine, '
         'euclidean, euclidean_l2): verified = distance <= threshold. Threshold '
         '0 = the server\'s default for the model and metric (cosine: Dlib 0.07, '
-        'Facenet512 0.30, SFace 0.593). This card always sends its own '
+        'SFace 0.593). This card always sends its own '
         'threshold from the slider, which starts at values measured on kiosk '
-        'photos (Facenet512 · cosine 0.42, the card\'s default). A failure is '
+        'photos (SFace · cosine 0.45, the card\'s default). A failure is '
         'NOT a gRPC error: status ERROR with verified = false — check status '
         'first. The card allows 120 s (the first call loads the model). No '
         'capture gate, no camera, no lights.',
@@ -1162,9 +1615,9 @@ var result = await kiosk.FaceRecognition(new GrpcLibrary.Dto.FaceRecognitionRequ
 {
     image1 = File.ReadAllBytes("capture.jpg"),
     image2 = File.ReadAllBytes("passport.jpg"),
-    model = Model.Facenet512,                    // Dlib, Facenet512, Sface
+    model = Model.Sface,                         // Dlib, Sface (Facenet512 retired)
     similarity_metric = DistanceMetric.Cosine,   // Cosine, Euclidean, EuclideanL2
-    threshold = 0.42,                            // 0 = server default (0.30 here)
+    threshold = 0.45,                            // 0 = server default (0.593 here)
 });
 if (result.status != GrpcLibrary.StatusType.Ok)   // not the global StatusType
     Console.WriteLine("comparison failed");      // verified is false then
@@ -1177,9 +1630,9 @@ final result = await kiosk.faceRecognition(
   FaceRecognitionRequest(
     image1: captureJpeg,
     image2: passportJpeg,
-    model: Model.FACENET512,
+    model: Model.SFACE,
     similarityMetric: DistanceMetric.COSINE,
-    threshold: 0.42,                 // 0 = server default
+    threshold: 0.45,                 // 0 = server default
   ),
   options: CallOptions(timeout: const Duration(seconds: 120)),
 );
@@ -1244,7 +1697,8 @@ try {
     title: 'Kiosk information',
     rpc: 'Kiosk.GetKioskInfo',
     summary: 'One cheap unary call: serverIpAddress (the host\'s own address), '
-        'port (normally 50051), numberOfCameras (attached cameras) and '
+        'port (the port it listens on: 50051, or the port chosen in the '
+        'setup), numberOfCameras (attached cameras) and '
         'cameraInfo — one entry per attached camera with its CALIBRATED index '
         '(0 = no position). It enumerates the cameras without opening one and '
         'takes no capture gate, so it answers during a capture; the Kiosk page '

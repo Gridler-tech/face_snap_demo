@@ -125,6 +125,123 @@ void main() {
       expect(bad.summary.join(), contains('ssh exploded'));
       expect(out.where((o) => o.succeeded).length, 2);
     });
+
+    test('FL-2: a throwing onStart/onDone (a disposed page) does not stop the queue', () async {
+      final ran = <String>[];
+      final out = await runBatch(
+        targets: fleet(4),
+        concurrency: 1,
+        action: (target) async {
+          ran.add(target.host);
+          return true;
+        },
+        onStart: (target) {
+          if (target.host == 'kiosk2.local') throw StateError('setState() after dispose');
+        },
+        onDone: (outcome) => throw StateError('setState() after dispose'),
+      );
+      expect(ran, hasLength(4), reason: 'the queued boards still run');
+      expect(out.where((o) => o.succeeded).length, 4);
+    });
+  });
+
+  group('X-9: maxFailures stops the batch', () {
+    test('maxFailures 1 (rolling): a failure on board 1 skips the rest, reported as skipped',
+        () async {
+      final ran = <String>[];
+      final done = <BatchOutcome>[];
+      final out = await runBatch(
+        targets: fleet(3),
+        concurrency: 1,
+        maxFailures: 1,
+        action: (target) async {
+          ran.add(target.host);
+          return false;
+        },
+        onDone: done.add,
+      );
+      expect(ran, ['kiosk1.local'], reason: 'no board starts after the limit');
+      expect(out.map((o) => o.target.host), ['kiosk1.local', 'kiosk2.local', 'kiosk3.local']);
+      expect(out[0].succeeded, isFalse);
+      expect(out[0].skipped, isFalse);
+      expect(out.skip(1).every((o) => o.skipped && !o.succeeded), isTrue);
+      expect(out[1].summary.join(), contains('not started: the batch stopped after 1 failure'));
+      expect(done.map((o) => o.target.host).toSet(), out.map((o) => o.target.host).toSet(),
+          reason: 'onDone reports the skipped boards too');
+
+      final report = batchReport('Update', out);
+      expect(report.first, 'Update: 0 of 1 succeeded, 2 skipped.');
+      expect(report.join('\n'), contains('FAIL  kiosk1.local'));
+      expect(report.join('\n'),
+          contains('SKIP  kiosk2.local  (not started: the batch stopped after 1 failure)'));
+    });
+
+    test('concurrency 2: the board in flight finishes, no new board starts after the limit',
+        () async {
+      final ran = <String>[];
+      final out = await runBatch(
+        targets: fleet(5),
+        concurrency: 2,
+        maxFailures: 1,
+        action: (target) async {
+          ran.add(target.host);
+          if (target.host == 'kiosk1.local') return false; // fails at once
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          return true;
+        },
+      );
+      expect(ran, ['kiosk1.local', 'kiosk2.local']);
+      expect(out[1].succeeded, isTrue, reason: 'the board already running completes');
+      expect(out.skip(2).every((o) => o.skipped), isTrue);
+      expect(batchReport('Update', out).first, 'Update: 1 of 2 succeeded, 3 skipped.');
+    });
+
+    test('maxFailures 2: the batch goes on after one failure, stops after the second',
+        () async {
+      final ran = <String>[];
+      final out = await runBatch(
+        targets: fleet(4),
+        concurrency: 1,
+        maxFailures: 2,
+        action: (target) async {
+          ran.add(target.host);
+          return false;
+        },
+      );
+      expect(ran, ['kiosk1.local', 'kiosk2.local']);
+      expect(out.where((o) => o.skipped).map((o) => o.target.host),
+          ['kiosk3.local', 'kiosk4.local']);
+      expect(out[2].summary.join(), contains('stopped after 2 failures'));
+    });
+
+    test('a thrown error counts as a failure', () async {
+      final ran = <String>[];
+      final out = await runBatch(
+        targets: fleet(2),
+        concurrency: 1,
+        maxFailures: 1,
+        action: (target) async {
+          ran.add(target.host);
+          throw StateError('ssh exploded');
+        },
+      );
+      expect(ran, ['kiosk1.local']);
+      expect(out[1].skipped, isTrue);
+    });
+
+    test('no maxFailures: every board runs, as before', () async {
+      final ran = <String>[];
+      final out = await runBatch(
+        targets: fleet(3),
+        concurrency: 1,
+        action: (target) async {
+          ran.add(target.host);
+          return false;
+        },
+      );
+      expect(ran, hasLength(3));
+      expect(out.any((o) => o.skipped), isFalse);
+    });
   });
 
   group('runBatch reporting', () {

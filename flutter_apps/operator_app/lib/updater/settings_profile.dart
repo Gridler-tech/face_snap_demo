@@ -24,7 +24,7 @@
 //     "profile": "Recommended settings for FaceSnap Server 2.0",
 //     "description": "…",
 //     "kiosk_settings": { "camera": {"width": 3840, "height": 2160},
-//                         "kiosk": {"background_method": "mediapipe", …} }
+//                         "kiosk": {"background_method": "none", …} }
 //   }
 import 'dart:convert';
 
@@ -34,7 +34,7 @@ import 'dart:convert';
 const kRecommendedProfileJson = '''
 {
   "profile": "Recommended settings for FaceSnap Server 2.0",
-  "description": "4K photos, every quality check on, fast mediapipe background. OFIQ scoring stays off: it adds about 2.4 s per capture on the kiosk boards.",
+  "description": "4K photos and every quality check on, with the 1.1.27 defaults: no background erasing, the ICAO report, OFIQ scoring and the live person check off, nothing loaded at server start. Automatic white balance, exposure and focus are camera settings of each kiosk: a profile leaves them alone.",
   "kiosk_settings": {
     "camera": {
       "width": 3840,
@@ -53,9 +53,12 @@ const kRecommendedProfileJson = '''
         "gaze_check": true,
         "lighting_evenness_check": true
       },
-      "background_method": "mediapipe",
+      "background_method": "none",
       "jpeg_quality": 95,
-      "ofiq_checks": false
+      "ofiq_checks": false,
+      "icao_report": false,
+      "liveness_check": false,
+      "capture_warm_up": []
     }
   }
 }
@@ -79,6 +82,7 @@ const _qualityChecks = {
 /// Settings a profile must never touch, with the reason shown to the author.
 const _protected = {
   'camera.rotate_frames': 'depends on how the cameras are mounted',
+  'kiosk.camera_hub_upside_down': 'depends on how the USB hub is mounted',
   'kiosk.crop': 'part of the kiosk\'s photo product',
   'kiosk.crop_width': 'part of the kiosk\'s photo product',
   'kiosk.crop_height': 'part of the kiosk\'s photo product',
@@ -131,6 +135,10 @@ class SettingsProfile {
 
   static SettingsProfile recommended() => parse(kRecommendedProfileJson);
 
+  /// Settings a profile may still carry from an older app version; dropped on load
+  /// (the light checks were removed in 2026-10).
+  static const _retired = {'kiosk.liveness_shading_check', 'kiosk.liveness_colour_check'};
+
   /// Parses and validates; throws a [FormatException] listing EVERY problem.
   static SettingsProfile parse(String text) {
     final Object? root;
@@ -161,6 +169,23 @@ class SettingsProfile {
           'setting.');
     } else {
       _flatten(settings, '', values);
+      values.removeWhere((key, _) => _retired.contains(key));
+      // A profile from before the glare-free light carries the glasses switch only: it reads
+      // as the 3-way setting (true = "glasses", false = "off"); with both, as the servers read
+      // them (glareFreeModeOf). An invalid new value stays for the validation's message.
+      final oldGlasses = values['kiosk.glasses_lights_off'];
+      if (oldGlasses is bool) {
+        values.remove('kiosk.glasses_lights_off');
+        final stored = values['kiosk.glare_free_light'];
+        if (stored == null || _glareFreeModes.contains(stored)) {
+          values['kiosk.glare_free_light'] = glareFreeModeOf(stored, oldGlasses)!;
+        }
+      }
+      if (values.isEmpty) {
+        // Only retired keys: nothing left to set.
+        problems.add('"kiosk_settings" must be an object with at least one '
+            'setting.');
+      }
       for (final entry in values.entries) {
         final problem = _validate(entry.key, entry.value);
         if (problem != null) problems.add('"${entry.key}": $problem');
@@ -217,6 +242,13 @@ class SettingsProfile {
     if (path == 'camera.width' || path == 'camera.height') {
       return value is int ? null : 'must be a whole number.';
     }
+    if (path.startsWith('kiosk.capture_warm_up.')) return _warmUpRefusal;   // an object, flattened
+    // The colour matrices are measured on each kiosk and travel with its column (the
+    // column profile's colour_correction): an object, flattened.
+    if (path == 'kiosk.colour_matrices' || path.startsWith('kiosk.colour_matrices.')) {
+      return 'belongs to the individual kiosk (measured on its column) and cannot be set '
+          'by a profile.';
+    }
     if (path.startsWith('kiosk.face_quality.')) {
       final check = path.substring('kiosk.face_quality.'.length);
       if (!_qualityChecks.containsKey(check)) return 'unknown quality check.';
@@ -224,7 +256,7 @@ class SettingsProfile {
     }
     switch (path) {
       case 'kiosk.background_method':
-        const methods = ['none', 'mediapipe', 'modnet', 'withoutbg'];
+        const methods = ['none', 'mediapipe', 'modnet', 'withoutbg', 'gridler'];
         // 'rembg' (retired, now withoutBG) stays valid: a profile saved from an
         // older server may carry it, and a current server takes it as withoutbg.
         return methods.contains(value) || value == 'rembg'
@@ -241,23 +273,53 @@ class SettingsProfile {
       case 'kiosk.ofiq_checks':
       case 'kiosk.icao_report':
       case 'kiosk.liveness_check':
-      case 'kiosk.liveness_shading_check':
-      case 'kiosk.liveness_colour_check':
+      case 'kiosk.liveness_head_turn_check':
       case 'kiosk.glasses_lights_off':
       case 'kiosk.leds_off_for_photo':
+      case 'kiosk.colour_correction':
         return value is bool ? null : 'must be true or false.';
+      case 'kiosk.glare_free_light':
+        return const ['off', 'glasses', 'everyone'].contains(value)
+            ? null
+            : 'must be "off", "glasses" or "everyone".';
+      case 'kiosk.glare_free_white_balance':
+        return value is int && (value == 0 || (value >= 2800 && value <= 6500))
+            ? null
+            : 'must be 0 (the camera\'s own value) or a whole number of kelvin from 2800 to 6500.';
       case 'kiosk.camera_ordering_mode':
         return value == 'manual' || value == 'automatic'
             ? null
             : 'must be "manual" or "automatic".';
+      case 'kiosk.capture_warm_up':
+        return _warmUpList(value) != null ? null : _warmUpRefusal;
     }
     return 'unknown setting — a profile may only contain the camera '
         'resolution, the quality checks, background_method, '
         'background_strength, jpeg_quality, '
-        'ofiq_checks, icao_report, liveness_check, liveness_shading_check, '
-        'liveness_colour_check, glasses_lights_off, leds_off_for_photo and '
+        'ofiq_checks, icao_report, liveness_check, liveness_head_turn_check, '
+        'glare_free_light, glare_free_white_balance, glasses_lights_off, '
+        'leds_off_for_photo, colour_correction, capture_warm_up and '
         'camera_ordering_mode.';
   }
+
+  /// The capture warm-up's names (kiosk.capture_warm_up, spec 2026-10-11 section 4.7), in the
+  /// order both servers store them.
+  static const _warmUpItems = ['modnet', 'withoutbg', 'gridler', 'ofiq'];
+  static const _warmUpRefusal = 'must be a list of names from modnet, withoutbg, gridler, ofiq.';
+
+  /// A profile's warm-up list as the servers store it (no duplicates, in [_warmUpItems] order),
+  /// or null when it is not a list of those names (SetCaptureWarmUp refuses it all).
+  static List<String>? _warmUpList(Object? value) {
+    if (value is! List || value.any((item) => !_warmUpItems.contains(item))) return null;
+    return _warmUpItems.where(value.contains).toList();
+  }
+
+  /// A kiosk's stored list as the servers read it: unknown names skipped; null when it is not
+  /// a list.
+  static List<String>? _storedWarmUp(Object? value) =>
+      value is List ? _warmUpItems.where(value.contains).toList() : null;
+
+  static String _warmUpText(List<String> items) => items.isEmpty ? 'none' : items.join(', ');
 
   static const _labels = {
     'kiosk.background_method': 'Background removal',
@@ -266,11 +328,14 @@ class SettingsProfile {
     'kiosk.ofiq_checks': 'OFIQ quality report',
     'kiosk.icao_report': 'ICAO compliance report',
     'kiosk.liveness_check': 'Live person check',
-    'kiosk.liveness_shading_check': 'Live person check: shading',
-    'kiosk.liveness_colour_check': 'Live person check: colour',
+    'kiosk.liveness_head_turn_check': 'Live person check: head turn',
     'kiosk.glasses_lights_off': 'Lights off for glasses',
+    'kiosk.glare_free_light': 'Glare-free light',
+    'kiosk.glare_free_white_balance': 'Glare-free white balance (K)',
     'kiosk.leds_off_for_photo': 'Lights off for the photo',
+    'kiosk.colour_correction': 'Photo colour correction',
     'kiosk.camera_ordering_mode': 'Camera ordering',
+    'kiosk.capture_warm_up': 'Capture warm-up',
   };
 
   static String _show(Object? value) => switch (value) {
@@ -312,6 +377,14 @@ class SettingsProfile {
     for (final entry in _values.entries) {
       final path = entry.key;
       if (path == 'camera.width' || path == 'camera.height') continue;
+      if (path == 'kiosk.glare_free_light') {
+        rows.add(_glareFreeRow(current, entry.value));
+        continue;
+      }
+      if (path == 'kiosk.capture_warm_up') {
+        rows.add(_warmUpRow(current, entry.value));
+        continue;
+      }
       final now = _lookup(current, path);
       rows.add(ProfileChange(
         id: path,
@@ -326,6 +399,55 @@ class SettingsProfile {
     }
     return rows;
   }
+
+  /// The capture warm-up's row: the lists compared as the servers store them (the same names
+  /// in another order are no change); it writes the stored form.
+  ProfileChange _warmUpRow(Map<String, dynamic> current, Object wanted) {
+    final items = _warmUpList(wanted)!;
+    final now = _lookup(current, 'kiosk.capture_warm_up');
+    final stored = _storedWarmUp(now);
+    return ProfileChange(
+      id: 'kiosk.capture_warm_up',
+      label: _labels['kiosk.capture_warm_up']!,
+      currentText: stored == null ? _show(now) : _warmUpText(stored),
+      newText: _warmUpText(items),
+      differs: stored == null || _warmUpText(stored) != _warmUpText(items),
+      writes: {'kiosk.capture_warm_up': items},
+    );
+  }
+
+  /// The glare-free light's row: the kiosk's value from its glare_free_light, or - a kiosk
+  /// from before the setting - from its glasses switch; it writes both keys, as the server
+  /// does (glasses_lights_off true unless "off").
+  ProfileChange _glareFreeRow(Map<String, dynamic> current, Object wanted) {
+    final now = glareFreeModeOf(
+        _lookup(current, 'kiosk.glare_free_light'), _lookup(current, 'kiosk.glasses_lights_off'));
+    return ProfileChange(
+      id: 'kiosk.glare_free_light',
+      label: _labels['kiosk.glare_free_light']!,
+      currentText: _show(now),
+      newText: _show(wanted),
+      differs: now != wanted,
+      writes: {'kiosk.glare_free_light': wanted, 'kiosk.glasses_lights_off': wanted != 'off'},
+    );
+  }
+}
+
+const _glareFreeModes = ['off', 'glasses', 'everyone'];
+
+/// The glare-free light of a stored pair, as both servers read kiosk_settings.json
+/// (glare_free_light.py stored_mode / GlareFreeLights.Stored): the new key when it is one of
+/// the modes - unless the old switch is a bool that disagrees with it, then the old switch wins
+/// (ruling R26: only an old writer changes it alone; true with "off" is "glasses", false with
+/// "glasses" or "everyone" is "off"). Without a valid new key the old switch (true = "glasses",
+/// false = "off"); null without either.
+String? glareFreeModeOf(Object? stored, Object? oldSwitch) {
+  if (stored is! String || !_glareFreeModes.contains(stored)) {
+    return oldSwitch is bool ? (oldSwitch ? 'glasses' : 'off') : null;
+  }
+  if (oldSwitch == true && stored == 'off') return 'glasses';
+  if (oldSwitch == false && stored != 'off') return 'off';
+  return stored;
 }
 
 /// [current] with the [changes] written into it (a deep copy; intermediate

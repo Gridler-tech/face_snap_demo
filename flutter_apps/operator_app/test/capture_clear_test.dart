@@ -3,15 +3,16 @@
 // checklist back to its pending rows. Against an in-process fake Kiosk server
 // over a real loopback connection.
 import 'dart:async';
-import 'dart:io';
 
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/capture_page.dart';
 import 'package:operator_app/services/settings_state.dart';
 import 'package:operator_app/ui/ui.dart';
+
+import 'fake_server.dart';
 
 const _gaveUp =
     'Could not take the photo with camera 4: the mouth was open in 30 of 30 frames, Please try again';
@@ -49,8 +50,7 @@ Future<_FakeKiosk> _openPage(WidgetTester tester) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final kiosk = _FakeKiosk();
-  final server = Server.create(services: [kiosk]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes([kiosk]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
   // Close the client side first (tear-downs run last-in first-out).
@@ -73,8 +73,11 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
+// The page's Clear; the "Only for this capture" panel has a Clear of its own.
+final _clear = find.byKey(const ValueKey('capture-clear'));
+
 QuietButton _clearButton(WidgetTester tester) =>
-    tester.widget<QuietButton>(find.widgetWithText(QuietButton, 'Clear'));
+    tester.widget<QuietButton>(_clear);
 
 void main() {
   testWidgets('Clear empties the results, the message and the timing', (
@@ -91,7 +94,7 @@ void main() {
       expect(find.text('The capture ended without a photo.'), findsOneWidget);
       expect(find.text(_timingHint), findsNothing);
 
-      await tester.tap(find.text('Clear'));
+      await tester.tap(_clear);
       await tester.pump();
       expect(find.text(_gaveUp), findsNothing);
       expect(find.text('The capture ended without a photo.'), findsNothing);

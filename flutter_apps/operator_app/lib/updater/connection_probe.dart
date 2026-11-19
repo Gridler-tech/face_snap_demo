@@ -1,15 +1,18 @@
 // The live connection status under the Kiosk card's credentials. A cheap SSH
 // probe answers, SEPARATELY, "is the kiosk reachable?" and "does the updater
-// get logged in?" — and reports what it found there (board, installed server
-// version, running or not). It uses the same identify/inspect commands as the
-// pipelines' first steps (kiosk.dart), so the strip and a run never disagree.
+// get logged in?" — and reports what it found there (board or Windows PC,
+// installed server version, running or not, the server port). It uses the
+// same identify/inspect commands as the pipelines (kiosk.dart, server_port.dart),
+// so the strip and a run never disagree.
 // The label mapping and the image-version comparison are pure functions,
 // unit-tested without a board.
 import 'dart:async';
 
 import 'package:dartssh2/dartssh2.dart';
 
+import 'batch_runner.dart';
 import 'kiosk.dart';
+import 'server_port.dart';
 import '../services/ssh_runner.dart';
 
 enum ProbeState {
@@ -26,6 +29,10 @@ enum ProbeState {
 
   /// Logged in, but not an arm64 board — almost certainly the wrong machine.
   wrongArch,
+
+  /// Logged in on a Windows PC: only its server port can be changed here
+  /// (no update, backup, restore or remove).
+  windowsPc,
 }
 
 class ProbeResult {
@@ -38,6 +45,7 @@ class ProbeResult {
     this.installedVersion,
     this.serverRunning = false,
     this.error = '',
+    this.currentPort,
   });
 
   static const idle = ProbeResult(ProbeState.idle);
@@ -57,21 +65,32 @@ class ProbeResult {
   /// Short reason for [ProbeState.unreachable].
   final String error;
 
+  /// The port the server uses: a connected board's port file (else 50051),
+  /// a Windows PC's set_server_port.ps1 -Query; null when unknown (another
+  /// state, or a Windows PC without a server that has the script).
+  final int? currentPort;
+
+  /// A connected arm64 board: every action of the page.
   bool get connected => state == ProbeState.connected;
+
+  /// The "Server port" card works: a connected board or a Windows PC.
+  bool get portChangeable => connected || state == ProbeState.windowsPc;
 
   /// A verdict is in: not idle, not still checking.
   bool get settled =>
       state != ProbeState.idle && state != ProbeState.checking;
 }
 
-/// Probe [host] with [user]/[password]: connect, identify the board, read the
-/// installed image and whether the service is active. Never throws — every
-/// outcome is a [ProbeResult].
-Future<ProbeResult> probeKiosk(
-    String host, String user, String password) async {
+/// Probe [host] with [user]/[password]: connect, identify the machine; for a
+/// board read the installed image, whether the service is active and the
+/// port; for a Windows PC the port. Never throws — every outcome is a
+/// [ProbeResult]. [connect] opens the SSH connection (tests script one).
+Future<ProbeResult> probeKiosk(String host, String user, String password,
+    {Future<SshRunner> Function(String host, String user, String password)
+        connect = SshRunner.connect}) async {
   SshRunner ssh;
   try {
-    ssh = await SshRunner.connect(host, user, password);
+    ssh = await connect(host, user, password);
   } on SSHAuthFailError {
     return ProbeResult(ProbeState.authFailed, host: host, user: user);
   } catch (e) {
@@ -79,8 +98,16 @@ Future<ProbeResult> probeKiosk(
         host: host, user: user, error: shortConnectionError('$e'));
   }
   try {
-    final id = await identifyBoard(ssh);
-    if (id.arch != 'aarch64') {
+    final id = await identifyTarget(ssh);
+    if (id.kind == TargetKind.windowsPc) {
+      return ProbeResult(ProbeState.windowsPc,
+          host: host,
+          user: user,
+          model: id.model,
+          arch: id.arch,
+          currentPort: await readWindowsPort(ssh));
+    }
+    if (id.kind != TargetKind.linuxBoard || id.arch != 'aarch64') {
       return ProbeResult(ProbeState.wrongArch,
           host: host, user: user, model: id.model, arch: id.arch);
     }
@@ -102,13 +129,34 @@ Future<ProbeResult> probeKiosk(
         model: id.model,
         arch: id.arch,
         installedVersion: version,
-        serverRunning: running);
+        serverRunning: running,
+        currentPort: await readBoardPort(ssh));
   } catch (e) {
     return ProbeResult(ProbeState.unreachable,
         host: host, user: user, error: shortConnectionError('$e'));
   } finally {
     ssh.close();
   }
+}
+
+/// The batch pre-flight's verdict on [target] from its probe [r]: a
+/// connected board goes ahead; a Windows PC is no kiosk board (only its port
+/// can be changed, on the Updater page); the rest is skipped with the
+/// strip's headline.
+PreflightResult preflightResultOf(BatchTarget target, ProbeResult r) {
+  final verdict = switch (r.state) {
+    ProbeState.connected => PreflightVerdict.ok,
+    ProbeState.authFailed => PreflightVerdict.authFailed,
+    ProbeState.wrongArch || ProbeState.windowsPc => PreflightVerdict.wrongArch,
+    _ => PreflightVerdict.unreachable,
+  };
+  return PreflightResult(target, verdict,
+      detail: switch (r.state) {
+        ProbeState.connected => '${r.model}, ${r.installedVersion ?? "clean board"}',
+        ProbeState.windowsPc => 'Windows PC: not a kiosk board',
+        _ => probeHeadline(r),
+      },
+      installedVersion: r.installedVersion);
 }
 
 /// A raw socket/SSH exception boiled down to the few words an operator needs
@@ -138,11 +186,19 @@ String probeHeadline(ProbeResult r) => switch (r.state) {
       ProbeState.unreachable =>
         '${r.host} not reachable${r.error.isEmpty ? '' : ' (${r.error})'}',
       ProbeState.wrongArch =>
-        'Not an arm64 board (${r.arch}) — is ${r.host} the right machine?',
+        'Not an arm64 board${r.arch.isEmpty ? '' : ' (${r.arch})'} — is ${r.host} the right machine?',
+      ProbeState.windowsPc => 'Windows PC ${r.model} · logged in as ${r.user}',
     };
 
-/// The strip's second line: what is installed. Only for a connected probe.
+/// The strip's second line: what is installed. For a connected probe, and for
+/// a Windows PC without a server the Updater can change the port of.
 String? probeDetail(ProbeResult r) {
+  if (r.state == ProbeState.windowsPc) {
+    return r.currentPort == null
+        ? 'no FaceSnap server 1.1.25 or later found (FaceSnapServer service '
+            'with set_server_port.ps1)'
+        : null;
+  }
   if (!r.connected) return null;
   final v = r.installedVersion;
   if (v == null) {
@@ -158,10 +214,10 @@ String? probeDetail(ProbeResult r) {
     String? installedVersion, String? tarName) {
   if (installedVersion == null || tarName == null) return null;
   final tarTag = RegExp(r'face_snap-(.+?)\.tar$').firstMatch(tarName)?.group(1);
-  final have = _versionCore(installedVersion);
-  final want = _versionCore(tarTag);
+  final have = versionCore(installedVersion);
+  final want = versionCore(tarTag);
   if (have == null || want == null) return null;
-  final cmp = _compareVersions(have, want);
+  final cmp = compareVersions(have, want);
   if (cmp == 0) return (text: 'version $have is already installed', warn: true);
   if (cmp > 0) return (text: 'downgrade: $have → $want', warn: true);
   return (text: 'upgrade: $have → $want', warn: false);
@@ -169,10 +225,12 @@ String? probeDetail(ProbeResult r) {
 
 /// "2.0.11-arm64" -> "2.0.11"; null when the tag starts with no dotted number
 /// ("arm64", "latest").
-String? _versionCore(String? tag) =>
+String? versionCore(String? tag) =>
     tag == null ? null : RegExp(r'^\d+(?:\.\d+)*').firstMatch(tag)?.group(0);
 
-int _compareVersions(String a, String b) {
+/// Compares dotted numeric versions ("2.0.9" < "2.0.24"); a missing part
+/// counts as 0. Both must be [versionCore]s.
+int compareVersions(String a, String b) {
   final pa = a.split('.').map(int.parse).toList();
   final pb = b.split('.').map(int.parse).toList();
   for (var i = 0; i < pa.length || i < pb.length; i++) {

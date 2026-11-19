@@ -3,13 +3,20 @@
 //
 // Designed for small eMMC boards (16 GB): the tar is never copied to the
 // device — it is streamed from this machine straight into `docker load` —
-// and when free space is too tight to hold the old and new image together,
-// the old image is removed BEFORE loading (at the cost of automatic
-// rollback, which the operator is told about).
+// and only the layers the kiosk does not have yet are sent (image_delta.dart;
+// the whole tar when the kiosk has none of them). When there is room for the
+// old and new image together, the new image is loaded while the old server
+// keeps running, and the server is stopped only for the switch-over. When
+// free space is too tight, the server is stopped and the old image removed
+// BEFORE loading (at the cost of automatic rollback, which the operator is
+// told about).
 import 'dart:io';
 
 import 'engine.dart';
+import 'image_install.dart';
 import 'kiosk.dart';
+import 'port_engine.dart' show PortEngine, imagePortOverride;
+import 'server_port.dart';
 import 'settings_profile.dart';
 import '../services/ssh_runner.dart';
 
@@ -45,9 +52,9 @@ class UpdateEngine extends KioskEngine {
     'Set up a clean board (Docker)',
     'Pre-update checks (version, disk space)',
     'Back up settings and configuration',
-    'Stop the server',
     'Make room (old image)',
     'Install the new server image',
+    'Stop the server',
     'Update the start-up configuration',
     'Apply the settings profile',
     'Provision kiosk identity',
@@ -70,6 +77,31 @@ class UpdateEngine extends KioskEngine {
   bool _legacyCompose = false;
   bool _newImageLegacy = false;
 
+  /// The board's server port (data/server_config.json, 50051 without one),
+  /// read once during the inspection. Every compose and avahi write of the
+  /// update keeps it.
+  int _port = kDefaultPort;
+
+  /// GetKioskInfo through the SSH forward on the board's 127.0.0.1:port
+  /// ([PortEngine.defaultCheckServer]): the port the server reports, null
+  /// when it does not answer. A test seam, like [delay].
+  Future<int?> Function(SshRunner ssh, int port) checkServer =
+      PortEngine.defaultCheckServer;
+
+  /// Loads the image (delta or whole tar, verified) — see image_install.dart.
+  /// It reads [ssh] on every use, so a reconnect cannot leave it on a closed
+  /// connection.
+  late final ImageInstaller _installer =
+      ImageInstaller(ssh: () => ssh, tarFile: tarFile, log: log);
+
+  /// What the pre-update space check counted on sending; the install step
+  /// checks again when its re-plan sends more.
+  int _plannedSendBytes = 0;
+
+  /// Whether this run has stopped the kiosk server (it keeps running while
+  /// the new image loads whenever there is room for both images).
+  bool _serverStopped = false;
+
   /// Versions for display: the tag part of the old/new image refs.
   String get oldVersion =>
       _oldImageRef.isEmpty ? 'none' : (tagOf(_oldImageRef) ?? _oldImageRef);
@@ -81,9 +113,9 @@ class UpdateEngine extends KioskEngine {
   UpdateStep get _provision => steps[2];
   UpdateStep get _checks => steps[3];
   UpdateStep get _backup => steps[4];
-  UpdateStep get _stop => steps[5];
-  UpdateStep get _makeRoom => steps[6];
-  UpdateStep get _install => steps[7];
+  UpdateStep get _makeRoom => steps[5];
+  UpdateStep get _install => steps[6];
+  UpdateStep get _stop => steps[7];
   UpdateStep get _autostart => steps[8];
   UpdateStep get _profile => steps[9];
   UpdateStep get _identity => steps[10];
@@ -91,24 +123,38 @@ class UpdateEngine extends KioskEngine {
   UpdateStep get _verify => steps[12];
   UpdateStep get _cleanup => steps[13];
 
+  /// The image transfer step (the headless CLI reports its progress).
+  UpdateStep get installStep => _install;
+
   Future<bool> run() => runGuarded('Update', () async {
         await connectStep(_connect);
         await _doInspect();
         await _doProvision();
         await _doChecks();
         await _doBackup();
-        await _doStop();
-        await _doMakeRoom();
-        await _doInstall();
-        await _doAutostart();
-        await _doProfile();
-        await _doIdentity();
-        await _doStart();
-        final verified = await _doVerify();
-        if (!verified) {
-          await _doRollback();
-          return false;
+        // Room for both images: load the new one while the old server keeps
+        // serving (docker load of a new tag does not touch a running
+        // container) and stop it only for the switch-over. Otherwise the
+        // server has to stop first so its image can be removed.
+        final bool verified;
+        try {
+          await _doMakeRoom();
+          await _doInstall();
+          await _doStop();
+          await _doAutostart();
+          await _doProfile();
+          await _doIdentity();
+          await _doStart();
+          verified = await _doVerify();
+          if (!verified) await _doRollback();
+        } catch (e) {
+          // Past the stop, an error must not leave the kiosk down with the
+          // compose file on the unverified image (FL-1): roll back, or at
+          // least start what is there. runGuarded then reports the failure.
+          if (_serverStopped) await _recover(e);
+          rethrow;
         }
+        if (!verified) return false;
         await _doCleanup();
         summary.insert(0, 'Version: $oldVersion → $newVersion');
         summary.add('Server updated to $_newImageTag and verified.');
@@ -159,6 +205,12 @@ class UpdateEngine extends KioskEngine {
     } else {
       log('No docker-compose.yml on the kiosk yet — this will be a first '
           'install.');
+    }
+
+    _port = await readBoardPort(ssh, onWarning: (w) => log('WARNING: $w'));
+    if (_port != kDefaultPort) {
+      log('Server port on this board: $_port (data/server_config.json) — '
+          'the update keeps it.');
     }
 
     final running = await ssh.run(
@@ -282,10 +334,10 @@ class UpdateEngine extends KioskEngine {
 
       // Reconnect (boards take ~40-90 s to come back).
       log('Waiting for the kiosk to reboot …');
-      await Future<void>.delayed(const Duration(seconds: 20));
+      await pause(const Duration(seconds: 20));
       SshRunner? again;
       for (var i = 0; i < 30; i++) {
-        await Future<void>.delayed(const Duration(seconds: 6));
+        await pause(const Duration(seconds: 6));
         try {
           again = await SshRunner.connect(host, user, password);
           break;
@@ -346,11 +398,27 @@ class UpdateEngine extends KioskEngine {
       }
     }
 
-    // Disk space: the loaded image is about the size of the tar. Decide
-    // whether the old image can be kept for rollback.
+    // What has to be sent: only the layers the kiosk lacks when it has the
+    // bottom of this image already (the usual update), else the whole tar.
     final tarBytes = tarFile.lengthSync();
-    final avail = await freeBytes(ssh, '/var/lib/docker');
-    final needed = (tarBytes * 1.1).round();
+    final plan = await _installer.plan();
+    var sendBytes = tarBytes;
+    if (plan != null && plan.isDelta) {
+      sendBytes = plan.bytes;
+      notes.add('${formatMb(plan.bytes)} of ${formatMb(tarBytes)} to send');
+      log('Delta update: ${plan.reason} — ${formatMb(plan.bytes)} of '
+          '${formatMb(tarBytes)} needs to be sent.');
+    } else if (plan != null) {
+      log('The whole image will be sent (${formatMb(tarBytes)}): '
+          '${plan.reason}.');
+    }
+
+    // Disk space: docker load holds what is sent twice at its peak, delta or
+    // whole tar alike (see loadSpaceNeeded). Decide whether the old image
+    // can be kept for rollback.
+    _plannedSendBytes = sendBytes;
+    final avail = await freeBytes(ssh, kDockerRoot);
+    final needed = loadSpaceNeeded(sendBytes);
     const headroom = 1500 * 1024 * 1024;
     log('Free space: ${formatGb(avail)} — new image needs about '
         '${formatGb(needed)}.');
@@ -407,12 +475,23 @@ class UpdateEngine extends KioskEngine {
   }
 
   Future<void> _doStop() async {
+    if (_serverStopped) {
+      setStep(_stop, StepStatus.ok, 'stopped earlier, to make room');
+      return;
+    }
     setStep(_stop, StepStatus.running);
+    await _stopServer();
+    setStep(_stop, StepStatus.ok);
+    log('Server stopped (the new image is already loaded — downtime starts '
+        'here).');
+  }
+
+  Future<void> _stopServer() async {
+    // Set first: a link that drops during the stop may still have stopped it.
+    _serverStopped = true;
     await ssh.run('systemctl stop $kServiceUnit');
     // Belt and braces: remove any face_snap container the unit did not own.
     await ssh.run('docker ps -aq $kContainerFilter | xargs -r docker rm -f');
-    setStep(_stop, StepStatus.ok);
-    log('Server stopped.');
   }
 
   Future<void> _doMakeRoom() async {
@@ -421,35 +500,61 @@ class UpdateEngine extends KioskEngine {
           _oldImageRef.isEmpty ? 'first install' : 'old image kept for rollback');
       return;
     }
-    setStep(_makeRoom, StepStatus.running);
+    setStep(_makeRoom, StepStatus.running, 'stopping the server');
+    await _stopServer();
+    log('Server stopped: its image has to go before the new one fits.');
     log('Removing old image $_oldImageRef to free space …');
     await ssh.run('docker rmi $_oldImageRef');
     await ssh.run('docker image prune -f');
-    final avail = await freeBytes(ssh, '/var/lib/docker');
+    final avail = await freeBytes(ssh, kDockerRoot);
     setStep(_makeRoom, StepStatus.ok, '${formatGb(avail)} free now');
     log('Old image removed. ${formatGb(avail)} free.');
   }
 
   Future<void> _doInstall() async {
     setStep(_install, StepStatus.running, '0%');
-    final total = tarFile.lengthSync();
-    log('Streaming ${formatGb(total)} into docker load (nothing is stored on '
-        'the eMMC) …');
-    final started = DateTime.now();
-    final result = await ssh.runWithFileStdin('docker load', tarFile,
-        onProgress: (sent) {
-      final pct = (sent / total * 100).clamp(0, 100).toStringAsFixed(0);
-      setStep(_install, StepStatus.running, '$pct%');
-    });
-    if (!result.ok) {
-      throw Exception('docker load failed:\n${result.combined}');
+    if (!_serverStopped && _oldImageRef.isNotEmpty) {
+      log('The server keeps running while the new image loads.');
     }
-    final loaded =
-        RegExp(r'Loaded image: (\S+)').firstMatch(result.stdout)?.group(1);
-    if (loaded == null) {
-      throw Exception(
-          'docker load gave no "Loaded image" tag:\n${result.combined}');
+    // Plan again right before sending: removing the old image to make room
+    // can take the shared layers with it.
+    final plan = await _installer.plan();
+    final sendBytes =
+        plan != null && plan.isDelta ? plan.bytes : tarFile.lengthSync();
+    final ImageInstallResult installed;
+    try {
+      if (sendBytes > _plannedSendBytes) {
+        log('The kiosk now needs ${formatMb(sendBytes)} sent, more than the '
+            '${formatMb(_plannedSendBytes)} the space check counted.');
+        await _installer.ensureRoomFor(sendBytes,
+            plan != null && plan.isDelta ? 'the new layers' : 'the whole image');
+      }
+      installed = await _installer.install(plan, onProgress: (f, delta) {
+        final pct = (f * 100).clamp(0, 100).toStringAsFixed(0);
+        setStep(_install, StepStatus.running, delta ? 'delta $pct%' : '$pct%');
+      });
+    } catch (_) {
+      if (!_serverStopped && _oldImageRef.isNotEmpty) {
+        summary.add('The server was not stopped: the kiosk still runs '
+            '$_oldImageRef.');
+      } else if (_serverStopped) {
+        summary.add('The server was stopped and its old image removed to '
+            'make room: no server runs on the kiosk until an update '
+            'succeeds.');
+      }
+      rethrow;
     }
+    final loaded = installed.loadedTag;
+    final elapsed = installed.elapsed;
+    final seconds = elapsed.inMilliseconds / 1000;
+    log('${installed.usedDelta ? 'New layers' : 'Image'} '
+        '(${formatMb(installed.bytesSent)}) loaded in '
+        '${formatDuration(elapsed)}'
+        '${seconds > 0 ? ' — ${(installed.bytesSent / 1e6 / seconds).toStringAsFixed(1)} MB/s' : ''}.');
+    summary.add(installed.usedDelta
+        ? 'Sent only the new layers: ${formatMb(installed.bytesSent)} of '
+            '${formatMb(tarFile.lengthSync())}.'
+        : 'Sent the whole image (${formatMb(installed.bytesSent)}).');
     _newImageTag = loaded;
 
     // A tag that does not start with a dotted number carries no version
@@ -471,17 +576,28 @@ class UpdateEngine extends KioskEngine {
 
     // Which layout does the new image expect? Every data/ generation sets
     // FACE_SNAP_DATA_DIR in the image; a first-generation image does not.
-    final env = await ssh.run(
-        "docker inspect --format '{{json .Config.Env}}' $_newImageTag");
+    final env = await ssh.run(imageEnvCmd(_newImageTag));
     _newImageLegacy = env.ok && !imageUsesDataDir(env.stdout);
+    // The image's own environment can override the port file (X-12): its
+    // server then binds that port inside, whatever the mapping expects.
+    final portOverride = env.ok ? imagePortOverride(env.stdout) : null;
+    if (portOverride != null) {
+      final warning = 'WARNING: $_newImageTag sets $portOverride in its '
+          'environment: its server ignores the port file (the board uses '
+          'port $_port).';
+      log(warning);
+      summary.add(warning);
+    }
     if (_newImageLegacy) {
       log('$_newImageTag is a first-generation image (settings files next '
           'to docker-compose.yml).');
     }
 
-    final elapsed = DateTime.now().difference(started);
-    setStep(_install, StepStatus.ok,
-        'version $newVersion in ${formatDuration(elapsed)}');
+    setStep(
+        _install,
+        StepStatus.ok,
+        'version $newVersion in ${formatDuration(elapsed)}'
+        '${installed.usedDelta ? ' (delta ${formatMb(installed.bytesSent)})' : ''}');
     log('Loaded $_newImageTag in ${formatDuration(elapsed)}.');
   }
 
@@ -489,12 +605,23 @@ class UpdateEngine extends KioskEngine {
     setStep(_autostart, StepStatus.running);
 
     var layoutNote = '';
+    // The board's port on the host side of every mapping written here. An
+    // image that cannot read the port file binds 50051 inside its container
+    // whatever the file says, so the container side follows the image.
+    final innerPort =
+        imageSupportsPortFile(_newImageTag) ? _port : kDefaultPort;
+    if (innerPort != _port) {
+      log('$_newImageTag does not read the port file: it listens on '
+          '$kDefaultPort inside the container, published as port $_port.');
+    }
     if (!_hadCompose) {
       await ssh.writeRemoteFile(
           kCompose,
           _newImageLegacy
-              ? legacyComposeTemplate(_newImageTag)
-              : composeTemplate(_newImageTag));
+              ? legacyComposeTemplate(_newImageTag,
+                  port: _port, containerPort: innerPort)
+              : composeTemplate(_newImageTag,
+                  port: _port, containerPort: innerPort));
       if (_newImageLegacy) await _ensureLegacySettingsFiles();
       log('Wrote a fresh docker-compose.yml.');
     } else if (_legacyCompose && !_newImageLegacy) {
@@ -503,7 +630,8 @@ class UpdateEngine extends KioskEngine {
       // Park it for a later downgrade and switch to the data/ layout (the
       // settings were copied into data/ by the backup step).
       await ssh.runChecked('cp $kCompose $kLegacyComposeBackup');
-      await ssh.writeRemoteFile(kCompose, composeTemplate(_newImageTag));
+      await ssh.writeRemoteFile(kCompose,
+          composeTemplate(_newImageTag, port: _port, containerPort: innerPort));
       layoutNote = 'layout converted to data/';
       log('Converted the first-generation docker-compose.yml to the data/ '
           'layout (old file kept as ${basenameOf(kLegacyComposeBackup)}).');
@@ -519,9 +647,12 @@ class UpdateEngine extends KioskEngine {
             "sed -i 's|image:.*|image: $_newImageTag|' $kCompose");
         log('Restored the first-generation docker-compose.yml that was '
             'parked during the upgrade.');
+        await _keepComposePort(innerPort);
       } else {
         await ssh.writeRemoteFile(
-            kCompose, legacyComposeTemplate(_newImageTag));
+            kCompose,
+            legacyComposeTemplate(_newImageTag,
+                port: _port, containerPort: innerPort));
         log('Wrote a first-generation docker-compose.yml.');
       }
       await _ensureLegacySettingsFiles();
@@ -529,8 +660,11 @@ class UpdateEngine extends KioskEngine {
       summary.add('Installation layout switched back to the first-generation '
           'one (settings files next to docker-compose.yml; data/ is kept).');
     } else {
+      // Only the image changes; the ports line already carries the port —
+      // unless the container side has to change with the image.
       await ssh.runChecked(
           "sed -i 's|image:.*|image: $_newImageTag|' $kCompose");
+      await _keepComposePort(innerPort);
     }
 
     final unitExists =
@@ -548,6 +682,31 @@ class UpdateEngine extends KioskEngine {
         'compose → $_newImageTag, service enabled'
         '${layoutNote.isEmpty ? '' : ', $layoutNote'}');
     log('Start-up configuration updated.');
+  }
+
+  /// After an in-place compose edit (image line swapped, parked file put
+  /// back): makes the ports mapping "board port:[innerPort]". Nothing to do
+  /// on a board without a port file. A ports line this edit does not know
+  /// is left alone with a warning (log and summary) — the update itself
+  /// still goes on.
+  Future<void> _keepComposePort(int innerPort) async {
+    if (_port == kDefaultPort) return;
+    final current = (await ssh.runChecked('cat $kCompose')).stdout;
+    final String wanted;
+    try {
+      wanted = withComposePort(current, _port, containerPort: innerPort);
+    } on FormatException catch (e) {
+      // In the summary too (P3): the update succeeds, but the kiosk may not
+      // answer on its port.
+      final warning = 'WARNING: ${e.message}: the ports line was left as it '
+          'is; check that the kiosk answers on port $_port.';
+      log(warning);
+      summary.add(warning);
+      return;
+    }
+    if (wanted == current) return;
+    await ssh.writeRemoteFile(kCompose, wanted);
+    log('docker-compose.yml: port mapping set to "$_port:$innerPort".');
   }
 
   /// A first-generation compose file bind-mounts the three settings files
@@ -642,14 +801,30 @@ class UpdateEngine extends KioskEngine {
       return;
     }
     final target = 'facesnap-$mac';
-    final current = (await ssh.runChecked(kHostnameCmd)).stdout.trim();
-    if (current != target) {
-      await ssh.runChecked('hostnamectl set-hostname $target');
-      await ssh.runChecked(
-          'if grep -q "^127.0.1.1" /etc/hosts; then '
-          'sed -i "s/^127.0.1.1.*/127.0.1.1\\t$target/" /etc/hosts; '
-          'else printf "127.0.1.1\\t$target\\n" >> /etc/hosts; fi');
-      log('Hostname set to $target (was $current).');
+    // Warn-only: a failing command is logged and the step ends as a warning;
+    // the server is stopped at this point and must not stay down for a name.
+    final failed = <String>[];
+    Future<CmdResult> attempt(String what, String command) async {
+      final result = await ssh.run(command);
+      if (!result.ok) {
+        failed.add(what);
+        log('WARNING: $what failed: ${shorten(result.combined.trim())}');
+      }
+      return result;
+    }
+
+    final read = await attempt('reading the kiosk name', kHostnameCmd);
+    final current = read.stdout.trim();
+    if (read.ok && current != target) {
+      final named =
+          (await attempt('setting the name', 'hostnamectl set-hostname $target')).ok &&
+              (await attempt(
+                      'updating /etc/hosts',
+                      'if grep -q "^127.0.1.1" /etc/hosts; then '
+                          'sed -i "s/^127.0.1.1.*/127.0.1.1\\t$target/" /etc/hosts; '
+                          'else printf "127.0.1.1\\t$target\\n" >> /etc/hosts; fi'))
+                  .ok;
+      if (named) log('Hostname set to $target (was $current).');
     }
 
     // Distro-neutral presence check (dpkg only exists on Debian/Ubuntu;
@@ -672,10 +847,16 @@ class UpdateEngine extends KioskEngine {
         return;
       }
     }
-    await ssh.writeRemoteFile(
-        '/etc/avahi/services/facesnap.service', _avahiService);
-    await ssh.runChecked(
+    await ssh.writeRemoteFile(kAvahiServiceFile, avahiService(_port));
+    await attempt('restarting avahi-daemon',
         'systemctl enable avahi-daemon && systemctl restart avahi-daemon');
+    if (failed.isNotEmpty) {
+      setStep(_identity, StepStatus.warn,
+          '$target.local (${failed.join(', ')} failed)');
+      summary.add('Kiosk name $target.local: ${failed.join(', ')} failed — '
+          'the kiosk may not be discoverable by name.');
+      return;
+    }
     setStep(_identity, StepStatus.ok, '$target.local');
     log('Kiosk reachable as $target.local (discovery service active).');
     summary.add('Kiosk name: $target.local');
@@ -699,7 +880,7 @@ class UpdateEngine extends KioskEngine {
     var text = '';
     var bound = false;
     for (var i = 0; i < 36; i++) {
-      await Future<void>.delayed(const Duration(seconds: 5));
+      await pause(const Duration(seconds: 5));
       final status =
           await ssh.run("docker ps $kContainerFilter --format '{{.Status}}'");
       if (!status.stdout.contains('Up')) {
@@ -723,9 +904,21 @@ class UpdateEngine extends KioskEngine {
       return false;
     }
 
+    // The ready marker appears whatever port the server bound (X-12): the
+    // kiosk is reachable only when GetKioskInfo answers on the board's port.
+    final answered = await _askKioskInfo(_port);
+    if (answered == null) {
+      setStep(_verify, StepStatus.fail, 'no GetKioskInfo answer on port $_port');
+      log('Verification failed: the server reported ready but does not '
+          "answer GetKioskInfo on port $_port (the board's port).");
+      return false;
+    }
+    log('GetKioskInfo answers on port $_port (the server reports port '
+        '$answered).');
+
     // Hardware discovery logs land right around the bind — give it a moment,
     // then take the final log snapshot.
-    await Future<void>.delayed(const Duration(seconds: 8));
+    await pause(const Duration(seconds: 8));
     text = await containerLogs(600);
 
     // Real problems fail the update (see serverLogErrors). Missing kiosk
@@ -791,6 +984,17 @@ class UpdateEngine extends KioskEngine {
     return true;
   }
 
+  /// [checkServer] on [port], asked up to 6 times 5 s apart (the server
+  /// has just reported ready); null when it never answers.
+  Future<int?> _askKioskInfo(int port) async {
+    for (var i = 0; i < 6; i++) {
+      if (i > 0) await pause(const Duration(seconds: 5));
+      final answer = await checkServer(ssh, port);
+      if (answer != null) return answer;
+    }
+    return null;
+  }
+
   Future<void> _doRollback() async {
     if (!_oldImageKept || !_hadCompose) {
       summary.add('No rollback possible (old image was removed for space). '
@@ -820,6 +1024,40 @@ class UpdateEngine extends KioskEngine {
     log(ok ? 'Rollback complete.' : 'Rollback FAILED.');
   }
 
+  /// After a failure past the server stop: roll back to the old server, or
+  /// (old image gone, first install) start whatever the board has. A failed
+  /// attempt — most often the SSH link that dropped — gets one retry on a new
+  /// connection. Never throws: the caller rethrows the original [error].
+  Future<void> _recover(Object error) async {
+    log('The update failed after the server was stopped (${shorten('$error')}) '
+        '— putting the kiosk back …');
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      try {
+        if (attempt == 2) {
+          sshOrNull?.close();
+          sshOrNull = await openSsh();
+          log('Reconnected to $host.');
+        }
+        if (_oldImageKept && _hadCompose) {
+          await _doRollback();
+        } else {
+          await ssh.run('systemctl start $kServiceUnit');
+          summary.add('No rollback possible (old image removed for space, or '
+              'a first install); a server start was attempted. The kiosk '
+              'needs attention.');
+          setStep(_cleanup, StepStatus.skipped, 'rollback not possible');
+          log('No rollback possible — started what the kiosk has.');
+        }
+        return;
+      } catch (e) {
+        log('Recovery attempt $attempt failed: ${shorten('$e')}');
+      }
+    }
+    summary.add('The kiosk could not be reached to roll back: its server stays '
+        'stopped. The kiosk needs attention.');
+    setStep(_cleanup, StepStatus.fail, 'rollback failed: kiosk unreachable');
+  }
+
   Future<void> _doCleanup() async {
     setStep(_cleanup, StepStatus.running);
     if (_oldImageKept &&
@@ -829,23 +1067,11 @@ class UpdateEngine extends KioskEngine {
       await ssh.run('docker rmi $_oldImageRef');
     }
     await ssh.run('docker image prune -f');
-    final avail = await freeBytes(ssh, '/var/lib/docker');
+    final avail = await freeBytes(ssh, kDockerRoot);
     summary.add('Free space on the kiosk: ${formatGb(avail)}.');
     setStep(_cleanup, StepStatus.ok, '${formatGb(avail)} free');
     log('Cleanup done. ${formatGb(avail)} free.');
   }
-
-  static const _avahiService = '''
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
-<service-group>
-  <name replace-wildcards="yes">FaceSnap kiosk on %h</name>
-  <service>
-    <type>_facesnap._tcp</type>
-    <port>50051</port>
-  </service>
-</service-group>
-''';
 
   static const _systemdUnit = '''
 [Unit]

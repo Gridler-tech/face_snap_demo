@@ -1,7 +1,39 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:operator_app/pages/updater_page.dart';
+import 'package:operator_app/services/app_config.dart';
 import 'package:operator_app/ui/ui.dart';
+import 'package:operator_app/updater/connection_probe.dart';
+import 'package:operator_app/updater/port_engine.dart';
+
+/// A pipeline that goes on logging after its run was let go (FL-2): it waits
+/// for [gate], then calls back into the page as every engine does.
+class _LateEngine extends PortEngine {
+  _LateEngine(
+    this.gate, {
+    required super.host,
+    required super.user,
+    required super.password,
+    required super.newPort,
+    required super.onChanged,
+    required super.onLog,
+  });
+
+  final Completer<void> gate;
+  bool finished = false;
+
+  @override
+  Future<bool> run() async {
+    await gate.future;
+    onLog('still running on the kiosk');
+    onChanged();
+    finished = true;
+    return true;
+  }
+}
 /// The page as the shell hosts it (a Scaffold body), for layout assertions.
 Widget _app() => const MaterialApp(home: Scaffold(body: UpdaterPage()));
 
@@ -126,6 +158,82 @@ void main() {
           tester.widget<DropdownButton<int>>(find.byType(DropdownButton<int>))
               .value,
           2);
+    });
+  });
+
+  group('FL-2: a run outlives the page', () {
+    late String savedUpdaterHost, savedUser, savedPassword;
+    late Directory dir;
+    setUp(() {
+      savedUpdaterHost = AppConfig.updaterHost;
+      savedUser = AppConfig.boardUser;
+      savedPassword = AppConfig.boardPassword;
+      dir = Directory.systemTemp.createTempSync('updater_page_test');
+      AppConfig.appDataDirOverride = dir.path; // the run saves the fields
+      AppConfig.updaterHost = '192.168.3.169';
+      AppConfig.boardUser = 'root';
+      AppConfig.boardPassword = 'pw';
+    });
+    tearDown(() {
+      AppConfig.updaterHost = savedUpdaterHost;
+      AppConfig.boardUser = savedUser;
+      AppConfig.boardPassword = savedPassword;
+      AppConfig.appDataDirOverride = null;
+      UpdaterRun.busy.value = false;
+      try {
+        dir.deleteSync(recursive: true);
+      } catch (_) {
+        // A background config save may still hold the folder: left in temp.
+      }
+    });
+
+    testWidgets('the engine logs after the page left the tree: no exception, the run ends, '
+        'busy goes back to false', (tester) async {
+      tester.view.physicalSize = const Size(1400, 2600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final gate = Completer<void>();
+      late _LateEngine engine;
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: UpdaterPage(
+        probe: (host, user, password) async => ProbeResult(ProbeState.connected,
+            host: host, user: user, model: 'Radxa Dragon Q6A', arch: 'aarch64',
+            installedVersion: '2.0.28-arm64', serverRunning: true, currentPort: 50051),
+        portEngine: ({
+          required String host,
+          required String user,
+          required String password,
+          required int newPort,
+          required void Function() onChanged,
+          required void Function(String) onLog,
+        }) =>
+            engine = _LateEngine(gate,
+                host: host,
+                user: user,
+                password: password,
+                newPort: newPort,
+                onChanged: onChanged,
+                onLog: onLog),
+      ))));
+      await tester.pump(); // the post-frame probe starts
+      await tester.pump(); // and answers
+      await tester.enterText(find.byKey(const ValueKey('port-new')), '50052');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(QuietButton, 'Change port'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+          find.descendant(of: find.byType(AlertDialog), matching: find.text('Change port')));
+      await tester.pump();
+      expect(UpdaterRun.busy.value, isTrue, reason: 'the run keeps the page in the shell');
+
+      await tester.pumpWidget(const SizedBox()); // the page is gone (before FL-2: dev mode off)
+      gate.complete();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(engine.finished, isTrue);
+      expect(UpdaterRun.busy.value, isFalse);
     });
   });
 }

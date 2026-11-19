@@ -15,6 +15,51 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use glareFreeLightDescriptor instead')
+const GlareFreeLight$json = {
+  '1': 'GlareFreeLight',
+  '2': [
+    {'1': 'GLARE_FREE_LIGHT_OFF', '2': 0},
+    {'1': 'GLARE_FREE_LIGHT_GLASSES', '2': 1},
+    {'1': 'GLARE_FREE_LIGHT_EVERYONE', '2': 2},
+  ],
+};
+
+/// Descriptor for `GlareFreeLight`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List glareFreeLightDescriptor = $convert.base64Decode(
+    'Cg5HbGFyZUZyZWVMaWdodBIYChRHTEFSRV9GUkVFX0xJR0hUX09GRhAAEhwKGEdMQVJFX0ZSRU'
+    'VfTElHSFRfR0xBU1NFUxABEh0KGUdMQVJFX0ZSRUVfTElHSFRfRVZFUllPTkUQAg==');
+
+@$core.Deprecated('Use columnSaveOutcomeDescriptor instead')
+const ColumnSaveOutcome$json = {
+  '1': 'ColumnSaveOutcome',
+  '2': [
+    {'1': 'COLUMN_SAVE_OUTCOME_WRITTEN', '2': 0},
+    {'1': 'COLUMN_SAVE_OUTCOME_PENDING', '2': 1},
+    {'1': 'COLUMN_SAVE_OUTCOME_NOTHING', '2': 2},
+  ],
+};
+
+/// Descriptor for `ColumnSaveOutcome`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List columnSaveOutcomeDescriptor = $convert.base64Decode(
+    'ChFDb2x1bW5TYXZlT3V0Y29tZRIfChtDT0xVTU5fU0FWRV9PVVRDT01FX1dSSVRURU4QABIfCh'
+    'tDT0xVTU5fU0FWRV9PVVRDT01FX1BFTkRJTkcQARIfChtDT0xVTU5fU0FWRV9PVVRDT01FX05P'
+    'VEhJTkcQAg==');
+
+@$core.Deprecated('Use columnFactorySourceDescriptor instead')
+const ColumnFactorySource$json = {
+  '1': 'ColumnFactorySource',
+  '2': [
+    {'1': 'COLUMN_FACTORY_SOURCE_STANDARD', '2': 0},
+    {'1': 'COLUMN_FACTORY_SOURCE_VALUES_IN_FORCE', '2': 1},
+  ],
+};
+
+/// Descriptor for `ColumnFactorySource`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List columnFactorySourceDescriptor = $convert.base64Decode(
+    'ChNDb2x1bW5GYWN0b3J5U291cmNlEiIKHkNPTFVNTl9GQUNUT1JZX1NPVVJDRV9TVEFOREFSRB'
+    'AAEikKJUNPTFVNTl9GQUNUT1JZX1NPVVJDRV9WQUxVRVNfSU5fRk9SQ0UQAQ==');
+
 @$core.Deprecated('Use cameraResolutionDescriptor instead')
 const CameraResolution$json = {
   '1': 'CameraResolution',
@@ -200,28 +245,62 @@ const LoadSettingsResponse$json = {
     },
     {'1': 'icao_report', '3': 43, '4': 1, '5': 8, '10': 'icaoReport'},
     {'1': 'liveness_check', '3': 44, '4': 1, '5': 8, '10': 'livenessCheck'},
-    {
-      '1': 'liveness_shading_check',
-      '3': 45,
-      '4': 1,
-      '5': 8,
-      '10': 'livenessShadingCheck'
-    },
-    {
-      '1': 'liveness_colour_check',
-      '3': 46,
-      '4': 1,
-      '5': 8,
-      '10': 'livenessColourCheck'
-    },
     {'1': 'photo_light', '3': 47, '4': 1, '5': 9, '10': 'photoLight'},
+    {
+      '1': 'liveness_head_turn_check',
+      '3': 48,
+      '4': 1,
+      '5': 8,
+      '10': 'livenessHeadTurnCheck'
+    },
+    {
+      '1': 'glare_free_light',
+      '3': 49,
+      '4': 1,
+      '5': 14,
+      '6': '.settings.GlareFreeLight',
+      '10': 'glareFreeLight'
+    },
+    {
+      '1': 'glare_free_white_balance',
+      '3': 50,
+      '4': 1,
+      '5': 5,
+      '10': 'glareFreeWhiteBalance'
+    },
+    {'1': 'capture_warm_up', '3': 51, '4': 3, '5': 9, '10': 'captureWarmUp'},
+    {
+      '1': 'colour_correction',
+      '3': 52,
+      '4': 1,
+      '5': 8,
+      '10': 'colourCorrection'
+    },
+    {
+      '1': 'colour_corrections',
+      '3': 53,
+      '4': 3,
+      '5': 11,
+      '6': '.settings.ColourCorrectionState',
+      '10': 'colourCorrections'
+    },
+    {
+      '1': 'camera_hub_upside_down',
+      '3': 54,
+      '4': 1,
+      '5': 8,
+      '10': 'cameraHubUpsideDown'
+    },
   ],
   '9': [
     {'1': 18, '2': 19},
     {'1': 31, '2': 32},
     {'1': 32, '2': 33},
     {'1': 33, '2': 34},
+    {'1': 45, '2': 46},
+    {'1': 46, '2': 47},
   ],
+  '10': ['liveness_shading_check', 'liveness_colour_check'],
 };
 
 /// Descriptor for `LoadSettingsResponse`. Decode as a `google.protobuf.DescriptorProto`.
@@ -254,10 +333,17 @@ final $typed_data.Uint8List loadSettingsResponseDescriptor = $convert.base64Deco
     'dyb3VuZF9zdHJlbmd0aBgoIAEoBVISYmFja2dyb3VuZFN0cmVuZ3RoEisKEmxlZHNfb2ZmX2Zv'
     'cl9waG90bxgpIAEoCFIPbGVkc09mZkZvclBob3RvEjAKFGNhbWVyYV9vcmRlcmluZ19tb2RlGC'
     'ogASgJUhJjYW1lcmFPcmRlcmluZ01vZGUSHwoLaWNhb19yZXBvcnQYKyABKAhSCmljYW9SZXBv'
-    'cnQSJQoObGl2ZW5lc3NfY2hlY2sYLCABKAhSDWxpdmVuZXNzQ2hlY2sSNAoWbGl2ZW5lc3Nfc2'
-    'hhZGluZ19jaGVjaxgtIAEoCFIUbGl2ZW5lc3NTaGFkaW5nQ2hlY2sSMgoVbGl2ZW5lc3NfY29s'
-    'b3VyX2NoZWNrGC4gASgIUhNsaXZlbmVzc0NvbG91ckNoZWNrEh8KC3Bob3RvX2xpZ2h0GC8gAS'
-    'gJUgpwaG90b0xpZ2h0SgQIEhATSgQIHxAgSgQIIBAhSgQIIRAi');
+    'cnQSJQoObGl2ZW5lc3NfY2hlY2sYLCABKAhSDWxpdmVuZXNzQ2hlY2sSHwoLcGhvdG9fbGlnaH'
+    'QYLyABKAlSCnBob3RvTGlnaHQSNwoYbGl2ZW5lc3NfaGVhZF90dXJuX2NoZWNrGDAgASgIUhVs'
+    'aXZlbmVzc0hlYWRUdXJuQ2hlY2sSQgoQZ2xhcmVfZnJlZV9saWdodBgxIAEoDjIYLnNldHRpbm'
+    'dzLkdsYXJlRnJlZUxpZ2h0Ug5nbGFyZUZyZWVMaWdodBI3ChhnbGFyZV9mcmVlX3doaXRlX2Jh'
+    'bGFuY2UYMiABKAVSFWdsYXJlRnJlZVdoaXRlQmFsYW5jZRImCg9jYXB0dXJlX3dhcm1fdXAYMy'
+    'ADKAlSDWNhcHR1cmVXYXJtVXASKwoRY29sb3VyX2NvcnJlY3Rpb24YNCABKAhSEGNvbG91ckNv'
+    'cnJlY3Rpb24STgoSY29sb3VyX2NvcnJlY3Rpb25zGDUgAygLMh8uc2V0dGluZ3MuQ29sb3VyQ2'
+    '9ycmVjdGlvblN0YXRlUhFjb2xvdXJDb3JyZWN0aW9ucxIzChZjYW1lcmFfaHViX3Vwc2lkZV9k'
+    'b3duGDYgASgIUhNjYW1lcmFIdWJVcHNpZGVEb3duSgQIEhATSgQIHxAgSgQIIBAhSgQIIRAiSg'
+    'QILRAuSgQILhAvUhZsaXZlbmVzc19zaGFkaW5nX2NoZWNrUhVsaXZlbmVzc19jb2xvdXJfY2hl'
+    'Y2s=');
 
 @$core.Deprecated('Use resolutionRequestDescriptor instead')
 const ResolutionRequest$json = {
@@ -515,6 +601,34 @@ final $typed_data.Uint8List cameraOrderingModeResponseDescriptor =
     $convert.base64Decode(
         'ChpDYW1lcmFPcmRlcmluZ01vZGVSZXNwb25zZRIcCglhdXRvbWF0aWMYASABKAhSCWF1dG9tYX'
         'RpYxISCgRtb2RlGAIgASgJUgRtb2Rl');
+
+@$core.Deprecated('Use cameraHubUpsideDownRequestDescriptor instead')
+const CameraHubUpsideDownRequest$json = {
+  '1': 'CameraHubUpsideDownRequest',
+  '2': [
+    {'1': 'upside_down', '3': 1, '4': 1, '5': 8, '10': 'upsideDown'},
+  ],
+};
+
+/// Descriptor for `CameraHubUpsideDownRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cameraHubUpsideDownRequestDescriptor =
+    $convert.base64Decode(
+        'ChpDYW1lcmFIdWJVcHNpZGVEb3duUmVxdWVzdBIfCgt1cHNpZGVfZG93bhgBIAEoCFIKdXBzaW'
+        'RlRG93bg==');
+
+@$core.Deprecated('Use cameraHubUpsideDownResponseDescriptor instead')
+const CameraHubUpsideDownResponse$json = {
+  '1': 'CameraHubUpsideDownResponse',
+  '2': [
+    {'1': 'upside_down', '3': 1, '4': 1, '5': 8, '10': 'upsideDown'},
+  ],
+};
+
+/// Descriptor for `CameraHubUpsideDownResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cameraHubUpsideDownResponseDescriptor =
+    $convert.base64Decode(
+        'ChtDYW1lcmFIdWJVcHNpZGVEb3duUmVzcG9uc2USHwoLdXBzaWRlX2Rvd24YASABKAhSCnVwc2'
+        'lkZURvd24=');
 
 @$core.Deprecated('Use msmfSelectionRequestDescriptor instead')
 const MsmfSelectionRequest$json = {
@@ -960,32 +1074,52 @@ const LivenessChecksRequest$json = {
   '1': 'LivenessChecksRequest',
   '2': [
     {'1': 'liveness_check', '3': 1, '4': 1, '5': 8, '10': 'livenessCheck'},
-    {'1': 'shading_check', '3': 2, '4': 1, '5': 8, '10': 'shadingCheck'},
-    {'1': 'colour_check', '3': 3, '4': 1, '5': 8, '10': 'colourCheck'},
+    {
+      '1': 'head_turn_check',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'headTurnCheck',
+      '17': true
+    },
   ],
+  '8': [
+    {'1': '_head_turn_check'},
+  ],
+  '9': [
+    {'1': 2, '2': 3},
+    {'1': 3, '2': 4},
+  ],
+  '10': ['shading_check', 'colour_check'],
 };
 
 /// Descriptor for `LivenessChecksRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List livenessChecksRequestDescriptor = $convert.base64Decode(
     'ChVMaXZlbmVzc0NoZWNrc1JlcXVlc3QSJQoObGl2ZW5lc3NfY2hlY2sYASABKAhSDWxpdmVuZX'
-    'NzQ2hlY2sSIwoNc2hhZGluZ19jaGVjaxgCIAEoCFIMc2hhZGluZ0NoZWNrEiEKDGNvbG91cl9j'
-    'aGVjaxgDIAEoCFILY29sb3VyQ2hlY2s=');
+    'NzQ2hlY2sSKwoPaGVhZF90dXJuX2NoZWNrGAQgASgISABSDWhlYWRUdXJuQ2hlY2uIAQFCEgoQ'
+    'X2hlYWRfdHVybl9jaGVja0oECAIQA0oECAMQBFINc2hhZGluZ19jaGVja1IMY29sb3VyX2NoZW'
+    'Nr');
 
 @$core.Deprecated('Use livenessChecksResponseDescriptor instead')
 const LivenessChecksResponse$json = {
   '1': 'LivenessChecksResponse',
   '2': [
     {'1': 'liveness_check', '3': 1, '4': 1, '5': 8, '10': 'livenessCheck'},
-    {'1': 'shading_check', '3': 2, '4': 1, '5': 8, '10': 'shadingCheck'},
-    {'1': 'colour_check', '3': 3, '4': 1, '5': 8, '10': 'colourCheck'},
+    {'1': 'head_turn_check', '3': 4, '4': 1, '5': 8, '10': 'headTurnCheck'},
   ],
+  '9': [
+    {'1': 2, '2': 3},
+    {'1': 3, '2': 4},
+  ],
+  '10': ['shading_check', 'colour_check'],
 };
 
 /// Descriptor for `LivenessChecksResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List livenessChecksResponseDescriptor = $convert.base64Decode(
     'ChZMaXZlbmVzc0NoZWNrc1Jlc3BvbnNlEiUKDmxpdmVuZXNzX2NoZWNrGAEgASgIUg1saXZlbm'
-    'Vzc0NoZWNrEiMKDXNoYWRpbmdfY2hlY2sYAiABKAhSDHNoYWRpbmdDaGVjaxIhCgxjb2xvdXJf'
-    'Y2hlY2sYAyABKAhSC2NvbG91ckNoZWNr');
+    'Vzc0NoZWNrEiYKD2hlYWRfdHVybl9jaGVjaxgEIAEoCFINaGVhZFR1cm5DaGVja0oECAIQA0oE'
+    'CAMQBFINc2hhZGluZ19jaGVja1IMY29sb3VyX2NoZWNr');
 
 @$core.Deprecated('Use photoLightRequestDescriptor instead')
 const PhotoLightRequest$json = {
@@ -1159,3 +1293,337 @@ const BackgroundStrengthResponse$json = {
 final $typed_data.Uint8List backgroundStrengthResponseDescriptor =
     $convert.base64Decode(
         'ChpCYWNrZ3JvdW5kU3RyZW5ndGhSZXNwb25zZRIYCgdtZXNzYWdlGAEgASgFUgdtZXNzYWdl');
+
+@$core.Deprecated('Use glareFreeLightRequestDescriptor instead')
+const GlareFreeLightRequest$json = {
+  '1': 'GlareFreeLightRequest',
+  '2': [
+    {
+      '1': 'value',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.settings.GlareFreeLight',
+      '10': 'value'
+    },
+  ],
+};
+
+/// Descriptor for `GlareFreeLightRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List glareFreeLightRequestDescriptor = $convert.base64Decode(
+    'ChVHbGFyZUZyZWVMaWdodFJlcXVlc3QSLgoFdmFsdWUYASABKA4yGC5zZXR0aW5ncy5HbGFyZU'
+    'ZyZWVMaWdodFIFdmFsdWU=');
+
+@$core.Deprecated('Use glareFreeLightResponseDescriptor instead')
+const GlareFreeLightResponse$json = {
+  '1': 'GlareFreeLightResponse',
+  '2': [
+    {
+      '1': 'message',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.settings.GlareFreeLight',
+      '10': 'message'
+    },
+  ],
+};
+
+/// Descriptor for `GlareFreeLightResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List glareFreeLightResponseDescriptor =
+    $convert.base64Decode(
+        'ChZHbGFyZUZyZWVMaWdodFJlc3BvbnNlEjIKB21lc3NhZ2UYASABKA4yGC5zZXR0aW5ncy5HbG'
+        'FyZUZyZWVMaWdodFIHbWVzc2FnZQ==');
+
+@$core.Deprecated('Use glareFreeWhiteBalanceRequestDescriptor instead')
+const GlareFreeWhiteBalanceRequest$json = {
+  '1': 'GlareFreeWhiteBalanceRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 5, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `GlareFreeWhiteBalanceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List glareFreeWhiteBalanceRequestDescriptor =
+    $convert.base64Decode(
+        'ChxHbGFyZUZyZWVXaGl0ZUJhbGFuY2VSZXF1ZXN0EhQKBXZhbHVlGAEgASgFUgV2YWx1ZQ==');
+
+@$core.Deprecated('Use glareFreeWhiteBalanceResponseDescriptor instead')
+const GlareFreeWhiteBalanceResponse$json = {
+  '1': 'GlareFreeWhiteBalanceResponse',
+  '2': [
+    {'1': 'message', '3': 1, '4': 1, '5': 5, '10': 'message'},
+  ],
+};
+
+/// Descriptor for `GlareFreeWhiteBalanceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List glareFreeWhiteBalanceResponseDescriptor =
+    $convert.base64Decode(
+        'Ch1HbGFyZUZyZWVXaGl0ZUJhbGFuY2VSZXNwb25zZRIYCgdtZXNzYWdlGAEgASgFUgdtZXNzYW'
+        'dl');
+
+@$core.Deprecated('Use captureWarmUpRequestDescriptor instead')
+const CaptureWarmUpRequest$json = {
+  '1': 'CaptureWarmUpRequest',
+  '2': [
+    {'1': 'items', '3': 1, '4': 3, '5': 9, '10': 'items'},
+  ],
+};
+
+/// Descriptor for `CaptureWarmUpRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List captureWarmUpRequestDescriptor =
+    $convert.base64Decode(
+        'ChRDYXB0dXJlV2FybVVwUmVxdWVzdBIUCgVpdGVtcxgBIAMoCVIFaXRlbXM=');
+
+@$core.Deprecated('Use captureWarmUpResponseDescriptor instead')
+const CaptureWarmUpResponse$json = {
+  '1': 'CaptureWarmUpResponse',
+  '2': [
+    {'1': 'items', '3': 1, '4': 3, '5': 9, '10': 'items'},
+  ],
+};
+
+/// Descriptor for `CaptureWarmUpResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List captureWarmUpResponseDescriptor =
+    $convert.base64Decode(
+        'ChVDYXB0dXJlV2FybVVwUmVzcG9uc2USFAoFaXRlbXMYASADKAlSBWl0ZW1z');
+
+@$core.Deprecated('Use colourMeasurementDescriptor instead')
+const ColourMeasurement$json = {
+  '1': 'ColourMeasurement',
+  '2': [
+    {'1': 'measured', '3': 1, '4': 1, '5': 9, '10': 'measured'},
+    {'1': 'camera', '3': 2, '4': 1, '5': 5, '10': 'camera'},
+    {'1': 'chart', '3': 3, '4': 1, '5': 9, '10': 'chart'},
+    {'1': 'mean_de_before', '3': 4, '4': 1, '5': 1, '10': 'meanDeBefore'},
+    {'1': 'mean_de_after', '3': 5, '4': 1, '5': 1, '10': 'meanDeAfter'},
+    {'1': 'method', '3': 6, '4': 1, '5': 9, '10': 'method'},
+    {'1': 'led_red', '3': 7, '4': 1, '5': 5, '10': 'ledRed'},
+    {'1': 'led_green', '3': 8, '4': 1, '5': 5, '10': 'ledGreen'},
+    {'1': 'led_blue', '3': 9, '4': 1, '5': 5, '10': 'ledBlue'},
+    {'1': 'score_after', '3': 10, '4': 1, '5': 1, '10': 'scoreAfter'},
+    {'1': 'white_balance', '3': 11, '4': 1, '5': 5, '10': 'whiteBalance'},
+    {'1': 'card_version', '3': 12, '4': 1, '5': 9, '10': 'cardVersion'},
+  ],
+};
+
+/// Descriptor for `ColourMeasurement`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourMeasurementDescriptor = $convert.base64Decode(
+    'ChFDb2xvdXJNZWFzdXJlbWVudBIaCghtZWFzdXJlZBgBIAEoCVIIbWVhc3VyZWQSFgoGY2FtZX'
+    'JhGAIgASgFUgZjYW1lcmESFAoFY2hhcnQYAyABKAlSBWNoYXJ0EiQKDm1lYW5fZGVfYmVmb3Jl'
+    'GAQgASgBUgxtZWFuRGVCZWZvcmUSIgoNbWVhbl9kZV9hZnRlchgFIAEoAVILbWVhbkRlQWZ0ZX'
+    'ISFgoGbWV0aG9kGAYgASgJUgZtZXRob2QSFwoHbGVkX3JlZBgHIAEoBVIGbGVkUmVkEhsKCWxl'
+    'ZF9ncmVlbhgIIAEoBVIIbGVkR3JlZW4SGQoIbGVkX2JsdWUYCSABKAVSB2xlZEJsdWUSHwoLc2'
+    'NvcmVfYWZ0ZXIYCiABKAFSCnNjb3JlQWZ0ZXISIwoNd2hpdGVfYmFsYW5jZRgLIAEoBVIMd2hp'
+    'dGVCYWxhbmNlEiEKDGNhcmRfdmVyc2lvbhgMIAEoCVILY2FyZFZlcnNpb24=');
+
+@$core.Deprecated('Use colourCorrectionRequestDescriptor instead')
+const ColourCorrectionRequest$json = {
+  '1': 'ColourCorrectionRequest',
+  '2': [
+    {'1': 'light', '3': 1, '4': 1, '5': 9, '10': 'light'},
+    {'1': 'matrix', '3': 2, '4': 3, '5': 1, '10': 'matrix'},
+    {
+      '1': 'measurement',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.settings.ColourMeasurement',
+      '10': 'measurement'
+    },
+    {'1': 'clear', '3': 4, '4': 1, '5': 8, '10': 'clear'},
+  ],
+};
+
+/// Descriptor for `ColourCorrectionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourCorrectionRequestDescriptor = $convert.base64Decode(
+    'ChdDb2xvdXJDb3JyZWN0aW9uUmVxdWVzdBIUCgVsaWdodBgBIAEoCVIFbGlnaHQSFgoGbWF0cm'
+    'l4GAIgAygBUgZtYXRyaXgSPQoLbWVhc3VyZW1lbnQYAyABKAsyGy5zZXR0aW5ncy5Db2xvdXJN'
+    'ZWFzdXJlbWVudFILbWVhc3VyZW1lbnQSFAoFY2xlYXIYBCABKAhSBWNsZWFy');
+
+@$core.Deprecated('Use colourCorrectionStateDescriptor instead')
+const ColourCorrectionState$json = {
+  '1': 'ColourCorrectionState',
+  '2': [
+    {'1': 'light', '3': 1, '4': 1, '5': 9, '10': 'light'},
+    {'1': 'matrix', '3': 2, '4': 3, '5': 1, '10': 'matrix'},
+    {'1': 'source', '3': 3, '4': 1, '5': 9, '10': 'source'},
+    {
+      '1': 'measurement',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.settings.ColourMeasurement',
+      '10': 'measurement'
+    },
+  ],
+};
+
+/// Descriptor for `ColourCorrectionState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourCorrectionStateDescriptor = $convert.base64Decode(
+    'ChVDb2xvdXJDb3JyZWN0aW9uU3RhdGUSFAoFbGlnaHQYASABKAlSBWxpZ2h0EhYKBm1hdHJpeB'
+    'gCIAMoAVIGbWF0cml4EhYKBnNvdXJjZRgDIAEoCVIGc291cmNlEj0KC21lYXN1cmVtZW50GAQg'
+    'ASgLMhsuc2V0dGluZ3MuQ29sb3VyTWVhc3VyZW1lbnRSC21lYXN1cmVtZW50');
+
+@$core.Deprecated('Use colourCorrectionResponseDescriptor instead')
+const ColourCorrectionResponse$json = {
+  '1': 'ColourCorrectionResponse',
+  '2': [
+    {
+      '1': 'state',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.settings.ColourCorrectionState',
+      '10': 'state'
+    },
+  ],
+};
+
+/// Descriptor for `ColourCorrectionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourCorrectionResponseDescriptor =
+    $convert.base64Decode(
+        'ChhDb2xvdXJDb3JyZWN0aW9uUmVzcG9uc2USNQoFc3RhdGUYASABKAsyHy5zZXR0aW5ncy5Db2'
+        'xvdXJDb3JyZWN0aW9uU3RhdGVSBXN0YXRl');
+
+@$core.Deprecated('Use colourCorrectionEnabledRequestDescriptor instead')
+const ColourCorrectionEnabledRequest$json = {
+  '1': 'ColourCorrectionEnabledRequest',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 8, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `ColourCorrectionEnabledRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourCorrectionEnabledRequestDescriptor =
+    $convert.base64Decode(
+        'Ch5Db2xvdXJDb3JyZWN0aW9uRW5hYmxlZFJlcXVlc3QSFAoFdmFsdWUYASABKAhSBXZhbHVl');
+
+@$core.Deprecated('Use colourCorrectionEnabledResponseDescriptor instead')
+const ColourCorrectionEnabledResponse$json = {
+  '1': 'ColourCorrectionEnabledResponse',
+  '2': [
+    {'1': 'value', '3': 1, '4': 1, '5': 8, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `ColourCorrectionEnabledResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List colourCorrectionEnabledResponseDescriptor =
+    $convert.base64Decode(
+        'Ch9Db2xvdXJDb3JyZWN0aW9uRW5hYmxlZFJlc3BvbnNlEhQKBXZhbHVlGAEgASgIUgV2YWx1ZQ'
+        '==');
+
+@$core.Deprecated('Use columnSettingDescriptor instead')
+const ColumnSetting$json = {
+  '1': 'ColumnSetting',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'factory_value', '3': 2, '4': 1, '5': 9, '10': 'factoryValue'},
+    {'1': 'standard_value', '3': 3, '4': 1, '5': 9, '10': 'standardValue'},
+    {'1': 'current_value', '3': 4, '4': 1, '5': 9, '10': 'currentValue'},
+    {'1': 'changed', '3': 5, '4': 1, '5': 8, '10': 'changed'},
+  ],
+};
+
+/// Descriptor for `ColumnSetting`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List columnSettingDescriptor = $convert.base64Decode(
+    'Cg1Db2x1bW5TZXR0aW5nEhIKBG5hbWUYASABKAlSBG5hbWUSIwoNZmFjdG9yeV92YWx1ZRgCIA'
+    'EoCVIMZmFjdG9yeVZhbHVlEiUKDnN0YW5kYXJkX3ZhbHVlGAMgASgJUg1zdGFuZGFyZFZhbHVl'
+    'EiMKDWN1cnJlbnRfdmFsdWUYBCABKAlSDGN1cnJlbnRWYWx1ZRIYCgdjaGFuZ2VkGAUgASgIUg'
+    'djaGFuZ2Vk');
+
+@$core.Deprecated('Use columnProfileResponseDescriptor instead')
+const ColumnProfileResponse$json = {
+  '1': 'ColumnProfileResponse',
+  '2': [
+    {
+      '1': 'settings',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.settings.ColumnSetting',
+      '10': 'settings'
+    },
+    {'1': 'board_id', '3': 2, '4': 1, '5': 9, '10': 'boardId'},
+    {'1': 'board_connected', '3': 3, '4': 1, '5': 8, '10': 'boardConnected'},
+    {'1': 'revision', '3': 4, '4': 1, '5': 5, '10': 'revision'},
+    {'1': 'adopted_from', '3': 5, '4': 1, '5': 9, '10': 'adoptedFrom'},
+    {'1': 'has_factory', '3': 6, '4': 1, '5': 8, '10': 'hasFactory'},
+    {'1': 'save_pending', '3': 7, '4': 1, '5': 8, '10': 'savePending'},
+    {'1': 'notice', '3': 8, '4': 1, '5': 9, '10': 'notice'},
+  ],
+};
+
+/// Descriptor for `ColumnProfileResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List columnProfileResponseDescriptor = $convert.base64Decode(
+    'ChVDb2x1bW5Qcm9maWxlUmVzcG9uc2USMwoIc2V0dGluZ3MYASADKAsyFy5zZXR0aW5ncy5Db2'
+    'x1bW5TZXR0aW5nUghzZXR0aW5ncxIZCghib2FyZF9pZBgCIAEoCVIHYm9hcmRJZBInCg9ib2Fy'
+    'ZF9jb25uZWN0ZWQYAyABKAhSDmJvYXJkQ29ubmVjdGVkEhoKCHJldmlzaW9uGAQgASgFUghyZX'
+    'Zpc2lvbhIhCgxhZG9wdGVkX2Zyb20YBSABKAlSC2Fkb3B0ZWRGcm9tEh8KC2hhc19mYWN0b3J5'
+    'GAYgASgIUgpoYXNGYWN0b3J5EiEKDHNhdmVfcGVuZGluZxgHIAEoCFILc2F2ZVBlbmRpbmcSFg'
+    'oGbm90aWNlGAggASgJUgZub3RpY2U=');
+
+@$core.Deprecated('Use columnSettingsRequestDescriptor instead')
+const ColumnSettingsRequest$json = {
+  '1': 'ColumnSettingsRequest',
+  '2': [
+    {'1': 'names', '3': 1, '4': 3, '5': 9, '10': 'names'},
+  ],
+};
+
+/// Descriptor for `ColumnSettingsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List columnSettingsRequestDescriptor =
+    $convert.base64Decode(
+        'ChVDb2x1bW5TZXR0aW5nc1JlcXVlc3QSFAoFbmFtZXMYASADKAlSBW5hbWVz');
+
+@$core.Deprecated('Use columnSaveResponseDescriptor instead')
+const ColumnSaveResponse$json = {
+  '1': 'ColumnSaveResponse',
+  '2': [
+    {
+      '1': 'outcome',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.settings.ColumnSaveOutcome',
+      '10': 'outcome'
+    },
+    {'1': 'names', '3': 2, '4': 3, '5': 9, '10': 'names'},
+    {
+      '1': 'profile',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.settings.ColumnProfileResponse',
+      '10': 'profile'
+    },
+  ],
+};
+
+/// Descriptor for `ColumnSaveResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List columnSaveResponseDescriptor = $convert.base64Decode(
+    'ChJDb2x1bW5TYXZlUmVzcG9uc2USNQoHb3V0Y29tZRgBIAEoDjIbLnNldHRpbmdzLkNvbHVtbl'
+    'NhdmVPdXRjb21lUgdvdXRjb21lEhQKBW5hbWVzGAIgAygJUgVuYW1lcxI5Cgdwcm9maWxlGAMg'
+    'ASgLMh8uc2V0dGluZ3MuQ29sdW1uUHJvZmlsZVJlc3BvbnNlUgdwcm9maWxl');
+
+@$core.Deprecated('Use writeColumnFactoryRequestDescriptor instead')
+const WriteColumnFactoryRequest$json = {
+  '1': 'WriteColumnFactoryRequest',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {
+      '1': 'source',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.settings.ColumnFactorySource',
+      '10': 'source'
+    },
+  ],
+};
+
+/// Descriptor for `WriteColumnFactoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List writeColumnFactoryRequestDescriptor =
+    $convert.base64Decode(
+        'ChlXcml0ZUNvbHVtbkZhY3RvcnlSZXF1ZXN0EhAKA2tleRgBIAEoCVIDa2V5EjUKBnNvdXJjZR'
+        'gCIAEoDjIdLnNldHRpbmdzLkNvbHVtbkZhY3RvcnlTb3VyY2VSBnNvdXJjZQ==');

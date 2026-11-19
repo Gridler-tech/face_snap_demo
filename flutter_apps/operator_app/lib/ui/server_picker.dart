@@ -4,6 +4,7 @@
 // list, or type an IP/port MANUALLY. On confirm it points the shared gRPC
 // channel at the chosen address, persists it, and reloads the settings
 // snapshot. Returns true when the server changed + settings loaded.
+import 'package:face_snap_grpc/face_snap_grpc.dart' show LocalServerConfig;
 import 'package:flutter/material.dart';
 
 import '../services/app_config.dart';
@@ -238,10 +239,10 @@ class _ServerPickerDialogState extends State<_ServerPickerDialog> {
             ? k.hostName.substring(0, k.hostName.length - 6)
             : k.hostName;
         final isLocal = k.ip.startsWith('127.');
-        // Connect on the port the kiosk ANNOUNCED (its SRV record); only a
-        // find without one (e.g. the local-server probe fallback) uses this
-        // PC's configured port.
-        final port = k.port ?? AppConfig.port;
+        // Connect on the port the kiosk ANNOUNCED (its SRV record) or this
+        // PC's server was probed on; a find without one uses this PC's server
+        // port (server_config.json) for this PC, the saved port for a kiosk.
+        final port = k.port ?? (isLocal ? LocalServerConfig.port : AppConfig.port);
         return ListTile(
           leading: Icon(isLocal ? Icons.computer : Icons.sensors,
               color: T.titleBlue),

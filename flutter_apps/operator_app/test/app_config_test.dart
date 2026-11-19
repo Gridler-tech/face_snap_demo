@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -48,5 +49,54 @@ void main() {
     await AppConfig.load();
     expect(AppConfig.host, '127.0.0.1');
     expect(AppConfig.updaterHost, 'facesnap-a.local');
+  });
+
+  // The column profile's factory key (spec 2026-10-10 section 5.4) lives in config.json next to
+  // the board password: a save keeps it, a load reads it back.
+  test('the factory key survives a save and load', () async {
+    final savedKey = AppConfig.factoryKey;
+    addTearDown(() => AppConfig.factoryKey = savedKey);
+    AppConfig.factoryKey = 'a-factory-key';
+    await AppConfig.save();
+    AppConfig.factoryKey = '';
+    await AppConfig.load();
+    expect(AppConfig.factoryKey, 'a-factory-key');
+  });
+
+  // After "Change port" the saved server follows only when it IS the machine
+  // changed: the same name, compared case-insensitively — never a guess.
+  group('followPortChange', () {
+    late int savedPort;
+    setUp(() => savedPort = AppConfig.port);
+    tearDown(() => AppConfig.port = savedPort);
+
+    test('the same host (any case) takes the new port and is saved', () async {
+      AppConfig.host = 'FaceSnap-1A2B.local';
+      AppConfig.port = 50051;
+      expect(AppConfig.followPortChange('facesnap-1a2b.local', 50052), isTrue);
+      expect(AppConfig.port, 50052);
+      // Saved (in the background): config.json gets the new port.
+      final file = File('${dir.path}${Platform.pathSeparator}config.json');
+      Object? saved;
+      for (var i = 0; i < 40 && saved != 50052; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        try {
+          saved = (jsonDecode(file.readAsStringSync()) as Map)['port'];
+        } catch (_) {
+          // Not (fully) written yet.
+        }
+      }
+      expect(saved, 50052);
+      expect(AppConfig.host, 'FaceSnap-1A2B.local');
+    });
+
+    test('another host (an IP for the same name, a shorter name) is left alone', () {
+      AppConfig.host = 'facesnap-1a2b.local';
+      AppConfig.port = 50051;
+      expect(AppConfig.followPortChange('192.168.3.169', 50052), isFalse);
+      expect(AppConfig.followPortChange('facesnap-1a2b', 50052), isFalse);
+      expect(AppConfig.port, 50051);
+      expect(AppConfig.host, 'facesnap-1a2b.local');
+    });
   });
 }

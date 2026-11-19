@@ -1,6 +1,6 @@
 {
   "profile": "Recommended settings for FaceSnap Server 2.0",
-  "description": "4K photos, every quality check on, fast mediapipe background. OFIQ scoring stays off: it adds about 2.4 s per capture on the kiosk boards.",
+  "description": "4K photos and every quality check on, with the 1.1.27 defaults: no background erasing, the ICAO report, OFIQ scoring and the live person check off, nothing loaded at server start. Automatic white balance, exposure and focus are camera settings of each kiosk: a profile leaves them alone.",
   "kiosk_settings": {
     "camera": {
       "width": 3840,
@@ -19,9 +19,12 @@
         "gaze_check": true,
         "lighting_evenness_check": true
       },
-      "background_method": "mediapipe",
+      "background_method": "none",
       "jpeg_quality": 95,
-      "ofiq_checks": false
+      "ofiq_checks": false,
+      "icao_report": false,
+      "liveness_check": false,
+      "capture_warm_up": []
     }
   }
 }

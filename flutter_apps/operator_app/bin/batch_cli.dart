@@ -14,6 +14,8 @@
 //   --user <u>         default user           (default: root)
 //   --password <p>     the boards' root password (required)
 //   --concurrency <n>  boards at a time       (default: 2; 1 = rolling)
+//   --max-failures <n> start no further board after n failed ones; the rest
+//                      are reported as skipped (default: 1; 0 = never stop)
 //   --profile <p>      "recommended" or a profile .json; applies every row
 //                      that differs on each kiosk (headless semantics)
 //   --dry-run          pre-flight only: check every board, change nothing
@@ -48,7 +50,8 @@ List<BatchTarget> _readHosts(String path, String user, String password) {
 Future<void> main(List<String> args) async {
   if (args.length < 2 || args.first.startsWith('--')) {
     stderr.writeln('usage: batch_cli <image.tar> <hosts-file> '
-        '[--user u] [--password p] [--concurrency n] [--profile p] [--dry-run]');
+        '[--user u] [--password p] [--concurrency n] [--max-failures n] '
+        '[--profile p] [--dry-run]');
     exit(2);
   }
   final tar = requireFile(args[0]);
@@ -61,6 +64,9 @@ Future<void> main(List<String> args) async {
     exit(2);
   }
   final concurrency = int.tryParse(_opt(args, 'concurrency', '2')) ?? 2;
+  // X-9: one bad image must not go through the whole fleet.
+  final failureLimit = int.tryParse(_opt(args, 'max-failures', '1')) ?? 1;
+  final maxFailures = failureLimit < 1 ? null : failureLimit;
   final dryRun = args.contains('--dry-run');
 
   SettingsProfile? profile;
@@ -88,17 +94,7 @@ Future<void> main(List<String> args) async {
     targets: targets,
     check: (target) async {
       final r = await probeKiosk(target.host, target.user, target.password);
-      final verdict = switch (r.state) {
-        ProbeState.connected => PreflightVerdict.ok,
-        ProbeState.authFailed => PreflightVerdict.authFailed,
-        ProbeState.wrongArch => PreflightVerdict.wrongArch,
-        _ => PreflightVerdict.unreachable,
-      };
-      return PreflightResult(target, verdict,
-          detail: verdict == PreflightVerdict.ok
-              ? '${r.model}, ${r.installedVersion ?? "clean board"}'
-              : probeHeadline(r),
-          installedVersion: r.installedVersion);
+      return preflightResultOf(target, r);
     },
     onResult: (r) => stdout.writeln(
         '  ${r.ok ? 'OK  ' : 'SKIP'}  ${r.target.title.padRight(34)} ${r.detail}'),
@@ -118,14 +114,16 @@ Future<void> main(List<String> args) async {
 
   // ---- run ---------------------------------------------------------------
   stdout.writeln('\nUpdating ${good.length} board(s), $concurrency at a time '
-      '(${skipped.length} skipped) …\n');
+      '(${skipped.length} skipped)'
+      '${maxFailures == null ? '' : ', stopping after $maxFailures failed board(s)'} …\n');
   final engines = <String, UpdateEngine>{};
   final outcomes = await runBatch(
     targets: good,
     concurrency: concurrency,
+    maxFailures: maxFailures,
     onStart: (t) => stdout.writeln('[${t.title}] start'),
-    onDone: (o) => stdout.writeln(
-        '[${o.target.title}] ${o.succeeded ? 'DONE' : 'FAILED'}'),
+    onDone: (o) => stdout.writeln('[${o.target.title}] '
+        '${o.skipped ? 'SKIPPED (${o.summary.join('; ')})' : o.succeeded ? 'DONE' : 'FAILED'}'),
     action: (target) async {
       final engine = UpdateEngine(
         host: target.host,

@@ -245,4 +245,39 @@ void main() {
     await settle(tester);
     expect(sweeps, [true, false, true], reason: 'the operator asked for a search');
   });
+
+  testWidgets('a search the OS refused says how to allow it', (tester) async {
+    await tester.pumpWidget(host(ServerList(
+      onConnected: () async {},
+      onAddAddress: () async {},
+      refreshEvery: null,
+      discover: ({bool sweep = true}) async => [],
+      searchBlocked: () => true,
+      probe: (h, p, {bool sshDetails = true}) async => _up,
+      connect: (h, p) async {},
+    )));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('search-blocked')), findsOneWidget);
+  });
+
+  testWidgets('a normal search shows no such line', (tester) async {
+    await tester.pumpWidget(host(ServerList(
+      onConnected: () async {},
+      onAddAddress: () async {},
+      refreshEvery: null,
+      discover: ({bool sweep = true}) async => [],
+      searchBlocked: () => false,
+      probe: (h, p, {bool sshDetails = true}) async => _up,
+      connect: (h, p) async {},
+    )));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('search-blocked')), findsNothing);
+  });
+
+  test('the blocked line names the macOS setting on a Mac only', () {
+    final mac = blockedSearchHint(isMacOS: true);
+    expect(mac, contains('System Settings › Privacy & Security › Local Network'));
+    expect(mac, contains('"operator_app"'));
+    expect(blockedSearchHint(isMacOS: false), isNot(contains('System Settings')));
+  });
 }

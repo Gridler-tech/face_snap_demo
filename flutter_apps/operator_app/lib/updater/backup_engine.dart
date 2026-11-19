@@ -1,5 +1,7 @@
 // Downloads the kiosk's configuration files (settings, camera calibration,
-// compose file) as a tgz to this machine. Read-only: the server keeps running.
+// compose file) as a tgz to this machine — data/ or, on a first-generation
+// board, the settings files next to docker-compose.yml (FL-8). Read-only:
+// the server keeps running.
 import 'engine.dart';
 import 'kiosk.dart';
 
@@ -38,15 +40,29 @@ class BackupEngine extends KioskEngine {
 
   Future<void> _doInspect() async {
     setStep(_inspect, StepStatus.running);
-    if (!(await ssh.run('test -d $kKioskDir/data')).ok) {
-      throw Exception('No configuration files on the kiosk '
-          '($kKioskDir/data does not exist) — nothing to back up.');
+    final members = await configBackupMembersOn(ssh);
+    final legacy = [
+      for (final f in kSettingsFiles)
+        if (members.contains(f)) f,
+    ];
+    if (!members.contains('data') && legacy.isEmpty) {
+      throw Exception('No configuration files on the kiosk (neither '
+          '$kKioskDir/data nor the first-generation settings files next to '
+          'docker-compose.yml) — nothing to back up.');
     }
-    final files = await ssh.runChecked('ls $kKioskDir/data/');
-    final names =
-        files.stdout.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final names = <String>[];
+    if (members.contains('data')) {
+      final files = await ssh.runChecked('ls $kKioskDir/data/');
+      names.addAll(
+          files.stdout.split('\n').where((l) => l.trim().isNotEmpty));
+    }
+    names.addAll(legacy);
     setStep(_inspect, StepStatus.ok, '${names.length} file(s)');
     log('Configuration files: ${names.join(', ')}');
+    if (legacy.isNotEmpty) {
+      log('First-generation settings files next to docker-compose.yml: '
+          '${legacy.join(', ')} (in the backup too).');
+    }
   }
 
   Future<void> _doBackup() async {

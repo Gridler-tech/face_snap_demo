@@ -71,12 +71,14 @@ class _MonitoringPageState extends State<MonitoringPage> {
     try {
       final info = await KioskClient(GrpcChannelProvider.channel)
           .getKioskInfo(Empty());
+      if (!mounted) return; // the page went away while the call ran
       setState(() {
         if (_message == _loadError) _message = null;
         _loadError = null;
         _kioskInfo = info;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _message =
           _loadError = 'Could not load kiosk info: ${operatorMessage(e)}');
     }

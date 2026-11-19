@@ -35,7 +35,9 @@ class DiscoveredKiosk {
       {required this.hostName,
       required this.ip,
       this.port,
-      this.kind = BoardKind.facesnap});
+      this.kind = BoardKind.facesnap,
+      String? mac})
+      : mac = mac == null ? null : normalizeMac(mac);
 
   /// mDNS host name, e.g. facesnap-001e0644278f.local — or the stock name of
   /// a clean board ("odroid" / "radxa").
@@ -47,7 +49,28 @@ class DiscoveredKiosk {
   /// caller should fall back to its own default.
   final int? port;
   final BoardKind kind;
+
+  /// The machine's MAC address as 12 lowercase hex digits (no separators),
+  /// when the search learned it (the subnet sweep reads it from the ARP
+  /// table); null otherwise.
+  final String? mac;
 }
+
+/// A MAC address in any common notation ("00-48-54-20-97-0D",
+/// "00:48:54:20:97:0d", "004854...") as 12 lowercase hex digits, or null when
+/// it is not one.
+String? normalizeMac(String text) {
+  final hex = text.replaceAll(RegExp(r'[^0-9a-fA-F]'), '').toLowerCase();
+  return hex.length == 12 ? hex : null;
+}
+
+/// MAC per IPv4 address from the output of Windows `arp -a`
+/// ("  192.168.3.169         00-48-54-20-97-0d     dynamic").
+Map<String, String> parseArpTable(String output) => {
+      for (final match in RegExp(r'(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F-]{17})')
+          .allMatches(output))
+        match.group(1)!: normalizeMac(match.group(2)!)!,
+    };
 
 /// Stock hostnames of supported boards with a clean vendor image, mapped to
 /// the image's default root password (prefilled in the UI, editable).
@@ -57,9 +80,10 @@ const cleanBoardDefaults = <String, String>{
 };
 
 /// MAC vendor prefixes (OUIs) of the supported boards, for the subnet sweep.
+/// Keys are the first 6 hex digits of a normalised MAC (see normalizeMac).
 const _boardOuis = <String, String>{
-  '00-1e-06': 'odroid', // Hardkernel
-  '00-48-54': 'radxa', // Radxa
+  '001e06': 'odroid', // Hardkernel
+  '004854': 'radxa', // Radxa
 };
 
 const _service = '_facesnap._tcp.local';
@@ -68,9 +92,42 @@ const _mdnsPort = 5353;
 final _llmnrGroup = InternetAddress('224.0.0.252');
 const _llmnrPort = 5355;
 
+/// Set by the last name search (discoverKiosks, probeHostnames, discoverBoards):
+/// true when the OS refused EVERY query it sent. On macOS that is the Local
+/// Network privacy setting: an app without that permission gets "No route to
+/// host" for each multicast send, so nothing can be found until it is allowed.
+bool lastSearchBlocked = false;
+
+/// One search's query sends (public for the tests). A send the OS refuses is counted and skipped: one
+/// blocked interface must not end the search. (Uncaught, the refusal used to
+/// throw out of the whole scan on macOS, and the parallel search's own refusal
+/// went unhandled.)
+class QuerySends {
+  int sent = 0;
+  int refused = 0;
+
+  bool get blocked => sent == 0 && refused > 0;
+
+  void send(RawDatagramSocket socket, List<int> data, InternetAddress to, int port) {
+    try {
+      socket.send(data, to, port);
+      sent++;
+    } on SocketException {
+      refused++;
+    }
+  }
+}
+
 /// Provisioned kiosks only (the _facesnap._tcp service search).
 Future<List<DiscoveredKiosk>> discoverKiosks(
     {Duration timeout = const Duration(seconds: 4)}) async {
+  final sends = QuerySends();
+  final kiosks = await _discoverKiosks(timeout, sends);
+  lastSearchBlocked = sends.blocked;
+  return kiosks;
+}
+
+Future<List<DiscoveredKiosk>> _discoverKiosks(Duration timeout, QuerySends sends) async {
   // One socket per local IPv4 address: on a multi-homed machine (WSL/Docker
   // virtual adapters next to the real NIC) the OS routes the multicast query
   // out of ONE interface only — usually the wrong one. Binding to each
@@ -103,7 +160,7 @@ Future<List<DiscoveredKiosk>> discoverKiosks(
     final query = _buildQuery(_service, qtype: 12);
     for (var i = 0; i < 3; i++) {
       for (final socket in sockets) {
-        socket.send(query, _mdnsGroup, _mdnsPort);
+        sends.send(socket, query, _mdnsGroup, _mdnsPort);
       }
       await Future<void>.delayed(timeout ~/ 3);
     }
@@ -128,21 +185,51 @@ Future<List<DiscoveredKiosk>> discoverKiosks(
 /// and 500 connection attempts twice a minute are a waste.
 Future<List<DiscoveredKiosk>> discoverBoards(
     {Duration timeout = const Duration(seconds: 4), bool sweep = true}) async {
+  final sends = QuerySends();
   final results = await Future.wait([
-    discoverKiosks(timeout: timeout),
-    probeHostnames(cleanBoardDefaults.keys.toList(), timeout: timeout),
+    _discoverKiosks(timeout, sends),
+    _probeHostnames(cleanBoardDefaults.keys.toList(), timeout, sends),
     if (sweep) sweepSubnetForBoards() else Future.value(const <DiscoveredKiosk>[]),
   ]);
-  final kiosks = results[0];
+  lastSearchBlocked = sends.blocked;
+  return mergeDiscovered(results[0], [...results[1], ...results[2]]);
+}
+
+/// The kiosks from the service search followed by the [others] (hostname
+/// probes, subnet sweep) that are not the same machine. Pure, for the tests.
+///
+/// The same machine is the same IP — or, for a kiosk on the LAN twice (cable
+/// + WiFi), the same MAC: its host name is built from the cable MAC, so the
+/// sweep's hit on the other address carries the MAC the kiosk name encodes.
+/// (Measured 2026-10-16 on the Radxa Dragon Q6A: "facesnap-00485420970d-2"
+/// at the WiFi address, and a "clean radxa" at the cable address.) Kiosk rows
+/// are never dropped; another hit only when its MAC matches.
+List<DiscoveredKiosk> mergeDiscovered(
+    List<DiscoveredKiosk> kiosks, List<DiscoveredKiosk> others) {
   final seen = kiosks.map((k) => k.ip).toSet();
+  final kioskMacs = {
+    for (final kiosk in kiosks) ...[
+      ?kiosk.mac,
+      ?macFromKioskHostName(kiosk.hostName),
+    ],
+  };
   final boards = [...kiosks];
-  for (final list in [results[1], results[2]]) {
-    for (final board in list) {
-      if (seen.add(board.ip)) boards.add(board);
-    }
+  for (final board in others) {
+    if (board.mac != null && kioskMacs.contains(board.mac)) continue;
+    if (seen.add(board.ip)) boards.add(board);
   }
   return boards;
 }
+
+/// The MAC a kiosk host name encodes: `facesnap-<12 hex>`, optionally with
+/// avahi's `-<N>` conflict suffix and/or `.local` (any case) — as 12 lowercase
+/// hex digits; null for any other name (e.g. one set by hand).
+String? macFromKioskHostName(String hostName) => RegExp(
+            r'^facesnap-([0-9a-f]{12})(?:-\d+)?(?:\.local)?\.?$',
+            caseSensitive: false)
+        .firstMatch(hostName)
+        ?.group(1)
+        ?.toLowerCase();
 
 /// Active sweep: try TCP port 22 on every host of each local /24, then match
 /// the responders' MAC vendor (from the ARP table, populated as a side effect
@@ -195,21 +282,16 @@ Future<List<DiscoveredKiosk>> _sweepSubnetForBoardsHere() async {
 
   // MAC per IP from the ARP table.
   final arp = await Process.run('arp', ['-a']);
-  final macByIp = <String, String>{};
-  for (final match in RegExp(
-          r'(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F-]{17})')
-      .allMatches(arp.stdout as String)) {
-    macByIp[match.group(1)!] = match.group(2)!.toLowerCase();
-  }
+  final macByIp = parseArpTable(arp.stdout as String);
 
   final boards = <DiscoveredKiosk>[];
   for (final ip in open) {
     final mac = macByIp[ip];
     if (mac == null) continue;
-    final stock = _boardOuis[mac.substring(0, 8)];
+    final stock = _boardOuis[mac.substring(0, 6)];
     if (stock != null) {
-      boards.add(
-          DiscoveredKiosk(hostName: stock, ip: ip, kind: BoardKind.clean));
+      boards.add(DiscoveredKiosk(
+          hostName: stock, ip: ip, kind: BoardKind.clean, mac: mac));
     }
   }
   boards.sort((a, b) => a.ip.compareTo(b.ip));
@@ -222,6 +304,14 @@ Future<List<DiscoveredKiosk>> _sweepSubnetForBoardsHere() async {
 /// discover CLI can probe arbitrary names for diagnostics.
 Future<List<DiscoveredKiosk>> probeHostnames(List<String> names,
     {Duration timeout = const Duration(seconds: 4)}) async {
+  final sends = QuerySends();
+  final boards = await _probeHostnames(names, timeout, sends);
+  lastSearchBlocked = sends.blocked;
+  return boards;
+}
+
+Future<List<DiscoveredKiosk>> _probeHostnames(
+    List<String> names, Duration timeout, QuerySends sends) async {
   final addresses = await _localAddresses();
   if (addresses.isEmpty) return const [];
 
@@ -262,7 +352,7 @@ Future<List<DiscoveredKiosk>> probeHostnames(List<String> names,
     for (var i = 0; i < 3; i++) {
       for (final socket in sockets) {
         for (final (query, group, port) in queries) {
-          socket.send(query, group, port);
+          sends.send(socket, query, group, port);
         }
       }
       await Future<void>.delayed(timeout ~/ 3);

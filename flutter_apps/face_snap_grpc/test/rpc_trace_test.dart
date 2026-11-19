@@ -23,6 +23,11 @@ class _Settings extends SettingsServiceBase {
       throw GrpcError.invalidArgument('resolution 1x1 is not supported');
 
   @override
+  Future<LivenessChecksResponse> setLivenessChecks(
+          ServiceCall call, LivenessChecksRequest request) async =>
+      LivenessChecksResponse(livenessCheck: request.livenessCheck);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw GrpcError.unimplemented('${invocation.memberName}');
 }
@@ -63,6 +68,15 @@ class _Kiosk extends KioskServiceBase {
   @override
   Stream<ProcessAutomaticResponse> startAutomaticProcess(
       ServiceCall call, Empty request) async* {
+    for (final item in automatic()) {
+      yield item;
+    }
+  }
+
+  /// A capture with per-capture settings: the same messages as the process.
+  @override
+  Stream<ProcessAutomaticResponse> startAutomaticCapture(
+      ServiceCall call, CaptureRequest request) async* {
     for (final item in automatic()) {
       yield item;
     }
@@ -443,6 +457,78 @@ void main() {
           'Backlight = Backlight.Top, On = true });');
     });
 
+    // A proto3 `optional` field (explicit presence) is written only when the
+    // caller set it: an absent BacklightRequest.percent means the stored
+    // brightness, `percent: 0` means on at 0 % - a different request.
+    test('an unset optional field is left out', () async {
+      await render('optionalUnset', 'SetBacklight',
+          () => LightsClient(GrpcChannelProvider.channel).setBacklight(
+              BacklightRequest(backlight: Backlight.BACKLIGHT_BOTTOM)));
+      final (dart, cs) = snippets['optionalUnset']!;
+      expect(
+          dart,
+          'final reply = await LightsClient(GrpcChannelProvider.channel)'
+          '.setBacklight(BacklightRequest(backlight: Backlight.BACKLIGHT_BOTTOM, '
+          'on: false));');
+      expect(
+          cs.split('\n').last,
+          'var reply = await new Lights.LightsClient(GrpcChannelProvider.Channel)'
+          '.SetBacklightAsync(new BacklightRequest { '
+          'Backlight = Backlight.Bottom, On = false });');
+      expect((await _finished('SetBacklight')).requests.single.json,
+          {'backlight': 'BACKLIGHT_BOTTOM', 'on': false});
+    });
+
+    test('an optional field set to its default is written', () async {
+      await render('optionalZero', 'SetBacklight',
+          () => LightsClient(GrpcChannelProvider.channel).setBacklight(
+              BacklightRequest(
+                  backlight: Backlight.BACKLIGHT_TOP, on: true, percent: 0)));
+      final (dart, cs) = snippets['optionalZero']!;
+      expect(
+          dart,
+          'final reply = await LightsClient(GrpcChannelProvider.channel)'
+          '.setBacklight(BacklightRequest(backlight: Backlight.BACKLIGHT_TOP, '
+          'on: true, percent: 0));');
+      expect(
+          cs.split('\n').last,
+          'var reply = await new Lights.LightsClient(GrpcChannelProvider.Channel)'
+          '.SetBacklightAsync(new BacklightRequest { '
+          'Backlight = Backlight.Top, On = true, Percent = 0 });');
+    });
+
+    test('per-capture settings: only the fields the caller set', () async {
+      await render('perCapture', 'StartAutomaticCapture',
+          () => kiosk()
+              .startAutomaticCapture(CaptureRequest(
+                  settings: CaptureSettings(crop: false, jpegQuality: 90)))
+              .drain<void>());
+      final (dart, cs) = snippets['perCapture']!;
+      expect(
+          dart,
+          startsWith('await for (final reply in KioskClient('
+              'GrpcChannelProvider.channel).startAutomaticCapture('
+              'CaptureRequest(settings: CaptureSettings('
+              'crop: false, jpegQuality: 90)))) {'));
+      expect(cs, contains('Crop = false'));
+      expect(cs, contains('JpegQuality = 90'));
+      for (final unset in ['PhotoFormat', 'ColourCorrection', 'EyesCheck', 'DistanceMin']) {
+        expect(cs, isNot(contains(unset)), reason: '$unset was not set');
+      }
+    });
+
+    test('an unset optional field of a settings request is left out', () async {
+      // SetLivenessChecks: an absent head_turn_check keeps the stored value;
+      // `headTurnCheck: false` would switch it off.
+      await render('livenessUnset', 'SetLivenessChecks',
+          () => settings()
+              .setLivenessChecks(LivenessChecksRequest(livenessCheck: true)));
+      expect(
+          snippets['livenessUnset']!.$1,
+          'final reply = await SettingsClient(GrpcChannelProvider.channel)'
+          '.setLivenessChecks(LivenessChecksRequest(livenessCheck: true));');
+    });
+
     test('unary with a repeated message', () async {
       await render('repeated', 'SetCalibration',
           () => CalibrationClient(GrpcChannelProvider.channel).setCalibration(
@@ -477,7 +563,7 @@ void main() {
               image1: List<int>.filled(5000, 1),
               image2: List<int>.filled(6000, 2),
               threshold: 0.5,
-              model: Model.FACENET512,
+              model: Model.SFACE,
               similarityMetric: DistanceMetric.EUCLIDEAN_L2)));
       final (dart, cs) = snippets['bytes']!;
       expect(dart, contains('// image1Bytes: the bytes to send'));
@@ -485,7 +571,7 @@ void main() {
           dart.split('\n').last,
           'final reply = await KioskClient(GrpcChannelProvider.channel)'
           '.faceRecognition(FaceRecognitionRequest(image1: image1Bytes, '
-          'image2: image2Bytes, threshold: 0.5, model: Model.FACENET512, '
+          'image2: image2Bytes, threshold: 0.5, model: Model.SFACE, '
           'similarityMetric: DistanceMetric.EUCLIDEAN_L2));');
       expect(
           cs.split('\n').last,
@@ -493,7 +579,7 @@ void main() {
           '.FaceRecognitionAsync(new FaceRecognitionRequest { '
           'Image1 = ByteString.CopyFrom(image1Bytes), '
           'Image2 = ByteString.CopyFrom(image2Bytes), Threshold = 0.5, '
-          'Model = Model.Facenet512, '
+          'Model = Model.Sface, '
           'SimilarityMetric = DistanceMetric.EuclideanL2 });');
     });
 

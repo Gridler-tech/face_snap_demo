@@ -11,7 +11,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:face_snap_grpc/face_snap_grpc.dart' show RpcTrace;
+import 'package:face_snap_grpc/face_snap_grpc.dart' show LocalServerConfig, RpcTrace;
 import 'package:flutter/material.dart';
 
 import '../services/app_config.dart';
@@ -34,6 +34,7 @@ class ServerList extends StatefulWidget {
     this.probe,
     this.connect,
     this.refreshEvery = const Duration(seconds: 30),
+    this.searchBlocked,
   });
 
   /// Called after a row connected, so the page refreshes for the new server.
@@ -49,6 +50,11 @@ class ServerList extends StatefulWidget {
 
   /// Re-scan interval; null disables the timer (tests).
   final Duration? refreshEvery;
+
+  /// Whether the OS refused every query of the last search (discovery's
+  /// lastSearchBlocked: on macOS, no Local Network permission). Test seam;
+  /// null = the real flag when the real discovery ran, else false.
+  final bool Function()? searchBlocked;
 
   @override
   State<ServerList> createState() => _ServerListState();
@@ -70,6 +76,9 @@ class _ServerListState extends State<ServerList> {
   String? _connecting; // host of the row being connected
   String? _error;
   Timer? _timer;
+
+  /// The last search's queries were all refused by the OS (see searchBlocked).
+  bool _blocked = false;
 
   /// Bumped per scan; a late probe result for a superseded scan is dropped.
   int _gen = 0;
@@ -125,7 +134,10 @@ class _ServerListState extends State<ServerList> {
   static String _hostFor(DiscoveredKiosk k) =>
       k.kind == BoardKind.clean || k.ip.startsWith('127.') ? k.ip : k.hostName;
 
-  static int _portFor(DiscoveredKiosk k) => k.port ?? AppConfig.port;
+  /// The row's port: the one it announced (or was probed on); else this PC's
+  /// server port for this PC, the saved port for a kiosk.
+  static int _portFor(DiscoveredKiosk k) =>
+      k.port ?? (k.ip.startsWith('127.') ? LocalServerConfig.port : AppConfig.port);
 
   /// The row the app is connected to: the saved host may be the name OR the
   /// address (older configs saved the IP).
@@ -175,6 +187,8 @@ class _ServerListState extends State<ServerList> {
             DiscoveredKiosk(hostName: saved, ip: saved, port: AppConfig.port),
             saved: true));
       }
+      final blocked = widget.searchBlocked?.call() ??
+          (widget.discover == null && lastSearchBlocked);
       if (!mounted || gen != _gen) return;
 
       // Carry each row's last snapshot across the re-scan so the list does
@@ -183,7 +197,10 @@ class _ServerListState extends State<ServerList> {
       for (final r in rows) {
         r.snapshot = previous[_key(r)];
       }
-      setState(() => _rows = rows);
+      setState(() {
+        _rows = rows;
+        _blocked = blocked;
+      });
       await Future.wait([for (final r in rows) _probeRow(r, gen)]);
     } catch (e) {
       if (mounted && gen == _gen) {
@@ -272,6 +289,13 @@ class _ServerListState extends State<ServerList> {
               style: TextStyle(color: T.muted, fontSize: 13)),
         ),
       for (final r in _rows) _row(r),
+      if (_blocked && !_scanning)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(blockedSearchHint(isMacOS: Platform.isMacOS),
+              key: const ValueKey('search-blocked'),
+              style: const TextStyle(color: T.warn, fontSize: 12.5)),
+        ),
       if (_error != null)
         Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -374,3 +398,12 @@ class _ServerListState extends State<ServerList> {
     );
   }
 }
+
+/// The line under the list when the OS refused every query of the search.
+String blockedSearchHint({required bool isMacOS}) => isMacOS
+    ? 'This Mac does not let the operator app search the local network, so '
+        'kiosks are not found. Allow "operator_app" under System Settings › '
+        'Privacy & Security › Local Network, then Search again — or add an '
+        'address.'
+    : 'The network refused the search for kiosks. Check the network '
+        'connection, then Search again — or add an address.';

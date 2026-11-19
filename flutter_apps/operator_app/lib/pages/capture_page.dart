@@ -13,8 +13,10 @@ import 'package:photo_view/photo_view.dart';
 import '../services/photo_store.dart';
 import '../services/settings_state.dart';
 import '../ui/dev_info.dart';
+import '../ui/head_turn_strip.dart';
 import '../ui/ui.dart';
 import '../util/jpeg_size.dart';
+import 'capture_overrides.dart';
 
 enum _Verdict { pending, pass, fail, warn, info, advice }
 
@@ -83,6 +85,8 @@ class _CapturePageState extends State<CapturePage> {
   String? _message;
   String? _ofiqOverall; // the "OFIQ overall quality" row as the server sent it
   int _ofiqAttention = 0; // OFIQ measures of this capture that need attention
+  CaptureInstruction? _instruction; // the head turn's current instruction, null when none
+  CaptureSettingsReport? _settingsUsed; // the last capture's settings used, null when none
 
   // ---------- step timing ----------
   // Wall clock at the operator app from the moment the capture RPC is sent.
@@ -139,6 +143,7 @@ class _CapturePageState extends State<CapturePage> {
   void _clear() {
     setState(() {
       _message = null;
+      _settingsUsed = null;
       _photos.clear();
       _photoRes.clear();
       _prepareChecklist();
@@ -192,9 +197,11 @@ class _CapturePageState extends State<CapturePage> {
 
   /// Pre-populates one pending row per enabled quality check, so the operator
   /// sees the full checklist before the first status arrives (MAUI
-  /// PrepareChecklist).
-  void _prepareChecklist() {
-    final s = SettingsState.current;
+  /// PrepareChecklist). [used] = the settings the capture runs with (its
+  /// settings-used report, which may carry per-capture overrides); without it,
+  /// the kiosk's settings snapshot.
+  void _prepareChecklist([CaptureSettings? used]) {
+    final s = used == null ? SettingsState.current : _checksOf(used);
     _ofiqOverall = null;
     _ofiqAttention = 0;
     _results
@@ -230,6 +237,24 @@ class _CapturePageState extends State<CapturePage> {
     add(s?.headSizeCheck ?? true, 'HeadSize', 'Head size/position');
   }
 
+  /// The check switches of a settings-used report, in the snapshot's shape
+  /// [_prepareChecklist] reads.
+  static LoadSettingsResponse _checksOf(CaptureSettings used) =>
+      LoadSettingsResponse(
+        icaoReport: used.icaoReport,
+        ofiqChecks: used.ofiqChecks,
+        lipsCheck: used.lipsCheck,
+        eyesCheck: used.eyesCheck,
+        eyeGlassesCheck: used.eyeGlassesCheck,
+        headPoseCheck: used.headPoseCheck,
+        sharpnessCheck: used.sharpnessCheck,
+        redEyeDetectionCheck: used.redEyeDetectionCheck,
+        expressionCheck: used.expressionCheck,
+        gazeCheck: used.gazeCheck,
+        lightingEvennessCheck: used.lightingEvennessCheck,
+        headSizeCheck: used.headSizeCheck,
+      );
+
   static bool _isLiveRow(_ResultItem r) => r.text.startsWith('Live person check');
 
   /// Whether this capture's checklist is the ICAO report (see _prepareChecklist).
@@ -242,8 +267,8 @@ class _CapturePageState extends State<CapturePage> {
   /// then every other amber or red row; the rest keeps its place below. Within
   /// each group the rows keep the order they have in [_results].
   List<_ResultItem> get _shownResults {
-    // The live person check rows (depth, shading, colour) stay together: one
-    // amber verdict among them lifts the whole block.
+    // The live person check rows (depth, face angle, head turn) stay together:
+    // one amber verdict among them lifts the whole block.
     final liveWarn = _results.any((r) => _isLiveRow(r) && r.verdict == _Verdict.warn);
     int group(_ResultItem r) {
       if (r.key == 'SelectedCamera') return -1;
@@ -264,6 +289,8 @@ class _CapturePageState extends State<CapturePage> {
   /// StatusItem.FromServerMessage and replaces the keyed row (or inserts a
   /// keyless process row at the top).
   void _addServerStatus(String text) {
+    // The head turn's instruction lines: shown in the strip, not as result rows.
+    if (isHeadTurnInstruction(text)) return;
     bool? parseBool(String value) {
       final colon = value.indexOf(':');
       if (colon < 0) return null;
@@ -315,10 +342,10 @@ class _CapturePageState extends State<CapturePage> {
           : text.contains(': failed')
               ? _Verdict.warn
               : _Verdict.info;
-      // The light checks' rows ("Live person check (shading): ...") arrive after
-      // the photo; they go directly under the depth row sent before it, so the
-      // three verdicts read as one block (see _shownResults, which moves the
-      // block as a whole).
+      // A row after the first one (the face-angle row; the head-turn row after
+      // the photo; an older server's light-check rows after the photo) goes
+      // directly under the last live row, so the verdicts read as one block
+      // (see _shownResults, which moves the block as a whole).
       final last = _results.lastIndexWhere(_isLiveRow);
       setState(() => _results.insert(
           last < 0 ? 0 : last + 1, _ResultItem(null, text, verdict)));
@@ -457,13 +484,26 @@ class _CapturePageState extends State<CapturePage> {
     setState(() {
       _capturing = true;
       _message = null;
+      _instruction = null;
+      _settingsUsed = null;
       _photos.clear();
       _photoRes.clear();
       _prepareChecklist();
       _resetTiming(!automatic);
     });
     try {
-      final stream = automatic ? startAutomaticCapture() : startManualCapture();
+      // The "Only for this capture" panel: its values when it holds any (a
+      // manual capture gets only the five fields it uses), otherwise none, so
+      // the capture is the older RPC and works against every server. A manual
+      // capture whose overrides are all automatic-only sends none either.
+      final values = automatic
+          ? CaptureOverrides.current.deepCopy()
+          : CaptureOverrides.forManual();
+      final settings =
+          CaptureOverrides.fieldsSet(values) == 0 ? null : values;
+      final stream = automatic
+          ? startAutomaticCapture(settings: settings)
+          : startManualCapture(settings: settings);
       await for (final event in stream) {
         switch (event) {
           case CaptureStatus(:final description):
@@ -485,6 +525,21 @@ class _CapturePageState extends State<CapturePage> {
             // Structured check results: the status line before it already
             // shows the check; this page does not use them.
             break;
+          case CaptureInstruction():
+            // The head turn: the strip shows it until DONE.
+            setState(() => _instruction =
+                event.kind == InstructionKind.DONE ? null : event);
+          case CaptureSettingsReport(:final values):
+            // The settings this capture runs with, first in the stream: the
+            // "Settings used" card, and the checklist seeded from the checks
+            // this capture really runs (an override can switch them).
+            setState(() {
+              _settingsUsed = event;
+              if (automatic) {
+                _prepareChecklist(values);
+                _timedRunHasOfiq = values.ofiqChecks || values.icaoReport;
+              }
+            });
         }
       }
       if (_photos.isEmpty) {
@@ -493,11 +548,19 @@ class _CapturePageState extends State<CapturePage> {
       // Photos accumulate in the store (last few captures) so the Face
       // recognition page can compare across captures.
       PhotoStore.addCapture(_photos);
+    } on PerCaptureSettingsNotSupported {
+      // An older server refused the overrides before it started; the panel
+      // keeps its values.
+      setState(() =>
+          _message = 'This server does not support per-capture settings');
     } catch (e) {
       setState(() => _message = 'Capture failed: ${operatorMessage(e)}');
     } finally {
       _finishTiming();
-      setState(() => _capturing = false);
+      setState(() {
+        _capturing = false;
+        _instruction = null;
+      });
     }
   }
 
@@ -538,7 +601,9 @@ class _CapturePageState extends State<CapturePage> {
 
     if (_timedRunHasOfiq || _tOfiq != null) {
       rows.add((
-        (SettingsState.current?.icaoReport ?? false)
+        // The checklist's mode: from the settings used when the server sent
+        // them (an override can switch the report), else the kiosk's.
+        _icaoMode
             ? 'ICAO report (OFIQ scoring)'
             : 'OFIQ scoring',
         _tPhoto!,
@@ -628,7 +693,9 @@ class _CapturePageState extends State<CapturePage> {
           // left: capture buttons + photo
           Expanded(
             flex: 48,
-            child: Column(children: [
+            // The panel's fields scroll in a share of the height, so a small
+            // window keeps room for the photo.
+            child: LayoutBuilder(builder: (context, constraints) => Column(children: [
               SectionCard(
                 title: 'Capture',
                 titleLeading: const DevInfoBadge('capture'),
@@ -645,18 +712,52 @@ class _CapturePageState extends State<CapturePage> {
                           text: 'Manual',
                           onPressed:
                               _capturing ? null : () => _capture(false))),
+                  // While the panel holds overrides, so a test capture is
+                  // never mistaken for a normal one.
+                  ValueListenableBuilder<int>(
+                    valueListenable: CaptureOverrides.revision,
+                    builder: (context, _, _) {
+                      final n = CaptureOverrides.count;
+                      if (n == 0) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: pill(T.titleBlue,
+                            '$n ${n == 1 ? 'override' : 'overrides'}',
+                            key: const ValueKey('override-badge')),
+                      );
+                    },
+                  ),
                   const SizedBox(width: 12),
                   // Empties the page between two customers; not while a
                   // capture is still filling it.
                   SizedBox(
                     height: 50,
                     child: QuietButton(
+                        key: const ValueKey('capture-clear'),
                         text: 'Clear',
                         width: 96,
                         onPressed: _capturing ? null : _clear),
                   ),
                 ]),
               ),
+              const SizedBox(height: 14),
+              SectionCard(
+                title: 'Only for this capture',
+                titleLeading: const DevInfoBadge('capture-overrides'),
+                shrinkWrap: true,
+                child: OverridesPanel(
+                    fieldsMaxHeight:
+                        (constraints.maxHeight * 0.22).clamp(96.0, 220.0)),
+              ),
+              if (_instruction != null) ...[
+                const SizedBox(height: 14),
+                SectionCard(
+                  title: 'Head turn',
+                  titleLeading: const DevInfoBadge('capture-instruction'),
+                  shrinkWrap: true,
+                  child: HeadTurnStrip(instruction: _instruction!),
+                ),
+              ],
               const SizedBox(height: 14),
               Expanded(
                 child: SectionCard(
@@ -672,26 +773,86 @@ class _CapturePageState extends State<CapturePage> {
                 child: _buildTimingCard(),
               ),
               ErrorLine(_message),
-            ]),
+            ])),
           ),
           const SizedBox(width: 14),
           // right: results
           Expanded(
             flex: 52,
-            child: SectionCard(
-              title: 'Capture results',
-              titleLeading: const DevInfoBadge('capture-results'),
-              child: Expanded(
-                child: ListView.separated(
-                  itemCount: _results.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (_, i) => _buildResultRow(_shownResults[i]),
+            child: Column(children: [
+              Expanded(
+                child: SectionCard(
+                  title: 'Capture results',
+                  titleLeading: const DevInfoBadge('capture-results'),
+                  child: Expanded(
+                    child: ListView.separated(
+                      itemCount: _results.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (_, i) => _buildResultRow(_shownResults[i]),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              if (_settingsUsed case final used?) ...[
+                const SizedBox(height: 14),
+                SectionCard(
+                  title: 'Settings used',
+                  titleLeading: const DevInfoBadge('capture-overrides'),
+                  shrinkWrap: true,
+                  child: _buildSettingsUsed(used),
+                ),
+              ],
+            ]),
           ),
         ],
       ),
+    );
+  }
+
+  /// Every field of the capture's settings-used report with its value; the
+  /// fields that came from the "Only for this capture" panel carry a blue ◆
+  /// (deliberately not the column profile's orange ●).
+  Widget _buildSettingsUsed(CaptureSettingsReport used) {
+    final overridden = used.overridden.toSet();
+    Widget entry(OverrideField f) =>
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          if (overridden.contains(f.name)) ...[
+            Text('◆',
+                key: ValueKey('override-mark-${f.name}'),
+                style: const TextStyle(color: T.titleBlue, fontSize: 12)),
+            const SizedBox(width: 4),
+          ],
+          Text(f.label, style: const TextStyle(color: T.muted, fontSize: 12.5)),
+          const SizedBox(width: 6),
+          Text(overrideValueText(used.values.getField(f.number)),
+              style: const TextStyle(
+                  color: T.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
+        ]);
+
+    return Column(
+      key: const ValueKey('settings-used'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Capped and scrolled, so the 26 entries of an automatic capture do
+        // not squeeze the results list above.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 120),
+          child: SingleChildScrollView(
+            primary: false,
+            child: Wrap(spacing: 18, runSpacing: 4, children: [
+              // The fields the report carries: 26 automatic, 4 manual.
+              for (final f in overrideFields)
+                if (used.values.hasField(f.number)) entry(f),
+            ]),
+          ),
+        ),
+        if (overridden.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('◆ only for this capture (from the panel)',
+                style: TextStyle(color: T.titleBlue, fontSize: 12)),
+          ),
+      ],
     );
   }
 

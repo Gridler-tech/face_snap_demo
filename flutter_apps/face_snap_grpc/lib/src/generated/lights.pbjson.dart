@@ -91,13 +91,26 @@ const BacklightRequest$json = {
       '10': 'backlight'
     },
     {'1': 'on', '3': 2, '4': 1, '5': 8, '10': 'on'},
+    {
+      '1': 'percent',
+      '3': 3,
+      '4': 1,
+      '5': 5,
+      '9': 0,
+      '10': 'percent',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_percent'},
   ],
 };
 
 /// Descriptor for `BacklightRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List backlightRequestDescriptor = $convert.base64Decode(
     'ChBCYWNrbGlnaHRSZXF1ZXN0Ei8KCWJhY2tsaWdodBgBIAEoDjIRLmxpZ2h0cy5CYWNrbGlnaH'
-    'RSCWJhY2tsaWdodBIOCgJvbhgCIAEoCFICb24=');
+    'RSCWJhY2tsaWdodBIOCgJvbhgCIAEoCFICb24SHQoHcGVyY2VudBgDIAEoBUgAUgdwZXJjZW50'
+    'iAEBQgoKCF9wZXJjZW50');
 
 @$core.Deprecated('Use backlightStatusDescriptor instead')
 const BacklightStatus$json = {
@@ -106,6 +119,17 @@ const BacklightStatus$json = {
     {'1': 'connected', '3': 1, '4': 1, '5': 8, '10': 'connected'},
     {'1': 'backlight_bottom', '3': 2, '4': 1, '5': 8, '10': 'backlightBottom'},
     {'1': 'backlight_top', '3': 3, '4': 1, '5': 8, '10': 'backlightTop'},
+    {'1': 'source', '3': 4, '4': 1, '5': 9, '10': 'source'},
+    {'1': 'bottom_percent', '3': 5, '4': 1, '5': 5, '10': 'bottomPercent'},
+    {'1': 'top_percent', '3': 6, '4': 1, '5': 5, '10': 'topPercent'},
+    {
+      '1': 'brightness',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.lights.BacklightBrightness',
+      '10': 'brightness'
+    },
   ],
 };
 
@@ -113,4 +137,59 @@ const BacklightStatus$json = {
 final $typed_data.Uint8List backlightStatusDescriptor = $convert.base64Decode(
     'Cg9CYWNrbGlnaHRTdGF0dXMSHAoJY29ubmVjdGVkGAEgASgIUgljb25uZWN0ZWQSKQoQYmFja2'
     'xpZ2h0X2JvdHRvbRgCIAEoCFIPYmFja2xpZ2h0Qm90dG9tEiMKDWJhY2tsaWdodF90b3AYAyAB'
-    'KAhSDGJhY2tsaWdodFRvcA==');
+    'KAhSDGJhY2tsaWdodFRvcBIWCgZzb3VyY2UYBCABKAlSBnNvdXJjZRIlCg5ib3R0b21fcGVyY2'
+    'VudBgFIAEoBVINYm90dG9tUGVyY2VudBIfCgt0b3BfcGVyY2VudBgGIAEoBVIKdG9wUGVyY2Vu'
+    'dBI7CgpicmlnaHRuZXNzGAcgAygLMhsubGlnaHRzLkJhY2tsaWdodEJyaWdodG5lc3NSCmJyaW'
+    'dodG5lc3M=');
+
+@$core.Deprecated('Use backlightBrightnessDescriptor instead')
+const BacklightBrightness$json = {
+  '1': 'BacklightBrightness',
+  '2': [
+    {'1': 'light', '3': 1, '4': 1, '5': 9, '10': 'light'},
+    {'1': 'bottom', '3': 2, '4': 1, '5': 5, '10': 'bottom'},
+    {'1': 'top', '3': 3, '4': 1, '5': 5, '10': 'top'},
+  ],
+};
+
+/// Descriptor for `BacklightBrightness`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backlightBrightnessDescriptor = $convert.base64Decode(
+    'ChNCYWNrbGlnaHRCcmlnaHRuZXNzEhQKBWxpZ2h0GAEgASgJUgVsaWdodBIWCgZib3R0b20YAi'
+    'ABKAVSBmJvdHRvbRIQCgN0b3AYAyABKAVSA3RvcA==');
+
+@$core.Deprecated('Use backlightBrightnessRequestDescriptor instead')
+const BacklightBrightnessRequest$json = {
+  '1': 'BacklightBrightnessRequest',
+  '2': [
+    {'1': 'light', '3': 1, '4': 1, '5': 9, '10': 'light'},
+    {'1': 'bottom', '3': 2, '4': 1, '5': 5, '10': 'bottom'},
+    {'1': 'top', '3': 3, '4': 1, '5': 5, '10': 'top'},
+  ],
+};
+
+/// Descriptor for `BacklightBrightnessRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backlightBrightnessRequestDescriptor =
+    $convert.base64Decode(
+        'ChpCYWNrbGlnaHRCcmlnaHRuZXNzUmVxdWVzdBIUCgVsaWdodBgBIAEoCVIFbGlnaHQSFgoGYm'
+        '90dG9tGAIgASgFUgZib3R0b20SEAoDdG9wGAMgASgFUgN0b3A=');
+
+@$core.Deprecated('Use backlightBrightnessResponseDescriptor instead')
+const BacklightBrightnessResponse$json = {
+  '1': 'BacklightBrightnessResponse',
+  '2': [
+    {
+      '1': 'brightness',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.lights.BacklightBrightness',
+      '10': 'brightness'
+    },
+  ],
+};
+
+/// Descriptor for `BacklightBrightnessResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List backlightBrightnessResponseDescriptor =
+    $convert.base64Decode(
+        'ChtCYWNrbGlnaHRCcmlnaHRuZXNzUmVzcG9uc2USOwoKYnJpZ2h0bmVzcxgBIAEoCzIbLmxpZ2'
+        'h0cy5CYWNrbGlnaHRCcmlnaHRuZXNzUgpicmlnaHRuZXNz');

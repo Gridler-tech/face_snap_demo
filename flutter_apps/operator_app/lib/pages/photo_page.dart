@@ -31,9 +31,10 @@ const _backgroundMethods = [
   ('mediapipe', 'MediaPipe (fastest)'),
   ('modnet', 'MODNet (portrait matting)'),
   ('withoutbg', 'withoutBG (best quality, slower)'),
+  ('gridler', 'Gridler eraser'),
 ];
 
-/// The retired fourth method. A server from before the withoutBG change still
+/// The retired method. A server from before the withoutBG change still
 /// reports it (and does not know 'withoutbg'), so it is listed only while it is
 /// the server's current value.
 const _legacyRembg = ('rembg', 'rembg (older server)');
@@ -43,6 +44,18 @@ List<(String, String)> backgroundMethodEntries(String current) => [
       ..._backgroundMethods,
       if (current == _legacyRembg.$1) _legacyRembg,
     ];
+
+/// The models the "Load at server start" card offers (kiosk setting
+/// capture_warm_up), as shown after its "None" chip; the list is sent in the
+/// server's own order ([_warmUpOrder]). "None" is not a server item: it is the
+/// empty list (the default), selected exactly when no model is ticked.
+const _warmUpItems = [
+  ('withoutbg', 'withoutBG'),
+  ('modnet', 'MODNet'),
+  ('gridler', 'Gridler eraser'),
+  ('ofiq', 'OFIQ'),
+];
+const _warmUpOrder = ['modnet', 'withoutbg', 'gridler', 'ofiq'];
 
 /// What each erasing strength does (shown next to the 1-5 selector).
 const _strengthHints = {
@@ -73,11 +86,12 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
   late Map<String, bool> _checks;
   late bool _ofiqChecks;
   late bool _icaoReport;
-  // Live person check: the master switch (depth check over the selection scan)
-  // and the two optional light checks on top of it.
+  // Live person check: the master switch (the depth and the face-angle check
+  // over the selection scan) and the head turn under it.
   late bool _livenessCheck;
-  late bool _livenessShading;
-  late bool _livenessColour;
+  late bool _livenessHeadTurn;
+  // The models the server loads at its start (capture_warm_up).
+  late List<String> _warmUp;
 
   // The snapshot the local fields were read from; re-read when the shared
   // snapshot is replaced (connect after boot, server change).
@@ -119,8 +133,8 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     _ofiqChecks = s.ofiqChecks;
     _icaoReport = s.icaoReport;
     _livenessCheck = s.livenessCheck;
-    _livenessShading = s.livenessShadingCheck;
-    _livenessColour = s.livenessColourCheck;
+    _livenessHeadTurn = s.livenessHeadTurnCheck;
+    _warmUp = s.captureWarmUp.toList();
     _checks = {
       'Eyes open': s.eyesCheck,
       'Lips closed': s.lipsCheck,
@@ -174,8 +188,9 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
   }
 
   /// Send the erasing method; roll the dropdown back when the server refuses (an
-  /// older server does not know 'withoutbg'). The server's reply is what was set:
-  /// a current server answers 'withoutbg' when asked for the retired 'rembg'.
+  /// older server does not know 'withoutbg' or 'gridler'). The server's reply is
+  /// what was set: a current server answers 'withoutbg' when asked for the
+  /// retired 'rembg'.
   Future<void> _setBackgroundMethod(String code) async {
     final before = _backgroundMethod;
     setState(() => _backgroundMethod = code);
@@ -226,6 +241,49 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     }
   }
 
+  /// Add [item] to the warm-up list or take it off, and send the whole list.
+  Future<void> _setWarmUp(String item, bool on) => _sendWarmUp([
+        for (final i in _warmUpOrder)
+          if (i == item ? on : _warmUp.contains(i)) i,
+      ]);
+
+  /// The "None" chip: an empty list unticks every model. Already empty (None
+  /// is selected): nothing to send, None stays selected.
+  Future<void> _clearWarmUp() async {
+    if (_warmUp.isEmpty) return;
+    await _sendWarmUp(const []);
+  }
+
+  /// Send the whole warm-up list [next]; roll the chips back when the server
+  /// refuses (an older server does not know the setting). The server's answer
+  /// is the stored list.
+  Future<void> _sendWarmUp(List<String> next) async {
+    final before = _warmUp;
+    setState(() => _warmUp = next);
+    try {
+      final r = await _client
+          .setCaptureWarmUp(CaptureWarmUpRequest(items: next));
+      final stored = r.items.toList();
+      // Keep the shared snapshot in step (pages seed from it).
+      SettingsState.current?.captureWarmUp
+        ?..clear()
+        ..addAll(stored);
+      if (mounted) {
+        setState(() {
+          _warmUp = stored;
+          message = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _warmUp = before;
+          message = 'Server call failed: ${operatorMessage(e)}';
+        });
+      }
+    }
+  }
+
   Color _swatchColor() => hexToColor(
       _backgroundColor.text.trim().replaceFirst('#', ''),
       fallback: Colors.transparent);
@@ -247,6 +305,11 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
             title: 'Quality checks',
             titleLeading: const DevInfoBadge('quality-checks'),
             child: _buildChecks()),
+        const SizedBox(height: 14),
+        SectionCard(
+            title: 'Load at server start',
+            titleLeading: const DevInfoBadge('capture-warm-up'),
+            child: _buildWarmUp()),
         ErrorLine(message),
       ]),
     );
@@ -408,6 +471,39 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
     ]);
   }
 
+  /// The "Load at server start" chips: models the server loads in the
+  /// background at its start (and at once when ticked), so the first capture
+  /// that needs one does not wait for it. "None" (the default) is selected
+  /// exactly when no model is ticked; tapping it unticks them all.
+  Widget _buildWarmUp() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Wrap(spacing: 10, children: [
+        FilterChip(
+          key: const ValueKey('warm-up-none'),
+          label: const Text('None'),
+          selected: _warmUp.isEmpty,
+          onSelected: (_) => _clearWarmUp(),
+        ),
+        for (final (item, label) in _warmUpItems)
+          FilterChip(
+            key: ValueKey('warm-up-$item'),
+            label: Text(label),
+            selected: _warmUp.contains(item),
+            onSelected: (on) => _setWarmUp(item, on),
+          ),
+      ]),
+      const SizedBox(height: 8),
+      const Text(
+          'For a kiosk whose captures switch the background method or the OFIQ / '
+          'ICAO report: a model not loaded yet costs its first capture a few '
+          'seconds (OFIQ about 8 s). A ticked model is loaded at once and at '
+          'every server start, and stays in memory whether it is used or not '
+          '(mind the memory on an Odroid). None, the default, loads nothing '
+          'extra.',
+          style: TextStyle(color: T.muted, fontSize: 12)),
+    ]);
+  }
+
   /// Mirror a check-toggle change into the shared settings snapshot.
   void _syncCheckToSnapshot(String label, bool v) {
     final s = SettingsState.current;
@@ -457,23 +553,22 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
           .setLightingEvennessCheck(LightingEvennessCheckRequest(value: v)),
   };
 
-  /// The live person check switches. The depth check is part of the master
-  /// switch; the light checks only run with it on, so their switches are
-  /// disabled without it (the stored values stay, the server keeps them too).
+  /// The live person check switches. The master switch runs the depth and the
+  /// face-angle check over the camera scan, both informational; the head turn
+  /// only runs with it on, so its switch is disabled without it (the stored
+  /// value stays, the server keeps it too). Both go in ONE SetLivenessChecks
+  /// call; head_turn_check is always sent, so a false arrives as a present false.
   List<Widget> _livenessRows() {
     void send() {
       final request = LivenessChecksRequest(
-          livenessCheck: _livenessCheck,
-          shadingCheck: _livenessShading,
-          colourCheck: _livenessColour);
+          livenessCheck: _livenessCheck, headTurnCheck: _livenessHeadTurn);
       final s = SettingsState.current;
       s?.livenessCheck = _livenessCheck;
-      s?.livenessShadingCheck = _livenessShading;
-      s?.livenessColourCheck = _livenessColour;
+      s?.livenessHeadTurnCheck = _livenessHeadTurn;
       runServerCall(() => _client.setLivenessChecks(request));
     }
 
-    Widget lightRow(String label, String hint, bool value, void Function(bool) set) {
+    Widget optionRow(String label, String hint, bool value, void Function(bool) set) {
       return Padding(
         padding: const EdgeInsets.only(left: 28),
         child: Row(children: [
@@ -506,20 +601,15 @@ class _PhotoPageState extends State<PhotoPage> with ServerCallState {
         const SizedBox(width: 10),
         const Expanded(
             child: RowLabel(
-                'Live person check (depth measured over the camera scan; informational)')),
+                'Live person check (depth and face angle measured over the camera scan; informational)')),
       ]),
-      lightRow(
-          'Shading check: the LEDs above and below the camera light the face in turn',
-          'A flat picture, on paper or on a screen, shows no shading change. '
-              'Needs the LED board; adds about half a second after the photo.',
-          _livenessShading,
-          (v) => _livenessShading = v),
-      lightRow(
-          'Colour check: one yellow flash of the LEDs',
-          'Skin follows the colour, a screen does not. Needs the LED board; '
-              'adds about half a second after the photo.',
-          _livenessColour,
-          (v) => _livenessColour = v),
+      optionRow(
+          'Head turn: the person turns the head to the left and to the right',
+          'A printed photo or a still image cannot. The kiosk screen and the LED '
+              'column show the turns; adds about 3-4 s before the photo (up to '
+              'about 20 s when the person does not turn).',
+          _livenessHeadTurn,
+          (v) => _livenessHeadTurn = v),
     ];
   }
 

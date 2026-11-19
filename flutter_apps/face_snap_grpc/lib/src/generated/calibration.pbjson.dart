@@ -153,3 +153,59 @@ final $typed_data.Uint8List personCalibrationResponseDescriptor = $convert.base6
     'oHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZRI+CgdjYW1lcmFzGAMgAygLMiQuY2FsaWJyYXRpb24u'
     'UGVyc29uQ2FsaWJyYXRpb25DYW1lcmFSB2NhbWVyYXMSFgoGcm91bmRzGAQgASgFUgZyb3VuZH'
     'M=');
+
+@$core.Deprecated('Use surroundingsCalibrationCameraDescriptor instead')
+const SurroundingsCalibrationCamera$json = {
+  '1': 'SurroundingsCalibrationCamera',
+  '2': [
+    {'1': 'id_model_id', '3': 1, '4': 1, '5': 9, '10': 'idModelId'},
+    {
+      '1': 'linux_camera_index',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'linuxCameraIndex'
+    },
+    {
+      '1': 'proposed_position',
+      '3': 3,
+      '4': 1,
+      '5': 5,
+      '10': 'proposedPosition'
+    },
+    {'1': 'offset', '3': 4, '4': 1, '5': 1, '10': 'offset'},
+  ],
+};
+
+/// Descriptor for `SurroundingsCalibrationCamera`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List surroundingsCalibrationCameraDescriptor = $convert.base64Decode(
+    'Ch1TdXJyb3VuZGluZ3NDYWxpYnJhdGlvbkNhbWVyYRIeCgtpZF9tb2RlbF9pZBgBIAEoCVIJaW'
+    'RNb2RlbElkEiwKEmxpbnV4X2NhbWVyYV9pbmRleBgCIAEoBVIQbGludXhDYW1lcmFJbmRleBIr'
+    'ChFwcm9wb3NlZF9wb3NpdGlvbhgDIAEoBVIQcHJvcG9zZWRQb3NpdGlvbhIWCgZvZmZzZXQYBC'
+    'ABKAFSBm9mZnNldA==');
+
+@$core.Deprecated('Use surroundingsCalibrationResponseDescriptor instead')
+const SurroundingsCalibrationResponse$json = {
+  '1': 'SurroundingsCalibrationResponse',
+  '2': [
+    {'1': 'success', '3': 1, '4': 1, '5': 8, '10': 'success'},
+    {'1': 'message', '3': 2, '4': 1, '5': 9, '10': 'message'},
+    {
+      '1': 'cameras',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.calibration.SurroundingsCalibrationCamera',
+      '10': 'cameras'
+    },
+    {'1': 'rounds', '3': 4, '4': 1, '5': 5, '10': 'rounds'},
+  ],
+};
+
+/// Descriptor for `SurroundingsCalibrationResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List surroundingsCalibrationResponseDescriptor =
+    $convert.base64Decode(
+        'Ch9TdXJyb3VuZGluZ3NDYWxpYnJhdGlvblJlc3BvbnNlEhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2'
+        'Nlc3MSGAoHbWVzc2FnZRgCIAEoCVIHbWVzc2FnZRJECgdjYW1lcmFzGAMgAygLMiouY2FsaWJy'
+        'YXRpb24uU3Vycm91bmRpbmdzQ2FsaWJyYXRpb25DYW1lcmFSB2NhbWVyYXMSFgoGcm91bmRzGA'
+        'QgASgFUgZyb3VuZHM=');

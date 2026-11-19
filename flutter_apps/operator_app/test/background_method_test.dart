@@ -1,22 +1,26 @@
-// The Photo page's "Background erasing" dropdown after withoutBG replaced rembg:
-// the new method is offered, the retired one only while an older server reports
-// it, the server's answer is what the page keeps, and a refused change rolls back.
+// The Photo page's "Background erasing" dropdown after withoutBG replaced rembg
+// and the Gridler eraser joined as the fourth eraser: the new methods are
+// offered, the retired one only while an older server reports it, the server's
+// answer is what the page keeps, and a refused change rolls back.
 // Against an in-process fake Settings server over a real loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/photo_page.dart';
 import 'package:operator_app/services/settings_state.dart';
 import 'package:operator_app/updater/settings_profile.dart';
 
+import 'fake_server.dart';
+
 class _FakeSettings extends SettingsServiceBase {
-  _FakeSettings({required this.knowsWithoutBg});
+  _FakeSettings({required this.knowsWithoutBg, this.knowsGridler = true});
 
   /// false = a server from before the change: it refuses 'withoutbg'.
   final bool knowsWithoutBg;
+
+  /// false = a server from before the Gridler eraser: it refuses 'gridler'.
+  final bool knowsGridler;
   final List<String> methodCalls = [];
 
   @override
@@ -26,6 +30,10 @@ class _FakeSettings extends SettingsServiceBase {
     if (!knowsWithoutBg && request.method == 'withoutbg') {
       throw GrpcError.invalidArgument(
           'background method should be one of none, mediapipe, modnet, rembg');
+    }
+    if (!knowsGridler && request.method == 'gridler') {
+      throw GrpcError.invalidArgument('background method should be one of '
+          'none, mediapipe, modnet, withoutbg');
     }
     // A current server stores and reports the retired name as its replacement.
     final set = knowsWithoutBg && request.method == 'rembg'
@@ -57,15 +65,15 @@ List<String> _values(WidgetTester tester) =>
     [for (final e in _dropdown(tester).dropdownMenuEntries) e.value];
 
 Future<_FakeSettings> _pump(WidgetTester tester, String method,
-    {bool knowsWithoutBg = true}) async {
+    {bool knowsWithoutBg = true, bool knowsGridler = true}) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
 
-  final fake = _FakeSettings(knowsWithoutBg: knowsWithoutBg);
-  final server = Server.create(services: [fake]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final fake =
+      _FakeSettings(knowsWithoutBg: knowsWithoutBg, knowsGridler: knowsGridler);
+  final server = await serveFakes([fake]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
 
@@ -85,10 +93,10 @@ Future<void> _select(WidgetTester tester, String code) async {
 void main() {
   test('entries: withoutBG replaces rembg, rembg only for an older server', () {
     expect([for (final e in backgroundMethodEntries('modnet')) e.$1],
-        ['none', 'mediapipe', 'modnet', 'withoutbg']);
+        ['none', 'mediapipe', 'modnet', 'withoutbg', 'gridler']);
     expect([for (final e in backgroundMethodEntries('rembg')) e.$1],
-        ['none', 'mediapipe', 'modnet', 'withoutbg', 'rembg']);
-    expect(backgroundMethodEntries('modnet').last.$2,
+        ['none', 'mediapipe', 'modnet', 'withoutbg', 'gridler', 'rembg']);
+    expect(backgroundMethodEntries('modnet')[3].$2,
         'withoutBG (best quality, slower)');
   });
 
@@ -97,7 +105,8 @@ void main() {
     await tester.runAsync(() async {
       final fake = await _pump(tester, 'withoutbg');
       expect(_dropdown(tester).initialSelection, 'withoutbg');
-      expect(_values(tester), ['none', 'mediapipe', 'modnet', 'withoutbg']);
+      expect(_values(tester),
+          ['none', 'mediapipe', 'modnet', 'withoutbg', 'gridler']);
 
       await _select(tester, 'modnet');
       expect(fake.methodCalls, ['modnet']);
@@ -125,6 +134,47 @@ void main() {
       expect(SettingsState.current!.backgroundMethod, 'rembg');
       expect(find.textContaining('Server call failed'), findsOneWidget);
     });
+  });
+
+  testWidgets('offers Gridler eraser and sends gridler', (tester) async {
+    await tester.runAsync(() async {
+      final fake = await _pump(tester, 'modnet');
+      final entry = _dropdown(tester)
+          .dropdownMenuEntries
+          .singleWhere((e) => e.value == 'gridler');
+      expect(entry.label, 'Gridler eraser');
+
+      await _select(tester, 'gridler');
+      expect(fake.methodCalls, ['gridler']);
+      expect(_dropdown(tester).initialSelection, 'gridler');
+      expect(SettingsState.current!.backgroundMethod, 'gridler');
+      expect(find.textContaining('Server call failed'), findsNothing);
+    });
+  });
+
+  testWidgets('refused gridler rolls back', (tester) async {
+    await tester.runAsync(() async {
+      // A server from before the Gridler eraser refuses 'gridler'.
+      final fake = await _pump(tester, 'withoutbg', knowsGridler: false);
+      expect(_values(tester), contains('gridler'));
+
+      await _select(tester, 'gridler');
+
+      expect(fake.methodCalls, ['gridler']);
+      expect(_dropdown(tester).initialSelection, 'withoutbg');
+      expect(SettingsState.current!.backgroundMethod, 'withoutbg');
+      expect(find.textContaining('Server call failed'), findsOneWidget);
+    });
+  });
+
+  test('settings profile accepts gridler', () {
+    String profile(String method) => '{"profile": "t", "kiosk_settings": '
+        '{"kiosk": {"background_method": "$method"}}}';
+    expect(SettingsProfile.parse(profile('gridler')).name, 't');
+    expect(
+        () => SettingsProfile.parse(profile('isnet')),
+        throwsA(isA<FormatException>().having((e) => e.message, 'message',
+            contains('none, mediapipe, modnet, withoutbg, gridler'))));
   });
 
   test('settings profile accepts withoutbg and the retired rembg', () {

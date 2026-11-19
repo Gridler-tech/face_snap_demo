@@ -1,6 +1,8 @@
 // The kiosk contract: the facts about a FaceSnap board's on-disk layout and
 // naming that the engines and "Get server info" rely on. Single source —
 // callers interpolate these instead of restating them per file.
+import 'package:face_snap_grpc/face_snap_grpc.dart' show LocalServerConfig;
+
 import 'settings_profile.dart';
 import '../services/ssh_runner.dart';
 
@@ -128,8 +130,12 @@ bool isLegacyCompose(String composeText) =>
     !RegExp(r'^\s*-\s*\./data:/data\s*$', multiLine: true)
         .hasMatch(composeText);
 
+/// Prints [image]'s environment as a JSON list of "NAME=value" strings.
+String imageEnvCmd(String image) =>
+    "docker inspect --format '{{json .Config.Env}}' $image";
+
 /// True when an image belongs to the data/ generations. [imageEnv] is the
-/// output of `docker inspect --format '{{json .Config.Env}}' <image>`.
+/// output of [imageEnvCmd].
 bool imageUsesDataDir(String imageEnv) =>
     imageEnv.contains('FACE_SNAP_DATA_DIR');
 
@@ -139,13 +145,21 @@ String legacySettingsSeed(String fileName) =>
     fileName == 'light_settings.json' ? '[]' : '{}';
 
 /// docker-compose.yml for the data/ generations (Python 1.1.x, Server 2.0).
-String composeTemplate(String imageTag) => '''
+/// [port] is the host side of the gRPC mapping; [containerPort] (default
+/// [port]) the side the server inside binds — 50051 for an image that cannot
+/// read the port file (see server_port.dart).
+String composeTemplate(
+  String imageTag, {
+  int port = LocalServerConfig.defaultPort,
+  int? containerPort,
+}) =>
+    '''
 services:
   face_snap:
     image: $imageTag
     restart: always
     ports:
-      - "50051:50051"
+      - "$port:${containerPort ?? port}"
     volumes:
       # All mutable data (settings JSONs, logs, numba cache) lives here - the
       # image sets FACE_SNAP_DATA_DIR=/data. Survives image updates.
@@ -161,7 +175,13 @@ services:
 
 /// docker-compose.yml for a first-generation image on a board that has no
 /// parked legacy compose file to restore (mirrors the 2025 original).
-String legacyComposeTemplate(String imageTag) => '''
+/// [port] / [containerPort] as for [composeTemplate].
+String legacyComposeTemplate(
+  String imageTag, {
+  int port = LocalServerConfig.defaultPort,
+  int? containerPort,
+}) =>
+    '''
 services:
   face_snap:
     image: $imageTag
@@ -172,7 +192,7 @@ services:
       - PYTHONPATH=/usr/local/lib/python3.8/dist-packages:/usr/local/lib/python3.8/site-packages
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     ports:
-      - "50051:50051"
+      - "$port:${containerPort ?? port}"
     volumes:
       # First-generation layout: the settings files live next to this file and
       # are mounted into the server folder one by one.
@@ -275,14 +295,32 @@ List<({int bytes, String path})> parseLeftoverTars(String findOutput) {
   return out;
 }
 
-/// Config backup: tgz of data/ plus the compose file (tolerating either being
-/// absent on a partial installation), downloaded to [localPath] on this
-/// machine; the staging tgz on the board is removed again.
-Future<void> backupKioskConfigTo(SshRunner ssh, String localPath) async {
+/// What a configuration backup archives, relative to [kKioskDir]: data/
+/// (every later generation), the compose file, and the first-generation
+/// settings files next to it (FL-8) — whichever exist.
+const kConfigBackupMembers = ['data', 'docker-compose.yml', ...kSettingsFiles];
+
+/// The [kConfigBackupMembers] present on the board, in that order.
+Future<List<String>> configBackupMembersOn(SshRunner ssh) async {
+  final ls = await ssh.run(
+      'cd $kKioskDir && ls -d ${kConfigBackupMembers.join(' ')} 2>/dev/null');
+  final present = ls.stdout.split('\n').map((l) => l.trim()).toSet();
+  return [
+    for (final m in kConfigBackupMembers)
+      if (present.contains(m)) m,
+  ];
+}
+
+/// Config backup: tgz of whichever [kConfigBackupMembers] exist (data/ and
+/// the compose file, or a first-generation board's settings files next to
+/// it), downloaded to [localPath] on this machine; the staging tgz on the
+/// board is removed again. False (nothing downloaded) when none exists.
+Future<bool> backupKioskConfigTo(SshRunner ssh, String localPath) async {
+  final members = await configBackupMembersOn(ssh);
+  if (members.isEmpty) return false;
   await ssh.runChecked(
-      'cd $kKioskDir && tar czf $kConfigBackupTgz --ignore-failed-read '
-      'data docker-compose.yml 2>/dev/null || '
-      'tar czf $kConfigBackupTgz --ignore-failed-read data');
+      'cd $kKioskDir && tar czf $kConfigBackupTgz ${members.join(' ')}');
   await ssh.downloadFile(kConfigBackupTgz, localPath);
   await ssh.run('rm -f $kConfigBackupTgz');
+  return true;
 }

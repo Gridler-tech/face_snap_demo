@@ -2,15 +2,32 @@ import 'dart:io';
 
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 
+/// The FaceSnapServer service's state as `Get-Service` reports it; anything
+/// else (no service, an empty answer, Paused, …) is [unknown].
+enum ServiceState { running, stopped, startPending, stopPending, unknown }
+
 /// Local FaceSnap server control (Windows): status, start/stop and the
 /// start-at-logon shortcut — the Dart port of the C# ServerProcessManager +
 /// ServerAutostart helpers. Only meaningful when the app runs on the kiosk
 /// machine itself (server on localhost).
+///
+/// From 1.1.25 the installer registers the server as the Windows service
+/// [serviceName]; [start] and [stop] then drive the service instead of the
+/// exe. No elevation is needed: the service's security descriptor lets
+/// Authenticated Users start and stop it, and the stop event's lets them set
+/// it. Older installs keep the exe and logon-shortcut paths.
 class ServerManager {
   ServerManager._();
 
   static const exePath = r'C:\Program Files\FaceSnapServer\face_snap_server.exe';
   static const _shortcutName = 'FaceSnap Server.lnk';
+
+  static const serviceName = 'FaceSnapServer';
+
+  /// The manual-reset event the server waits on (server/stop_event.py);
+  /// setting it runs the server's normal shutdown (lights off, settings
+  /// saved, the LED board to its waiting pattern), then the server exits.
+  static const stopEventName = r'Global\FaceSnapServerStop';
 
   /// Whether the local server exe is installed. Computed once — build()
   /// consults it on every rebuild, and a stat per rebuild is UI-thread I/O.
@@ -32,21 +49,116 @@ class ServerManager {
     return out.toLowerCase() == 'true';
   }
 
+  static String get serviceExistsCommand =>
+      'if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { "True" } else { "False" }';
+
+  static String get serviceStateCommand =>
+      '(Get-Service -Name $serviceName -ErrorAction SilentlyContinue).Status';
+
+  static String get serviceStartCommand => 'Start-Service -Name $serviceName';
+
+  static String get serviceStopCommand => 'Stop-Service -Name $serviceName';
+
+  /// Sets [stopEventName]; prints "signalled", or "no stop event" when no
+  /// server has created it (none running) — never an error.
+  static String get signalStopCommand =>
+      "try { [System.Threading.EventWaitHandle]::OpenExisting('$stopEventName').Set() | Out-Null; "
+      '"signalled" } catch { "no stop event" }';
+
+  /// The [ServiceState] of a `Get-Service … .Status` answer: case-insensitive,
+  /// surrounding whitespace (PowerShell's CRLF) ignored.
+  static ServiceState parseServiceState(String out) =>
+      switch (out.trim().toLowerCase()) {
+        'running' => ServiceState.running,
+        'stopped' => ServiceState.stopped,
+        'startpending' => ServiceState.startPending,
+        'stoppending' => ServiceState.stopPending,
+        _ => ServiceState.unknown,
+      };
+
+  static Future<bool>? _serviceInstalled;
+
+  /// Whether the FaceSnapServer service exists. Asked once per app run (one
+  /// PowerShell spawn); a service installed while the app runs is noticed
+  /// after an app restart.
+  static Future<bool> serviceInstalled() => _serviceInstalled ??=
+      _powershell(serviceExistsCommand).then((out) => out.toLowerCase() == 'true');
+
+  static Future<ServiceState> serviceState() async =>
+      parseServiceState(await _powershell(serviceStateCommand));
+
+  /// The Server card's status line. [running] is whether the port listens
+  /// (null while the first probe runs); [state] is the service's state, null
+  /// without a service. A service that runs but does not listen yet (the
+  /// frozen server needs tens of seconds to boot) is starting, not "not
+  /// running".
+  static String serverStatusText(bool? running, ServiceState? state) {
+    if (running == null) return 'Checking…';
+    if (state == ServiceState.stopPending) return 'Service is stopping…';
+    if (running) return 'Server is running';
+    if (state == ServiceState.startPending || state == ServiceState.running) {
+      return 'Service is starting, port not open yet';
+    }
+    return 'Server is not running';
+  }
+
   static Future<void> start() async {
+    if (await serviceInstalled()) {
+      await _powershell(serviceStartCommand);
+      return;
+    }
     await _powershell(
         "Start-Process -FilePath '$exePath' -WindowStyle Minimized");
   }
 
-  /// Stops the server listening on [port] — and only the server. The server
+  /// Whether [port] stops listening within [limit], checked every 500 ms.
+  static Future<bool> _portClosesWithin(int port, Duration limit) async {
+    final waited = Stopwatch()..start();
+    while (waited.elapsed < limit) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!await isRunning(port)) return true;
+    }
+    return false;
+  }
+
+  /// Stops the server listening on [port] (this PC's server port,
+  /// [LocalServerConfig.port]). The backlights are switched off first, on
+  /// the same port, a safety net for a server that is killed and skips its
+  /// own shutdown.
+  ///
+  /// Service install: `Stop-Service`, never the event alone. The service's
+  /// pre-stop hook (signal_stop.ps1) sets [stopEventName] and waits for the
+  /// port itself, and NSSM then knows the exit was requested; an exit after
+  /// an event set from here would count as unexpected and NSSM would start
+  /// the server again 2 s later. Then up to 15 s for the port to close; a
+  /// port still listening after that is reported with its owner (the UI
+  /// shows "Server control failed: …"). No process is ever killed on this
+  /// path.
+  ///
+  /// Otherwise the server is first asked to shut down in order through
+  /// [stopEventName] (a 1.1.25+ server, also one run from source, creates
+  /// it; a 1.1.24 server has none and answers "no stop event" at once) and
+  /// given 10 s to close the port. A server still listening, or one without
+  /// the event, is stopped — and only the server. The server
   /// may have been started elsewhere (logon shortcut, by hand), so the port's
   /// owner is looked up rather than a process this app started; but it is
   /// killed only when its executable is [exePath]. Any other program on the
   /// port is reported (the UI shows it as "Server control failed: …") and
   /// left alone.
-  /// The windowless server is force-killed, which skips its own shutdown
-  /// steps, so the backlights are switched off first (as a normal stop does).
   static Future<void> stop(int port) async {
     await backlightsOff(port);
+    if (await serviceInstalled()) {
+      await _powershell(serviceStopCommand);
+      if (await _portClosesWithin(port, const Duration(seconds: 15))) return;
+      final owner = portOwnerConflict(await _powershell(portOwnerCommand(port)));
+      throw Exception(owner == null
+          ? 'Port $port is still listening after Stop-Service'
+          : 'Port $port is still listening after Stop-Service: $owner');
+    }
+    if (await _powershell(signalStopCommand) == 'signalled' &&
+        await _portClosesWithin(port, const Duration(seconds: 10))) {
+      return;
+    }
     final out = await _powershell(stopCommand(port));
     final other = portOwnerConflict(out);
     if (other != null) {
@@ -69,8 +181,19 @@ class ServerManager {
       "if (\$p -and \$p.Path -and \$p.Path -ieq '$exePath') { Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue } "
       'elseif (\$p) { "$_otherOwnerPrefix" + \$p.ProcessName + ":" + \$_ } } }';
 
-  /// "name (PID n)" of a port owner [stopCommand] refused to kill, or null
-  /// when every listener was the server (or nothing listened at all).
+  /// The lookup half of [stopCommand], without any kill: every listener on
+  /// [port] is reported as `OTHER:<name>:<pid>` (whatever its executable),
+  /// so [portOwnerConflict] names it. Used on a service install, where a
+  /// port still open after `Stop-Service` is reported and never touched.
+  static String portOwnerCommand(int port) =>
+      '\$c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue; '
+      'if (\$c) { \$c.OwningProcess | Sort-Object -Unique | ForEach-Object { '
+      '\$p = Get-Process -Id \$_ -ErrorAction SilentlyContinue; '
+      'if (\$p) { "$_otherOwnerPrefix" + \$p.ProcessName + ":" + \$_ } } }';
+
+  /// "name (PID n)" of the first owner in [stopCommand]'s or
+  /// [portOwnerCommand]'s output, or null when there is none (every listener
+  /// was the server [stopCommand] killed, or nothing listened at all).
   static String? portOwnerConflict(String out) {
     for (final line in out.split('\n')) {
       final l = line.trim();
@@ -146,5 +269,29 @@ class ServerManager {
           'Remove-Item (Join-Path ([Environment]::GetFolderPath("Startup")) "$_shortcutName") -ErrorAction SilentlyContinue; '
           'Remove-Item (Join-Path ([Environment]::GetFolderPath("CommonStartup")) "$_shortcutName") -ErrorAction SilentlyContinue');
     }
+  }
+
+  /// Whether the logon shortcut must go: on a service install a shortcut
+  /// (left by the old autostart switch) starts a second server at logon,
+  /// which only exits again on the single-instance lock.
+  static bool shouldRemoveLogonShortcut(
+          bool serviceInstalled, bool autostartEnabled) =>
+      serviceInstalled && autostartEnabled;
+
+  static bool _logonShortcutChecked = false;
+
+  /// On a service install, removes this user's logon shortcut if there is
+  /// one. Checked once per app run; never throws (best effort, like
+  /// [setAutostart]).
+  static Future<void> removeLogonShortcutUnderService() async {
+    if (_logonShortcutChecked) return;
+    _logonShortcutChecked = true;
+    try {
+      final service = await serviceInstalled();
+      if (!service) return;
+      if (shouldRemoveLogonShortcut(service, await isAutostartEnabled())) {
+        await setAutostart(false);
+      }
+    } catch (_) {/* the shortcut stays; harmless next to the service */}
   }
 }

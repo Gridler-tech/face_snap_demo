@@ -1,14 +1,14 @@
 // The three live person check rows (depth before the photo, shading and colour
 // after it) stay together on the Capture page, and one amber verdict among them
 // lifts the whole block (2026-10-06). Against an in-process fake Kiosk server.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/capture_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 class _FakeKiosk extends KioskServiceBase {
   _FakeKiosk(this.lines);
@@ -34,8 +34,7 @@ Future<void> _capture(WidgetTester tester, List<String> lines) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final server = Server.create(services: [_FakeKiosk(lines)]);
-  await server.serve(address: InternetAddress.loopbackIPv4, port: 0);
+  final server = await serveFakes([_FakeKiosk(lines)]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
   await GrpcChannelProvider.setAddress('127.0.0.1', server.port!);
   addTearDown(() => tester.runAsync(() => GrpcChannelProvider.channel.shutdown()));

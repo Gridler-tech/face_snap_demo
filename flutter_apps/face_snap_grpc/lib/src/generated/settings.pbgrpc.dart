@@ -310,6 +310,98 @@ class SettingsClient extends $grpc.Client {
     return $createUnaryCall(_$setPhotoLight, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.GlareFreeLightResponse> setGlareFreeLight(
+    $0.GlareFreeLightRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setGlareFreeLight, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.GlareFreeWhiteBalanceResponse>
+      setGlareFreeWhiteBalance(
+    $0.GlareFreeWhiteBalanceRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setGlareFreeWhiteBalance, request,
+        options: options);
+  }
+
+  /// The models loaded in the background at start (kiosk.capture_warm_up, spec 2026-10-11):
+  /// names from modnet, withoutbg, gridler, ofiq; an unknown name is INVALID_ARGUMENT.
+  $grpc.ResponseFuture<$0.CaptureWarmUpResponse> setCaptureWarmUp(
+    $0.CaptureWarmUpRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setCaptureWarmUp, request, options: options);
+  }
+
+  /// The photo colour correction (spec 2026-10-13): this kiosk's own 3x3 matrix for a
+  /// light (all, neighbours or glare_free), or clear it back to the shipped one; a bad
+  /// light or matrix is INVALID_ARGUMENT. The switch is kiosk.colour_correction.
+  $grpc.ResponseFuture<$0.ColourCorrectionResponse> setColourCorrection(
+    $0.ColourCorrectionRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setColourCorrection, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ColourCorrectionEnabledResponse>
+      setColourCorrectionEnabled(
+    $0.ColourCorrectionEnabledRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setColourCorrectionEnabled, request,
+        options: options);
+  }
+
+  /// The column's USB hub is mounted upside down (kiosk.camera_hub_upside_down, spec
+  /// 2026-10-15): mirrors the automatic camera order. The reply carries the value applied.
+  $grpc.ResponseFuture<$0.CameraHubUpsideDownResponse> setCameraHubUpsideDown(
+    $0.CameraHubUpsideDownRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setCameraHubUpsideDown, request,
+        options: options);
+  }
+
+  /// The column profile on the LED board (spec 2026-10-10): the column-bound
+  /// settings per layer, and what can be done with them.
+  $grpc.ResponseFuture<$0.ColumnProfileResponse> getColumnProfile(
+    $1.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getColumnProfile, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ColumnSaveResponse> saveColumnStandard(
+    $0.ColumnSettingsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$saveColumnStandard, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ColumnProfileResponse> discardColumnChanges(
+    $0.ColumnSettingsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$discardColumnChanges, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ColumnSaveResponse> restoreColumnFactory(
+    $0.ColumnSettingsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$restoreColumnFactory, request, options: options);
+  }
+
+  /// The updater's only (not in the customer SDK): needs the factory key.
+  $grpc.ResponseFuture<$0.ColumnSaveResponse> writeColumnFactory(
+    $0.WriteColumnFactoryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$writeColumnFactory, request, options: options);
+  }
+
   // method descriptors
 
   static final _$saveSettings =
@@ -506,6 +598,62 @@ class SettingsClient extends $grpc.Client {
           '/settings.Settings/SetPhotoLight',
           ($0.PhotoLightRequest value) => value.writeToBuffer(),
           $0.PhotoLightResponse.fromBuffer);
+  static final _$setGlareFreeLight =
+      $grpc.ClientMethod<$0.GlareFreeLightRequest, $0.GlareFreeLightResponse>(
+          '/settings.Settings/SetGlareFreeLight',
+          ($0.GlareFreeLightRequest value) => value.writeToBuffer(),
+          $0.GlareFreeLightResponse.fromBuffer);
+  static final _$setGlareFreeWhiteBalance = $grpc.ClientMethod<
+          $0.GlareFreeWhiteBalanceRequest, $0.GlareFreeWhiteBalanceResponse>(
+      '/settings.Settings/SetGlareFreeWhiteBalance',
+      ($0.GlareFreeWhiteBalanceRequest value) => value.writeToBuffer(),
+      $0.GlareFreeWhiteBalanceResponse.fromBuffer);
+  static final _$setCaptureWarmUp =
+      $grpc.ClientMethod<$0.CaptureWarmUpRequest, $0.CaptureWarmUpResponse>(
+          '/settings.Settings/SetCaptureWarmUp',
+          ($0.CaptureWarmUpRequest value) => value.writeToBuffer(),
+          $0.CaptureWarmUpResponse.fromBuffer);
+  static final _$setColourCorrection = $grpc.ClientMethod<
+          $0.ColourCorrectionRequest, $0.ColourCorrectionResponse>(
+      '/settings.Settings/SetColourCorrection',
+      ($0.ColourCorrectionRequest value) => value.writeToBuffer(),
+      $0.ColourCorrectionResponse.fromBuffer);
+  static final _$setColourCorrectionEnabled = $grpc.ClientMethod<
+          $0.ColourCorrectionEnabledRequest,
+          $0.ColourCorrectionEnabledResponse>(
+      '/settings.Settings/SetColourCorrectionEnabled',
+      ($0.ColourCorrectionEnabledRequest value) => value.writeToBuffer(),
+      $0.ColourCorrectionEnabledResponse.fromBuffer);
+  static final _$setCameraHubUpsideDown = $grpc.ClientMethod<
+          $0.CameraHubUpsideDownRequest, $0.CameraHubUpsideDownResponse>(
+      '/settings.Settings/SetCameraHubUpsideDown',
+      ($0.CameraHubUpsideDownRequest value) => value.writeToBuffer(),
+      $0.CameraHubUpsideDownResponse.fromBuffer);
+  static final _$getColumnProfile =
+      $grpc.ClientMethod<$1.Empty, $0.ColumnProfileResponse>(
+          '/settings.Settings/GetColumnProfile',
+          ($1.Empty value) => value.writeToBuffer(),
+          $0.ColumnProfileResponse.fromBuffer);
+  static final _$saveColumnStandard =
+      $grpc.ClientMethod<$0.ColumnSettingsRequest, $0.ColumnSaveResponse>(
+          '/settings.Settings/SaveColumnStandard',
+          ($0.ColumnSettingsRequest value) => value.writeToBuffer(),
+          $0.ColumnSaveResponse.fromBuffer);
+  static final _$discardColumnChanges =
+      $grpc.ClientMethod<$0.ColumnSettingsRequest, $0.ColumnProfileResponse>(
+          '/settings.Settings/DiscardColumnChanges',
+          ($0.ColumnSettingsRequest value) => value.writeToBuffer(),
+          $0.ColumnProfileResponse.fromBuffer);
+  static final _$restoreColumnFactory =
+      $grpc.ClientMethod<$0.ColumnSettingsRequest, $0.ColumnSaveResponse>(
+          '/settings.Settings/RestoreColumnFactory',
+          ($0.ColumnSettingsRequest value) => value.writeToBuffer(),
+          $0.ColumnSaveResponse.fromBuffer);
+  static final _$writeColumnFactory =
+      $grpc.ClientMethod<$0.WriteColumnFactoryRequest, $0.ColumnSaveResponse>(
+          '/settings.Settings/WriteColumnFactory',
+          ($0.WriteColumnFactoryRequest value) => value.writeToBuffer(),
+          $0.ColumnSaveResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('settings.Settings')
@@ -832,6 +980,103 @@ abstract class SettingsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.PhotoLightRequest.fromBuffer(value),
         ($0.PhotoLightResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GlareFreeLightRequest,
+            $0.GlareFreeLightResponse>(
+        'SetGlareFreeLight',
+        setGlareFreeLight_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GlareFreeLightRequest.fromBuffer(value),
+        ($0.GlareFreeLightResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GlareFreeWhiteBalanceRequest,
+            $0.GlareFreeWhiteBalanceResponse>(
+        'SetGlareFreeWhiteBalance',
+        setGlareFreeWhiteBalance_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GlareFreeWhiteBalanceRequest.fromBuffer(value),
+        ($0.GlareFreeWhiteBalanceResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.CaptureWarmUpRequest, $0.CaptureWarmUpResponse>(
+            'SetCaptureWarmUp',
+            setCaptureWarmUp_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.CaptureWarmUpRequest.fromBuffer(value),
+            ($0.CaptureWarmUpResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ColourCorrectionRequest,
+            $0.ColourCorrectionResponse>(
+        'SetColourCorrection',
+        setColourCorrection_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ColourCorrectionRequest.fromBuffer(value),
+        ($0.ColourCorrectionResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ColourCorrectionEnabledRequest,
+            $0.ColourCorrectionEnabledResponse>(
+        'SetColourCorrectionEnabled',
+        setColourCorrectionEnabled_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ColourCorrectionEnabledRequest.fromBuffer(value),
+        ($0.ColourCorrectionEnabledResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CameraHubUpsideDownRequest,
+            $0.CameraHubUpsideDownResponse>(
+        'SetCameraHubUpsideDown',
+        setCameraHubUpsideDown_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.CameraHubUpsideDownRequest.fromBuffer(value),
+        ($0.CameraHubUpsideDownResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$1.Empty, $0.ColumnProfileResponse>(
+        'GetColumnProfile',
+        getColumnProfile_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
+        ($0.ColumnProfileResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ColumnSettingsRequest, $0.ColumnSaveResponse>(
+            'SaveColumnStandard',
+            saveColumnStandard_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ColumnSettingsRequest.fromBuffer(value),
+            ($0.ColumnSaveResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ColumnSettingsRequest, $0.ColumnProfileResponse>(
+            'DiscardColumnChanges',
+            discardColumnChanges_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ColumnSettingsRequest.fromBuffer(value),
+            ($0.ColumnProfileResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.ColumnSettingsRequest, $0.ColumnSaveResponse>(
+            'RestoreColumnFactory',
+            restoreColumnFactory_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.ColumnSettingsRequest.fromBuffer(value),
+            ($0.ColumnSaveResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.WriteColumnFactoryRequest,
+            $0.ColumnSaveResponse>(
+        'WriteColumnFactory',
+        writeColumnFactory_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.WriteColumnFactoryRequest.fromBuffer(value),
+        ($0.ColumnSaveResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.SaveSettingsResponse> saveSettings_Pre(
@@ -1175,4 +1420,102 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   $async.Future<$0.PhotoLightResponse> setPhotoLight(
       $grpc.ServiceCall call, $0.PhotoLightRequest request);
+
+  $async.Future<$0.GlareFreeLightResponse> setGlareFreeLight_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GlareFreeLightRequest> $request) async {
+    return setGlareFreeLight($call, await $request);
+  }
+
+  $async.Future<$0.GlareFreeLightResponse> setGlareFreeLight(
+      $grpc.ServiceCall call, $0.GlareFreeLightRequest request);
+
+  $async.Future<$0.GlareFreeWhiteBalanceResponse> setGlareFreeWhiteBalance_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GlareFreeWhiteBalanceRequest> $request) async {
+    return setGlareFreeWhiteBalance($call, await $request);
+  }
+
+  $async.Future<$0.GlareFreeWhiteBalanceResponse> setGlareFreeWhiteBalance(
+      $grpc.ServiceCall call, $0.GlareFreeWhiteBalanceRequest request);
+
+  $async.Future<$0.CaptureWarmUpResponse> setCaptureWarmUp_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CaptureWarmUpRequest> $request) async {
+    return setCaptureWarmUp($call, await $request);
+  }
+
+  $async.Future<$0.CaptureWarmUpResponse> setCaptureWarmUp(
+      $grpc.ServiceCall call, $0.CaptureWarmUpRequest request);
+
+  $async.Future<$0.ColourCorrectionResponse> setColourCorrection_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ColourCorrectionRequest> $request) async {
+    return setColourCorrection($call, await $request);
+  }
+
+  $async.Future<$0.ColourCorrectionResponse> setColourCorrection(
+      $grpc.ServiceCall call, $0.ColourCorrectionRequest request);
+
+  $async.Future<$0.ColourCorrectionEnabledResponse>
+      setColourCorrectionEnabled_Pre($grpc.ServiceCall $call,
+          $async.Future<$0.ColourCorrectionEnabledRequest> $request) async {
+    return setColourCorrectionEnabled($call, await $request);
+  }
+
+  $async.Future<$0.ColourCorrectionEnabledResponse> setColourCorrectionEnabled(
+      $grpc.ServiceCall call, $0.ColourCorrectionEnabledRequest request);
+
+  $async.Future<$0.CameraHubUpsideDownResponse> setCameraHubUpsideDown_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.CameraHubUpsideDownRequest> $request) async {
+    return setCameraHubUpsideDown($call, await $request);
+  }
+
+  $async.Future<$0.CameraHubUpsideDownResponse> setCameraHubUpsideDown(
+      $grpc.ServiceCall call, $0.CameraHubUpsideDownRequest request);
+
+  $async.Future<$0.ColumnProfileResponse> getColumnProfile_Pre(
+      $grpc.ServiceCall $call, $async.Future<$1.Empty> $request) async {
+    return getColumnProfile($call, await $request);
+  }
+
+  $async.Future<$0.ColumnProfileResponse> getColumnProfile(
+      $grpc.ServiceCall call, $1.Empty request);
+
+  $async.Future<$0.ColumnSaveResponse> saveColumnStandard_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ColumnSettingsRequest> $request) async {
+    return saveColumnStandard($call, await $request);
+  }
+
+  $async.Future<$0.ColumnSaveResponse> saveColumnStandard(
+      $grpc.ServiceCall call, $0.ColumnSettingsRequest request);
+
+  $async.Future<$0.ColumnProfileResponse> discardColumnChanges_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ColumnSettingsRequest> $request) async {
+    return discardColumnChanges($call, await $request);
+  }
+
+  $async.Future<$0.ColumnProfileResponse> discardColumnChanges(
+      $grpc.ServiceCall call, $0.ColumnSettingsRequest request);
+
+  $async.Future<$0.ColumnSaveResponse> restoreColumnFactory_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ColumnSettingsRequest> $request) async {
+    return restoreColumnFactory($call, await $request);
+  }
+
+  $async.Future<$0.ColumnSaveResponse> restoreColumnFactory(
+      $grpc.ServiceCall call, $0.ColumnSettingsRequest request);
+
+  $async.Future<$0.ColumnSaveResponse> writeColumnFactory_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.WriteColumnFactoryRequest> $request) async {
+    return writeColumnFactory($call, await $request);
+  }
+
+  $async.Future<$0.ColumnSaveResponse> writeColumnFactory(
+      $grpc.ServiceCall call, $0.WriteColumnFactoryRequest request);
 }

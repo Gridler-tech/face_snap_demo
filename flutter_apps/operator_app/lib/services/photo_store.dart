@@ -46,7 +46,7 @@ class PhotoStore {
   static int _captureSeq = 0;
 
   static Directory get _dir =>
-      Directory('${AppConfig.appDataDir}\\captures');
+      Directory('${AppConfig.appDataDir}${Platform.pathSeparator}captures');
 
   /// Append one capture's photos ((camera index, jpeg bytes); index 0 =
   /// automatic-flow photo) and drop captures beyond the newest [keepCaptures].
@@ -77,12 +77,13 @@ class PhotoStore {
 
   /// Load the persisted captures (call once at app start; best-effort).
   static Future<void> load() async {
+    await _removeStrays();
     try {
-      final index = File('${_dir.path}\\index.json');
+      final index = File('${_dir.path}${Platform.pathSeparator}index.json');
       if (!await index.exists()) return;
       final entries = jsonDecode(await index.readAsString()) as List<dynamic>;
       for (final e in entries) {
-        final file = File('${_dir.path}\\${e['file']}');
+        final file = File('${_dir.path}${Platform.pathSeparator}${e['file']}');
         if (!await file.exists()) continue;
         photos.add(CapturedPhoto(e['capture'] as int, e['camera'] as int,
             await file.readAsBytes()));
@@ -94,6 +95,27 @@ class PhotoStore {
     } catch (_) {
       // Corrupt/missing store: start empty.
       photos.clear();
+    }
+  }
+
+  /// Until 2026-10 the photos were joined to the folder with a hard-coded
+  /// backslash. Off Windows that made each one a file NEXT TO the captures
+  /// folder, named `captures\capture…_cam….jpg`, which the trim never saw, so
+  /// they piled up without limit. Delete those strays (best-effort; on Windows
+  /// the backslash is the separator and there are none).
+  static Future<void> _removeStrays() async {
+    if (Platform.isWindows) return;
+    try {
+      final parent = Directory(AppConfig.appDataDir);
+      if (!await parent.exists()) return;
+      await for (final entity in parent.list()) {
+        if (entity is File &&
+            entity.uri.pathSegments.last.startsWith('captures\\')) {
+          await entity.delete();
+        }
+      }
+    } catch (_) {
+      // A stray that cannot be deleted now is retried at the next start.
     }
   }
 
@@ -111,7 +133,7 @@ class PhotoStore {
         final name = 'capture${p.capture}_cam${p.cameraIndex}.jpg';
         keep.add(name);
         index.add({'capture': p.capture, 'camera': p.cameraIndex, 'file': name});
-        final file = File('${dir.path}\\$name');
+        final file = File('${dir.path}${Platform.pathSeparator}$name');
         if (!await file.exists()) {
           await file.writeAsBytes(p.bytes, flush: true);
         }
@@ -121,7 +143,7 @@ class PhotoStore {
           await entity.delete();
         }
       }
-      await File('${dir.path}\\index.json').writeAsString(jsonEncode(index));
+      await File('${dir.path}${Platform.pathSeparator}index.json').writeAsString(jsonEncode(index));
     } catch (_) {
       // Persistence is a convenience; never let it break a capture.
     }

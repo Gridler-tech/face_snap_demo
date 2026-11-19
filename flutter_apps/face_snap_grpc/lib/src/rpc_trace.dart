@@ -21,6 +21,7 @@ import 'dart:collection';
 import 'package:grpc/grpc.dart';
 import 'package:protobuf/protobuf.dart';
 
+import 'channel_provider.dart' show providerCallOptions;
 import 'generated/calibration.pbgrpc.dart';
 import 'generated/camera.pbgrpc.dart';
 import 'generated/kiosk.pbgrpc.dart';
@@ -250,7 +251,7 @@ abstract final class RpcTrace {
       host: host,
       port: port,
       path: path,
-      kind: _kindOf(path),
+      kind: kindOf(path),
       tag: Zone.current[_tagKey] as String?,
       responseType: '$response',
     );
@@ -270,7 +271,9 @@ abstract final class RpcTrace {
 
   static Map<String, Service>? _services;
 
-  static RpcKind _kindOf(String path) {
+  /// The shape of the RPC at gRPC [path] (`/settings.Settings/SetCrop`), from the
+  /// generated service definitions; [RpcKind.unknown] for a path they do not have.
+  static RpcKind kindOf(String path) {
     final parts = path.split('/');
     if (parts.length < 3) return RpcKind.unknown;
     final services = _services ??= {
@@ -354,6 +357,24 @@ class _ByteCounter {
   int bytes = 0;
 }
 
+/// The proto3 `optional` fields (explicit presence) by message and field
+/// number. The generated Dart stubs carry no presence marker, so this is kept
+/// by hand; test/explicit_presence_test.dart checks it against the '17': true
+/// (proto3_optional) marks of the generated descriptors. An unset one is never
+/// written with its default (rpcMessageJson), so the console and copy-as-code
+/// show the request as sent: an absent field means "not given" (the stored
+/// value, the kiosk's value in force), not its default.
+const Map<String, Set<int>> explicitPresenceFields = {
+  'kiosk.CaptureSettings': {
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, //
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+  },
+  'kiosk.CheckResult': {6, 7, 8},
+  'kiosk.ColourCardRequest': {4, 5, 6},
+  'lights.BacklightRequest': {3},
+  'settings.LivenessChecksRequest': {4},
+};
+
 /// [message] as proto3 JSON (same shape as `toProto3Json`), except that
 /// every `bytes` field becomes a `<N bytes>` marker — the bytes are measured,
 /// never copied or encoded.
@@ -361,16 +382,16 @@ class _ByteCounter {
 /// proto3 JSON leaves out fields that hold their default (false, 0, "", the
 /// first enum value). With [includeDefaults] those singular fields are written
 /// too, so a request reads as what the caller sent (`{value: false}` instead
-/// of `{}`). Members of a oneof are still written only when set; repeated and
-/// map fields only when non-empty. The Dart stubs carry no marker for proto3
-/// `optional` fields, so an unset one would show its default here: no request
-/// message has one (only CheckResult, which is never sent), and replies are
-/// formatted without defaults.
+/// of `{}`). Members of a oneof are still written only when set, and so are
+/// proto3 `optional` fields ([explicitPresenceFields]: an absent one means
+/// something else than its default, e.g. BacklightRequest.percent); repeated
+/// and map fields only when non-empty. Replies are formatted without defaults.
 Object? rpcMessageJson(GeneratedMessage message,
     [Object? counter, bool includeDefaults = false]) {
   final c = counter is _ByteCounter ? counter : _ByteCounter();
   final out = <String, Object?>{};
   final oneofs = message.info_.oneofs;
+  final presence = explicitPresenceFields[message.info_.qualifiedMessageName];
   for (final fi in message.info_.sortedByTag) {
     var value = message.getFieldOrNull(fi.tagNumber);
     if (value == null &&
@@ -378,6 +399,7 @@ Object? rpcMessageJson(GeneratedMessage message,
         !fi.isRepeated &&
         fi is! MapFieldInfo &&
         !oneofs.containsKey(fi.tagNumber) &&
+        !(presence?.contains(fi.tagNumber) ?? false) &&
         PbFieldType.baseType(fi.type) != PbFieldType.MESSAGE_BIT &&
         PbFieldType.baseType(fi.type) != PbFieldType.GROUP_BIT) {
       value = message.getField(fi.tagNumber);
@@ -446,11 +468,14 @@ class TracingClientChannel extends ClientChannel {
   @override
   ClientCall<Q, R> createCall<Q, R>(
       ClientMethod<Q, R> method, Stream<Q> requests, CallOptions options) {
-    if (!RpcTrace.enabled) return super.createCall(method, requests, options);
+    // The column-session header (spec 2026-10-10 section 4.12) while it is on, and the
+    // default deadline of a unary call (FL-12), traced or not.
+    final callOptions = providerCallOptions(method.path, options);
+    if (!RpcTrace.enabled) return super.createCall(method, requests, callOptions);
 
     final record = RpcTrace._begin('$host', port, method.path, R);
     final call = _TracedCall<Q, R>(
-        method, _observeRequests(requests, record), options, record);
+        method, _observeRequests(requests, record), callOptions, record);
     // Same dispatch as ClientChannelBase.createCall (minus the timeline task,
     // which is null unless timeline logging is switched on).
     getConnection().then((connection) {

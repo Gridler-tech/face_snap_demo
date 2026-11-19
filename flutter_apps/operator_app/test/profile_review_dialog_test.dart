@@ -51,10 +51,11 @@ void main() {
       expect(find.text('Untick what this kiosk should keep:'), findsOneWidget);
 
       final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
-      // 1 resolution + 10 checks + background + jpeg + ofiq = 14 rows.
-      expect(boxes, hasLength(14));
+      // 1 resolution + 10 checks + background + jpeg + ofiq + icao + live check + warm-up
+      // = 17 rows.
+      expect(boxes, hasLength(17));
       expect(boxes.where((b) => b.onChanged == null), hasLength(2));
-      expect(boxes.where((b) => b.value == true), hasLength(12));
+      expect(boxes.where((b) => b.value == true), hasLength(15));
     });
   });
 
@@ -70,7 +71,7 @@ void main() {
     expect(ticked, isNot(contains('camera.resolution')));
     expect(ticked, contains('kiosk.background_method'));
     expect(ticked, isNot(contains('kiosk.face_quality.eyes_check')));
-    expect(ticked, hasLength(11));
+    expect(ticked, hasLength(14));
   });
 
   testWidgets('Cancel returns null, so no update starts', (tester) async {

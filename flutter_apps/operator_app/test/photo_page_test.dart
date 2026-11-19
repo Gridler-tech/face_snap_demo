@@ -77,4 +77,20 @@ void main() {
     expect(find.textContaining('6 hex digits'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('the live person check is one switch: no light checks', (tester) async {
+    tester.view.physicalSize = const Size(1600, 3000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SettingsState.current = _settings()..livenessCheck = true;
+    await GrpcChannelProvider.setAddress('127.0.0.1', 1);
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: PhotoPage())));
+    await tester.pump();
+    await tester.scrollUntilVisible(find.textContaining('Live person check'), 300,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('Live person check'), findsOneWidget);
+    expect(find.textContaining('Shading check'), findsNothing);
+    expect(find.textContaining('Colour check'), findsNothing);
+  });
 }

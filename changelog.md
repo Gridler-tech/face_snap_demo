@@ -2,6 +2,44 @@
 
 
 
+## Version 1.5.7, 19-11-2026 (operator app 1.1.27)
+
+Release 1.5.7 carries GrpcLibrary 1.5.7 and `FaceSnapOperatorSetup-1.1.27.exe`; the
+sources in `flutter_apps/operator_app` and `flutter_apps/face_snap_grpc` match them.
+GrpcLibrary 1.5.5 and 1.5.6 were not released here, so their changes are listed too.
+The dependency DLLs in `library/` are unchanged (Grpc 2.84.0, Protobuf 3.36.2).
+`tools/colorchecker/` (new) holds the two colour-card references and the colour-fit
+fixture that the operator app's colour tests read.
+
+GrpcLibrary
+- **1.5.5.** `LocalServerConfig`: `GrpcChannelProvider.SetAddress(LocalServerConfig.LocalServerAddress())`
+  connects to the server installed on this PC, whatever its port (the default address
+  stays `http://localhost:50051`). The types for per-capture settings: a capture request
+  can carry settings for that one photo, and the stream's first item is the settings used.
+  Structured check results and the head-turn instruction items.
+- **1.5.6.** `MeasureColourCard`: one photo of a colour card (Datacolor SpyderCheckr 24 or
+  X-Rite ColorChecker Classic) held in front of a camera; the server finds the card and
+  returns its 24 patch colours and the photo. `ColourMeasurementDto` gains the method
+  (auto or taps), the LED mix, `score_after`, the white balance and the card version.
+  Background erasing method `gridler` (the Gridler eraser).
+- **1.5.7.** Documentation only: `SetCaptureWarmUp` also takes `gridler`.
+- On a server installed with the Windows setup (1.1.25 or later) the server is the Windows
+  service `FaceSnapServer`: start and stop it with `Start-Service` / `Stop-Service
+  FaceSnapServer`. `StopAnyAsync` cannot stop it, and `EnsureRunningAsync` with the service
+  stopped starts a separate user-session server, so start the service instead.
+
+Operator app 1.1.25 to 1.1.27
+- **New defaults for a new kiosk (1.1.27).** Background erasing none, ICAO report, OFIQ
+  and the live person check off; automatic white balance off, automatic exposure and
+  autofocus on, fast camera selection on; nothing loaded at server start.
+- **Load at server start** has a **None** chip and the **Gridler eraser**.
+- **Updater.** The recommended profile follows the 1.1.27 defaults; Change port for a
+  kiosk board or a Windows kiosk; the column's settings kept on its LED board.
+- **Photo colour.** Calibrate from a hand-held colour card: the server finds the card
+  itself; four taps remain as a fallback.
+- Per-capture settings, the glare-free light for people with glasses, the head-turn and
+  face-angle live checks, backlights on the LED board, and the Calibration overview.
+
 ## Repository note, 08-10-2026 (operator app 1.1.24)
 
 Release 1.5.4 now carries `FaceSnapOperatorSetup-1.1.24.exe`, and the sources in

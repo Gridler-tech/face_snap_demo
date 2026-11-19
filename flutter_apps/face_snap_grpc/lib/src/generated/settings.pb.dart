@@ -14,7 +14,11 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'settings.pbenum.dart';
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'settings.pbenum.dart';
 
 class CameraResolution extends $pb.GeneratedMessage {
   factory CameraResolution({
@@ -544,9 +548,14 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     $core.String? cameraOrderingMode,
     $core.bool? icaoReport,
     $core.bool? livenessCheck,
-    $core.bool? livenessShadingCheck,
-    $core.bool? livenessColourCheck,
     $core.String? photoLight,
+    $core.bool? livenessHeadTurnCheck,
+    GlareFreeLight? glareFreeLight,
+    $core.int? glareFreeWhiteBalance,
+    $core.Iterable<$core.String>? captureWarmUp,
+    $core.bool? colourCorrection,
+    $core.Iterable<ColourCorrectionState>? colourCorrections,
+    $core.bool? cameraHubUpsideDown,
   }) {
     final result = create();
     if (width != null) result.width = width;
@@ -595,11 +604,18 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
       result.cameraOrderingMode = cameraOrderingMode;
     if (icaoReport != null) result.icaoReport = icaoReport;
     if (livenessCheck != null) result.livenessCheck = livenessCheck;
-    if (livenessShadingCheck != null)
-      result.livenessShadingCheck = livenessShadingCheck;
-    if (livenessColourCheck != null)
-      result.livenessColourCheck = livenessColourCheck;
     if (photoLight != null) result.photoLight = photoLight;
+    if (livenessHeadTurnCheck != null)
+      result.livenessHeadTurnCheck = livenessHeadTurnCheck;
+    if (glareFreeLight != null) result.glareFreeLight = glareFreeLight;
+    if (glareFreeWhiteBalance != null)
+      result.glareFreeWhiteBalance = glareFreeWhiteBalance;
+    if (captureWarmUp != null) result.captureWarmUp.addAll(captureWarmUp);
+    if (colourCorrection != null) result.colourCorrection = colourCorrection;
+    if (colourCorrections != null)
+      result.colourCorrections.addAll(colourCorrections);
+    if (cameraHubUpsideDown != null)
+      result.cameraHubUpsideDown = cameraHubUpsideDown;
     return result;
   }
 
@@ -657,9 +673,16 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
     ..aOS(42, _omitFieldNames ? '' : 'cameraOrderingMode')
     ..aOB(43, _omitFieldNames ? '' : 'icaoReport')
     ..aOB(44, _omitFieldNames ? '' : 'livenessCheck')
-    ..aOB(45, _omitFieldNames ? '' : 'livenessShadingCheck')
-    ..aOB(46, _omitFieldNames ? '' : 'livenessColourCheck')
     ..aOS(47, _omitFieldNames ? '' : 'photoLight')
+    ..aOB(48, _omitFieldNames ? '' : 'livenessHeadTurnCheck')
+    ..aE<GlareFreeLight>(49, _omitFieldNames ? '' : 'glareFreeLight',
+        enumValues: GlareFreeLight.values)
+    ..aI(50, _omitFieldNames ? '' : 'glareFreeWhiteBalance')
+    ..pPS(51, _omitFieldNames ? '' : 'captureWarmUp')
+    ..aOB(52, _omitFieldNames ? '' : 'colourCorrection')
+    ..pPM<ColourCorrectionState>(53, _omitFieldNames ? '' : 'colourCorrections',
+        subBuilder: ColourCorrectionState.create)
+    ..aOB(54, _omitFieldNames ? '' : 'cameraHubUpsideDown')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1054,9 +1077,8 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(43)
   void clearIcaoReport() => $_clearField(43);
 
-  /// Live person check: liveness_check is the master switch (the depth check
-  /// over the selection scan always runs with it); the two light checks are
-  /// optional on top of it and need the LED board.
+  /// Live person check: the master switch (the depth and the face-angle check
+  /// over the selection scan run with it; the head turn, field 48, under it).
   @$pb.TagNumber(44)
   $core.bool get livenessCheck => $_getBF(39);
   @$pb.TagNumber(44)
@@ -1066,34 +1088,86 @@ class LoadSettingsResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(44)
   void clearLivenessCheck() => $_clearField(44);
 
-  @$pb.TagNumber(45)
-  $core.bool get livenessShadingCheck => $_getBF(40);
-  @$pb.TagNumber(45)
-  set livenessShadingCheck($core.bool value) => $_setBool(40, value);
-  @$pb.TagNumber(45)
-  $core.bool hasLivenessShadingCheck() => $_has(40);
-  @$pb.TagNumber(45)
-  void clearLivenessShadingCheck() => $_clearField(45);
-
-  @$pb.TagNumber(46)
-  $core.bool get livenessColourCheck => $_getBF(41);
-  @$pb.TagNumber(46)
-  set livenessColourCheck($core.bool value) => $_setBool(41, value);
-  @$pb.TagNumber(46)
-  $core.bool hasLivenessColourCheck() => $_has(41);
-  @$pb.TagNumber(46)
-  void clearLivenessColourCheck() => $_clearField(46);
-
   /// Which LEDs light the photo: "all", or the "neighbours" of the selected
   /// camera (its ring and one ring on each side).
   @$pb.TagNumber(47)
-  $core.String get photoLight => $_getSZ(42);
+  $core.String get photoLight => $_getSZ(40);
   @$pb.TagNumber(47)
-  set photoLight($core.String value) => $_setString(42, value);
+  set photoLight($core.String value) => $_setString(40, value);
   @$pb.TagNumber(47)
-  $core.bool hasPhotoLight() => $_has(42);
+  $core.bool hasPhotoLight() => $_has(40);
   @$pb.TagNumber(47)
   void clearPhotoLight() => $_clearField(47);
+
+  /// Live person check by a head turn (under liveness_check): the person turns the
+  /// head to the left and to the right before the photo, guided by the kiosk screen
+  /// and the LED column.
+  @$pb.TagNumber(48)
+  $core.bool get livenessHeadTurnCheck => $_getBF(41);
+  @$pb.TagNumber(48)
+  set livenessHeadTurnCheck($core.bool value) => $_setBool(41, value);
+  @$pb.TagNumber(48)
+  $core.bool hasLivenessHeadTurnCheck() => $_has(41);
+  @$pb.TagNumber(48)
+  void clearLivenessHeadTurnCheck() => $_clearField(48);
+
+  /// Which light lights the photo (kiosk.glare_free_light): OFF (the normal photo
+  /// light), GLASSES (the glare-free light when glasses are detected; the old
+  /// glasses_lights_off) or EVERYONE (the glare-free light for every photo).
+  /// glasses_lights_off stays filled: true unless OFF. A server from before the
+  /// setting sends nothing here (OFF): read glasses_lights_off then (true = GLASSES).
+  @$pb.TagNumber(49)
+  GlareFreeLight get glareFreeLight => $_getN(42);
+  @$pb.TagNumber(49)
+  set glareFreeLight(GlareFreeLight value) => $_setField(49, value);
+  @$pb.TagNumber(49)
+  $core.bool hasGlareFreeLight() => $_has(42);
+  @$pb.TagNumber(49)
+  void clearGlareFreeLight() => $_clearField(49);
+
+  /// The camera white balance (Kelvin) while the glare-free light lights the photo;
+  /// 0 = the camera's normal value. A server from before the setting sends 0.
+  @$pb.TagNumber(50)
+  $core.int get glareFreeWhiteBalance => $_getIZ(43);
+  @$pb.TagNumber(50)
+  set glareFreeWhiteBalance($core.int value) => $_setSignedInt32(43, value);
+  @$pb.TagNumber(50)
+  $core.bool hasGlareFreeWhiteBalance() => $_has(43);
+  @$pb.TagNumber(50)
+  void clearGlareFreeWhiteBalance() => $_clearField(50);
+
+  /// The models both servers load in the background at start (kiosk.capture_warm_up):
+  /// names from modnet, withoutbg, gridler, ofiq; empty by default. A server from before the
+  /// setting sends nothing here.
+  @$pb.TagNumber(51)
+  $pb.PbList<$core.String> get captureWarmUp => $_getList(44);
+
+  /// The photo colour correction switch (kiosk.colour_correction; true by default).
+  @$pb.TagNumber(52)
+  $core.bool get colourCorrection => $_getBF(45);
+  @$pb.TagNumber(52)
+  set colourCorrection($core.bool value) => $_setBool(45, value);
+  @$pb.TagNumber(52)
+  $core.bool hasColourCorrection() => $_has(45);
+  @$pb.TagNumber(52)
+  void clearColourCorrection() => $_clearField(52);
+
+  /// The matrix in force per corrected light, in the order all, neighbours, glare_free.
+  /// A server from before the setting sends nothing here (and false above).
+  @$pb.TagNumber(53)
+  $pb.PbList<ColourCorrectionState> get colourCorrections => $_getList(46);
+
+  /// The column's USB hub is mounted upside down (kiosk.camera_hub_upside_down): the
+  /// automatic camera order is mirrored. Off unless the working copy holds a real true;
+  /// a server from before the setting sends nothing here (off).
+  @$pb.TagNumber(54)
+  $core.bool get cameraHubUpsideDown => $_getBF(47);
+  @$pb.TagNumber(54)
+  set cameraHubUpsideDown($core.bool value) => $_setBool(47, value);
+  @$pb.TagNumber(54)
+  $core.bool hasCameraHubUpsideDown() => $_has(47);
+  @$pb.TagNumber(54)
+  void clearCameraHubUpsideDown() => $_clearField(54);
 }
 
 /// The request message containing the resolution value.
@@ -2275,6 +2349,122 @@ class CameraOrderingModeResponse extends $pb.GeneratedMessage {
   $core.bool hasMode() => $_has(1);
   @$pb.TagNumber(2)
   void clearMode() => $_clearField(2);
+}
+
+/// The request message: whether the column's USB hub is mounted upside down (true mirrors
+/// the automatic camera order: position p becomes N + 1 - p of the matched wiring).
+class CameraHubUpsideDownRequest extends $pb.GeneratedMessage {
+  factory CameraHubUpsideDownRequest({
+    $core.bool? upsideDown,
+  }) {
+    final result = create();
+    if (upsideDown != null) result.upsideDown = upsideDown;
+    return result;
+  }
+
+  CameraHubUpsideDownRequest._();
+
+  factory CameraHubUpsideDownRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CameraHubUpsideDownRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CameraHubUpsideDownRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'upsideDown')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraHubUpsideDownRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraHubUpsideDownRequest copyWith(
+          void Function(CameraHubUpsideDownRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as CameraHubUpsideDownRequest))
+          as CameraHubUpsideDownRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CameraHubUpsideDownRequest create() => CameraHubUpsideDownRequest._();
+  @$core.override
+  CameraHubUpsideDownRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CameraHubUpsideDownRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CameraHubUpsideDownRequest>(create);
+  static CameraHubUpsideDownRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get upsideDown => $_getBF(0);
+  @$pb.TagNumber(1)
+  set upsideDown($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUpsideDown() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUpsideDown() => $_clearField(1);
+}
+
+/// The response message: the value the server applied.
+class CameraHubUpsideDownResponse extends $pb.GeneratedMessage {
+  factory CameraHubUpsideDownResponse({
+    $core.bool? upsideDown,
+  }) {
+    final result = create();
+    if (upsideDown != null) result.upsideDown = upsideDown;
+    return result;
+  }
+
+  CameraHubUpsideDownResponse._();
+
+  factory CameraHubUpsideDownResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CameraHubUpsideDownResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CameraHubUpsideDownResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'upsideDown')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraHubUpsideDownResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CameraHubUpsideDownResponse copyWith(
+          void Function(CameraHubUpsideDownResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as CameraHubUpsideDownResponse))
+          as CameraHubUpsideDownResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CameraHubUpsideDownResponse create() =>
+      CameraHubUpsideDownResponse._();
+  @$core.override
+  CameraHubUpsideDownResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CameraHubUpsideDownResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CameraHubUpsideDownResponse>(create);
+  static CameraHubUpsideDownResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get upsideDown => $_getBF(0);
+  @$pb.TagNumber(1)
+  set upsideDown($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUpsideDown() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUpsideDown() => $_clearField(1);
 }
 
 /// The request message containing whether MSMF is used for the selection scan.
@@ -4179,19 +4369,17 @@ class IcaoReportResponse extends $pb.GeneratedMessage {
   void clearMessage() => $_clearField(1);
 }
 
-/// The request/response for the live person check switches: the master
-/// switch (depth check over the selection scan) and the two optional light
-/// checks on top of it (shading from above/below, a yellow flash).
+/// The request/response for the live person check switches: the master switch
+/// (the depth and the face-angle check over the selection scan) and the head
+/// turn under it (the person turns the head to the left and to the right).
 class LivenessChecksRequest extends $pb.GeneratedMessage {
   factory LivenessChecksRequest({
     $core.bool? livenessCheck,
-    $core.bool? shadingCheck,
-    $core.bool? colourCheck,
+    $core.bool? headTurnCheck,
   }) {
     final result = create();
     if (livenessCheck != null) result.livenessCheck = livenessCheck;
-    if (shadingCheck != null) result.shadingCheck = shadingCheck;
-    if (colourCheck != null) result.colourCheck = colourCheck;
+    if (headTurnCheck != null) result.headTurnCheck = headTurnCheck;
     return result;
   }
 
@@ -4209,8 +4397,7 @@ class LivenessChecksRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'livenessCheck')
-    ..aOB(2, _omitFieldNames ? '' : 'shadingCheck')
-    ..aOB(3, _omitFieldNames ? '' : 'colourCheck')
+    ..aOB(4, _omitFieldNames ? '' : 'headTurnCheck')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4242,35 +4429,26 @@ class LivenessChecksRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearLivenessCheck() => $_clearField(1);
 
-  @$pb.TagNumber(2)
-  $core.bool get shadingCheck => $_getBF(1);
-  @$pb.TagNumber(2)
-  set shadingCheck($core.bool value) => $_setBool(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasShadingCheck() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearShadingCheck() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get colourCheck => $_getBF(2);
-  @$pb.TagNumber(3)
-  set colourCheck($core.bool value) => $_setBool(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasColourCheck() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearColourCheck() => $_clearField(3);
+  /// The head turn (under the master switch). Optional: a client that does not
+  /// send it leaves the stored value as it is.
+  @$pb.TagNumber(4)
+  $core.bool get headTurnCheck => $_getBF(1);
+  @$pb.TagNumber(4)
+  set headTurnCheck($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(4)
+  $core.bool hasHeadTurnCheck() => $_has(1);
+  @$pb.TagNumber(4)
+  void clearHeadTurnCheck() => $_clearField(4);
 }
 
 class LivenessChecksResponse extends $pb.GeneratedMessage {
   factory LivenessChecksResponse({
     $core.bool? livenessCheck,
-    $core.bool? shadingCheck,
-    $core.bool? colourCheck,
+    $core.bool? headTurnCheck,
   }) {
     final result = create();
     if (livenessCheck != null) result.livenessCheck = livenessCheck;
-    if (shadingCheck != null) result.shadingCheck = shadingCheck;
-    if (colourCheck != null) result.colourCheck = colourCheck;
+    if (headTurnCheck != null) result.headTurnCheck = headTurnCheck;
     return result;
   }
 
@@ -4288,8 +4466,7 @@ class LivenessChecksResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'livenessCheck')
-    ..aOB(2, _omitFieldNames ? '' : 'shadingCheck')
-    ..aOB(3, _omitFieldNames ? '' : 'colourCheck')
+    ..aOB(4, _omitFieldNames ? '' : 'headTurnCheck')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4321,23 +4498,14 @@ class LivenessChecksResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearLivenessCheck() => $_clearField(1);
 
-  @$pb.TagNumber(2)
-  $core.bool get shadingCheck => $_getBF(1);
-  @$pb.TagNumber(2)
-  set shadingCheck($core.bool value) => $_setBool(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasShadingCheck() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearShadingCheck() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get colourCheck => $_getBF(2);
-  @$pb.TagNumber(3)
-  set colourCheck($core.bool value) => $_setBool(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasColourCheck() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearColourCheck() => $_clearField(3);
+  @$pb.TagNumber(4)
+  $core.bool get headTurnCheck => $_getBF(1);
+  @$pb.TagNumber(4)
+  set headTurnCheck($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(4)
+  $core.bool hasHeadTurnCheck() => $_has(1);
+  @$pb.TagNumber(4)
+  void clearHeadTurnCheck() => $_clearField(4);
 }
 
 /// The request/response for the photo light: "all" LEDs, or the "neighbours"
@@ -5130,6 +5298,1310 @@ class BackgroundStrengthResponse extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(0);
   @$pb.TagNumber(1)
   void clearMessage() => $_clearField(1);
+}
+
+class GlareFreeLightRequest extends $pb.GeneratedMessage {
+  factory GlareFreeLightRequest({
+    GlareFreeLight? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  GlareFreeLightRequest._();
+
+  factory GlareFreeLightRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GlareFreeLightRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GlareFreeLightRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aE<GlareFreeLight>(1, _omitFieldNames ? '' : 'value',
+        enumValues: GlareFreeLight.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeLightRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeLightRequest copyWith(
+          void Function(GlareFreeLightRequest) updates) =>
+      super.copyWith((message) => updates(message as GlareFreeLightRequest))
+          as GlareFreeLightRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeLightRequest create() => GlareFreeLightRequest._();
+  @$core.override
+  GlareFreeLightRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeLightRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GlareFreeLightRequest>(create);
+  static GlareFreeLightRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GlareFreeLight get value => $_getN(0);
+  @$pb.TagNumber(1)
+  set value(GlareFreeLight value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+/// The value in force (an unknown value leaves the setting as it is).
+class GlareFreeLightResponse extends $pb.GeneratedMessage {
+  factory GlareFreeLightResponse({
+    GlareFreeLight? message,
+  }) {
+    final result = create();
+    if (message != null) result.message = message;
+    return result;
+  }
+
+  GlareFreeLightResponse._();
+
+  factory GlareFreeLightResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GlareFreeLightResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GlareFreeLightResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aE<GlareFreeLight>(1, _omitFieldNames ? '' : 'message',
+        enumValues: GlareFreeLight.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeLightResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeLightResponse copyWith(
+          void Function(GlareFreeLightResponse) updates) =>
+      super.copyWith((message) => updates(message as GlareFreeLightResponse))
+          as GlareFreeLightResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeLightResponse create() => GlareFreeLightResponse._();
+  @$core.override
+  GlareFreeLightResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeLightResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GlareFreeLightResponse>(create);
+  static GlareFreeLightResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GlareFreeLight get message => $_getN(0);
+  @$pb.TagNumber(1)
+  set message(GlareFreeLight value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessage() => $_clearField(1);
+}
+
+/// The camera white balance under the glare-free light, Kelvin: 0 (the camera's
+/// normal value) or 2800-6500; anything else is INVALID_ARGUMENT.
+class GlareFreeWhiteBalanceRequest extends $pb.GeneratedMessage {
+  factory GlareFreeWhiteBalanceRequest({
+    $core.int? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  GlareFreeWhiteBalanceRequest._();
+
+  factory GlareFreeWhiteBalanceRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GlareFreeWhiteBalanceRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GlareFreeWhiteBalanceRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeWhiteBalanceRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeWhiteBalanceRequest copyWith(
+          void Function(GlareFreeWhiteBalanceRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as GlareFreeWhiteBalanceRequest))
+          as GlareFreeWhiteBalanceRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeWhiteBalanceRequest create() =>
+      GlareFreeWhiteBalanceRequest._();
+  @$core.override
+  GlareFreeWhiteBalanceRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeWhiteBalanceRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GlareFreeWhiteBalanceRequest>(create);
+  static GlareFreeWhiteBalanceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get value => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set value($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class GlareFreeWhiteBalanceResponse extends $pb.GeneratedMessage {
+  factory GlareFreeWhiteBalanceResponse({
+    $core.int? message,
+  }) {
+    final result = create();
+    if (message != null) result.message = message;
+    return result;
+  }
+
+  GlareFreeWhiteBalanceResponse._();
+
+  factory GlareFreeWhiteBalanceResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GlareFreeWhiteBalanceResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GlareFreeWhiteBalanceResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'message')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeWhiteBalanceResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GlareFreeWhiteBalanceResponse copyWith(
+          void Function(GlareFreeWhiteBalanceResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as GlareFreeWhiteBalanceResponse))
+          as GlareFreeWhiteBalanceResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeWhiteBalanceResponse create() =>
+      GlareFreeWhiteBalanceResponse._();
+  @$core.override
+  GlareFreeWhiteBalanceResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GlareFreeWhiteBalanceResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GlareFreeWhiteBalanceResponse>(create);
+  static GlareFreeWhiteBalanceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get message => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set message($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessage() => $_clearField(1);
+}
+
+/// The request/response for the capture warm-up list (kiosk.capture_warm_up):
+/// names from modnet, withoutbg, gridler, ofiq. The response carries the list stored.
+class CaptureWarmUpRequest extends $pb.GeneratedMessage {
+  factory CaptureWarmUpRequest({
+    $core.Iterable<$core.String>? items,
+  }) {
+    final result = create();
+    if (items != null) result.items.addAll(items);
+    return result;
+  }
+
+  CaptureWarmUpRequest._();
+
+  factory CaptureWarmUpRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CaptureWarmUpRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CaptureWarmUpRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'items')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CaptureWarmUpRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CaptureWarmUpRequest copyWith(void Function(CaptureWarmUpRequest) updates) =>
+      super.copyWith((message) => updates(message as CaptureWarmUpRequest))
+          as CaptureWarmUpRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CaptureWarmUpRequest create() => CaptureWarmUpRequest._();
+  @$core.override
+  CaptureWarmUpRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CaptureWarmUpRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CaptureWarmUpRequest>(create);
+  static CaptureWarmUpRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get items => $_getList(0);
+}
+
+class CaptureWarmUpResponse extends $pb.GeneratedMessage {
+  factory CaptureWarmUpResponse({
+    $core.Iterable<$core.String>? items,
+  }) {
+    final result = create();
+    if (items != null) result.items.addAll(items);
+    return result;
+  }
+
+  CaptureWarmUpResponse._();
+
+  factory CaptureWarmUpResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CaptureWarmUpResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CaptureWarmUpResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'items')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CaptureWarmUpResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CaptureWarmUpResponse copyWith(
+          void Function(CaptureWarmUpResponse) updates) =>
+      super.copyWith((message) => updates(message as CaptureWarmUpResponse))
+          as CaptureWarmUpResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CaptureWarmUpResponse create() => CaptureWarmUpResponse._();
+  @$core.override
+  CaptureWarmUpResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CaptureWarmUpResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CaptureWarmUpResponse>(create);
+  static CaptureWarmUpResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get items => $_getList(0);
+}
+
+/// How a kiosk's own matrix was measured (a colour chart photographed on the kiosk).
+class ColourMeasurement extends $pb.GeneratedMessage {
+  factory ColourMeasurement({
+    $core.String? measured,
+    $core.int? camera,
+    $core.String? chart,
+    $core.double? meanDeBefore,
+    $core.double? meanDeAfter,
+    $core.String? method,
+    $core.int? ledRed,
+    $core.int? ledGreen,
+    $core.int? ledBlue,
+    $core.double? scoreAfter,
+    $core.int? whiteBalance,
+    $core.String? cardVersion,
+  }) {
+    final result = create();
+    if (measured != null) result.measured = measured;
+    if (camera != null) result.camera = camera;
+    if (chart != null) result.chart = chart;
+    if (meanDeBefore != null) result.meanDeBefore = meanDeBefore;
+    if (meanDeAfter != null) result.meanDeAfter = meanDeAfter;
+    if (method != null) result.method = method;
+    if (ledRed != null) result.ledRed = ledRed;
+    if (ledGreen != null) result.ledGreen = ledGreen;
+    if (ledBlue != null) result.ledBlue = ledBlue;
+    if (scoreAfter != null) result.scoreAfter = scoreAfter;
+    if (whiteBalance != null) result.whiteBalance = whiteBalance;
+    if (cardVersion != null) result.cardVersion = cardVersion;
+    return result;
+  }
+
+  ColourMeasurement._();
+
+  factory ColourMeasurement.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourMeasurement.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourMeasurement',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'measured')
+    ..aI(2, _omitFieldNames ? '' : 'camera')
+    ..aOS(3, _omitFieldNames ? '' : 'chart')
+    ..aD(4, _omitFieldNames ? '' : 'meanDeBefore')
+    ..aD(5, _omitFieldNames ? '' : 'meanDeAfter')
+    ..aOS(6, _omitFieldNames ? '' : 'method')
+    ..aI(7, _omitFieldNames ? '' : 'ledRed')
+    ..aI(8, _omitFieldNames ? '' : 'ledGreen')
+    ..aI(9, _omitFieldNames ? '' : 'ledBlue')
+    ..aD(10, _omitFieldNames ? '' : 'scoreAfter')
+    ..aI(11, _omitFieldNames ? '' : 'whiteBalance')
+    ..aOS(12, _omitFieldNames ? '' : 'cardVersion')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourMeasurement clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourMeasurement copyWith(void Function(ColourMeasurement) updates) =>
+      super.copyWith((message) => updates(message as ColourMeasurement))
+          as ColourMeasurement;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourMeasurement create() => ColourMeasurement._();
+  @$core.override
+  ColourMeasurement createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourMeasurement getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourMeasurement>(create);
+  static ColourMeasurement? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get measured => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set measured($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMeasured() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMeasured() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get camera => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set camera($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCamera() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCamera() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get chart => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set chart($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasChart() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearChart() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get meanDeBefore => $_getN(3);
+  @$pb.TagNumber(4)
+  set meanDeBefore($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMeanDeBefore() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMeanDeBefore() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get meanDeAfter => $_getN(4);
+  @$pb.TagNumber(5)
+  set meanDeAfter($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMeanDeAfter() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMeanDeAfter() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get method => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set method($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasMethod() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMethod() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get ledRed => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set ledRed($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLedRed() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLedRed() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get ledGreen => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set ledGreen($core.int value) => $_setSignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasLedGreen() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearLedGreen() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get ledBlue => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set ledBlue($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasLedBlue() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearLedBlue() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.double get scoreAfter => $_getN(9);
+  @$pb.TagNumber(10)
+  set scoreAfter($core.double value) => $_setDouble(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasScoreAfter() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearScoreAfter() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.int get whiteBalance => $_getIZ(10);
+  @$pb.TagNumber(11)
+  set whiteBalance($core.int value) => $_setSignedInt32(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasWhiteBalance() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearWhiteBalance() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.String get cardVersion => $_getSZ(11);
+  @$pb.TagNumber(12)
+  set cardVersion($core.String value) => $_setString(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasCardVersion() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearCardVersion() => $_clearField(12);
+}
+
+class ColourCorrectionRequest extends $pb.GeneratedMessage {
+  factory ColourCorrectionRequest({
+    $core.String? light,
+    $core.Iterable<$core.double>? matrix,
+    ColourMeasurement? measurement,
+    $core.bool? clear_4,
+  }) {
+    final result = create();
+    if (light != null) result.light = light;
+    if (matrix != null) result.matrix.addAll(matrix);
+    if (measurement != null) result.measurement = measurement;
+    if (clear_4 != null) result.clear_4 = clear_4;
+    return result;
+  }
+
+  ColourCorrectionRequest._();
+
+  factory ColourCorrectionRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourCorrectionRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourCorrectionRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'light')
+    ..p<$core.double>(2, _omitFieldNames ? '' : 'matrix', $pb.PbFieldType.KD)
+    ..aOM<ColourMeasurement>(3, _omitFieldNames ? '' : 'measurement',
+        subBuilder: ColourMeasurement.create)
+    ..aOB(4, _omitFieldNames ? '' : 'clear')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionRequest copyWith(
+          void Function(ColourCorrectionRequest) updates) =>
+      super.copyWith((message) => updates(message as ColourCorrectionRequest))
+          as ColourCorrectionRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionRequest create() => ColourCorrectionRequest._();
+  @$core.override
+  ColourCorrectionRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourCorrectionRequest>(create);
+  static ColourCorrectionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get light => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set light($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.double> get matrix => $_getList(1);
+
+  @$pb.TagNumber(3)
+  ColourMeasurement get measurement => $_getN(2);
+  @$pb.TagNumber(3)
+  set measurement(ColourMeasurement value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMeasurement() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMeasurement() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ColourMeasurement ensureMeasurement() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.bool get clear_4 => $_getBF(3);
+  @$pb.TagNumber(4)
+  set clear_4($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasClear_4() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearClear_4() => $_clearField(4);
+}
+
+class ColourCorrectionState extends $pb.GeneratedMessage {
+  factory ColourCorrectionState({
+    $core.String? light,
+    $core.Iterable<$core.double>? matrix,
+    $core.String? source,
+    ColourMeasurement? measurement,
+  }) {
+    final result = create();
+    if (light != null) result.light = light;
+    if (matrix != null) result.matrix.addAll(matrix);
+    if (source != null) result.source = source;
+    if (measurement != null) result.measurement = measurement;
+    return result;
+  }
+
+  ColourCorrectionState._();
+
+  factory ColourCorrectionState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourCorrectionState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourCorrectionState',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'light')
+    ..p<$core.double>(2, _omitFieldNames ? '' : 'matrix', $pb.PbFieldType.KD)
+    ..aOS(3, _omitFieldNames ? '' : 'source')
+    ..aOM<ColourMeasurement>(4, _omitFieldNames ? '' : 'measurement',
+        subBuilder: ColourMeasurement.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionState copyWith(
+          void Function(ColourCorrectionState) updates) =>
+      super.copyWith((message) => updates(message as ColourCorrectionState))
+          as ColourCorrectionState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionState create() => ColourCorrectionState._();
+  @$core.override
+  ColourCorrectionState createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionState getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourCorrectionState>(create);
+  static ColourCorrectionState? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get light => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set light($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLight() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLight() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.double> get matrix => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $core.String get source => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set source($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSource() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSource() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  ColourMeasurement get measurement => $_getN(3);
+  @$pb.TagNumber(4)
+  set measurement(ColourMeasurement value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMeasurement() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMeasurement() => $_clearField(4);
+  @$pb.TagNumber(4)
+  ColourMeasurement ensureMeasurement() => $_ensure(3);
+}
+
+class ColourCorrectionResponse extends $pb.GeneratedMessage {
+  factory ColourCorrectionResponse({
+    ColourCorrectionState? state,
+  }) {
+    final result = create();
+    if (state != null) result.state = state;
+    return result;
+  }
+
+  ColourCorrectionResponse._();
+
+  factory ColourCorrectionResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourCorrectionResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourCorrectionResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOM<ColourCorrectionState>(1, _omitFieldNames ? '' : 'state',
+        subBuilder: ColourCorrectionState.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionResponse copyWith(
+          void Function(ColourCorrectionResponse) updates) =>
+      super.copyWith((message) => updates(message as ColourCorrectionResponse))
+          as ColourCorrectionResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionResponse create() => ColourCorrectionResponse._();
+  @$core.override
+  ColourCorrectionResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourCorrectionResponse>(create);
+  static ColourCorrectionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ColourCorrectionState get state => $_getN(0);
+  @$pb.TagNumber(1)
+  set state(ColourCorrectionState value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasState() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearState() => $_clearField(1);
+  @$pb.TagNumber(1)
+  ColourCorrectionState ensureState() => $_ensure(0);
+}
+
+/// The request/response for the switch (kiosk.colour_correction); the response carries
+/// the value stored.
+class ColourCorrectionEnabledRequest extends $pb.GeneratedMessage {
+  factory ColourCorrectionEnabledRequest({
+    $core.bool? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  ColourCorrectionEnabledRequest._();
+
+  factory ColourCorrectionEnabledRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourCorrectionEnabledRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourCorrectionEnabledRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionEnabledRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionEnabledRequest copyWith(
+          void Function(ColourCorrectionEnabledRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ColourCorrectionEnabledRequest))
+          as ColourCorrectionEnabledRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionEnabledRequest create() =>
+      ColourCorrectionEnabledRequest._();
+  @$core.override
+  ColourCorrectionEnabledRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionEnabledRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourCorrectionEnabledRequest>(create);
+  static ColourCorrectionEnabledRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get value => $_getBF(0);
+  @$pb.TagNumber(1)
+  set value($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+class ColourCorrectionEnabledResponse extends $pb.GeneratedMessage {
+  factory ColourCorrectionEnabledResponse({
+    $core.bool? value,
+  }) {
+    final result = create();
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  ColourCorrectionEnabledResponse._();
+
+  factory ColourCorrectionEnabledResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColourCorrectionEnabledResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColourCorrectionEnabledResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionEnabledResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColourCorrectionEnabledResponse copyWith(
+          void Function(ColourCorrectionEnabledResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as ColourCorrectionEnabledResponse))
+          as ColourCorrectionEnabledResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionEnabledResponse create() =>
+      ColourCorrectionEnabledResponse._();
+  @$core.override
+  ColourCorrectionEnabledResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColourCorrectionEnabledResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColourCorrectionEnabledResponse>(
+          create);
+  static ColourCorrectionEnabledResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get value => $_getBF(0);
+  @$pb.TagNumber(1)
+  set value($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasValue() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearValue() => $_clearField(1);
+}
+
+/// One of the column profile's settings by its fixed name: led_layout,
+/// led_geometry, led_colour, focus_light, expected_cameras, calibration,
+/// glare_free_white_balance, focus_absolute, rotate_frames, colour_correction,
+/// hub_upside_down, backlight_brightness. Each value is JSON text, as in the files on
+/// the board; "" = not set in that layer.
+class ColumnSetting extends $pb.GeneratedMessage {
+  factory ColumnSetting({
+    $core.String? name,
+    $core.String? factoryValue,
+    $core.String? standardValue,
+    $core.String? currentValue,
+    $core.bool? changed,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (factoryValue != null) result.factoryValue = factoryValue;
+    if (standardValue != null) result.standardValue = standardValue;
+    if (currentValue != null) result.currentValue = currentValue;
+    if (changed != null) result.changed = changed;
+    return result;
+  }
+
+  ColumnSetting._();
+
+  factory ColumnSetting.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColumnSetting.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColumnSetting',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'factoryValue')
+    ..aOS(3, _omitFieldNames ? '' : 'standardValue')
+    ..aOS(4, _omitFieldNames ? '' : 'currentValue')
+    ..aOB(5, _omitFieldNames ? '' : 'changed')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSetting clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSetting copyWith(void Function(ColumnSetting) updates) =>
+      super.copyWith((message) => updates(message as ColumnSetting))
+          as ColumnSetting;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColumnSetting create() => ColumnSetting._();
+  @$core.override
+  ColumnSetting createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColumnSetting getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColumnSetting>(create);
+  static ColumnSetting? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get factoryValue => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set factoryValue($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFactoryValue() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFactoryValue() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get standardValue => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set standardValue($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStandardValue() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStandardValue() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get currentValue => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set currentValue($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasCurrentValue() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCurrentValue() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get changed => $_getBF(4);
+  @$pb.TagNumber(5)
+  set changed($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasChanged() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearChanged() => $_clearField(5);
+}
+
+class ColumnProfileResponse extends $pb.GeneratedMessage {
+  factory ColumnProfileResponse({
+    $core.Iterable<ColumnSetting>? settings,
+    $core.String? boardId,
+    $core.bool? boardConnected,
+    $core.int? revision,
+    $core.String? adoptedFrom,
+    $core.bool? hasFactory,
+    $core.bool? savePending,
+    $core.String? notice,
+  }) {
+    final result = create();
+    if (settings != null) result.settings.addAll(settings);
+    if (boardId != null) result.boardId = boardId;
+    if (boardConnected != null) result.boardConnected = boardConnected;
+    if (revision != null) result.revision = revision;
+    if (adoptedFrom != null) result.adoptedFrom = adoptedFrom;
+    if (hasFactory != null) result.hasFactory = hasFactory;
+    if (savePending != null) result.savePending = savePending;
+    if (notice != null) result.notice = notice;
+    return result;
+  }
+
+  ColumnProfileResponse._();
+
+  factory ColumnProfileResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColumnProfileResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColumnProfileResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..pPM<ColumnSetting>(1, _omitFieldNames ? '' : 'settings',
+        subBuilder: ColumnSetting.create)
+    ..aOS(2, _omitFieldNames ? '' : 'boardId')
+    ..aOB(3, _omitFieldNames ? '' : 'boardConnected')
+    ..aI(4, _omitFieldNames ? '' : 'revision')
+    ..aOS(5, _omitFieldNames ? '' : 'adoptedFrom')
+    ..aOB(6, _omitFieldNames ? '' : 'hasFactory')
+    ..aOB(7, _omitFieldNames ? '' : 'savePending')
+    ..aOS(8, _omitFieldNames ? '' : 'notice')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnProfileResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnProfileResponse copyWith(
+          void Function(ColumnProfileResponse) updates) =>
+      super.copyWith((message) => updates(message as ColumnProfileResponse))
+          as ColumnProfileResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColumnProfileResponse create() => ColumnProfileResponse._();
+  @$core.override
+  ColumnProfileResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColumnProfileResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColumnProfileResponse>(create);
+  static ColumnProfileResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<ColumnSetting> get settings => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get boardId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set boardId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBoardId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBoardId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get boardConnected => $_getBF(2);
+  @$pb.TagNumber(3)
+  set boardConnected($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBoardConnected() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBoardConnected() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get revision => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set revision($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRevision() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRevision() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get adoptedFrom => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set adoptedFrom($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAdoptedFrom() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAdoptedFrom() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get hasFactory => $_getBF(5);
+  @$pb.TagNumber(6)
+  set hasFactory($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasHasFactory() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearHasFactory() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get savePending => $_getBF(6);
+  @$pb.TagNumber(7)
+  set savePending($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSavePending() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSavePending() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get notice => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set notice($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasNotice() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearNotice() => $_clearField(8);
+}
+
+/// Settings by name; empty = every changed setting (save, discard) or the whole
+/// column (restore).
+class ColumnSettingsRequest extends $pb.GeneratedMessage {
+  factory ColumnSettingsRequest({
+    $core.Iterable<$core.String>? names,
+  }) {
+    final result = create();
+    if (names != null) result.names.addAll(names);
+    return result;
+  }
+
+  ColumnSettingsRequest._();
+
+  factory ColumnSettingsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColumnSettingsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColumnSettingsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'names')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSettingsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSettingsRequest copyWith(
+          void Function(ColumnSettingsRequest) updates) =>
+      super.copyWith((message) => updates(message as ColumnSettingsRequest))
+          as ColumnSettingsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColumnSettingsRequest create() => ColumnSettingsRequest._();
+  @$core.override
+  ColumnSettingsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColumnSettingsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColumnSettingsRequest>(create);
+  static ColumnSettingsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get names => $_getList(0);
+}
+
+class ColumnSaveResponse extends $pb.GeneratedMessage {
+  factory ColumnSaveResponse({
+    ColumnSaveOutcome? outcome,
+    $core.Iterable<$core.String>? names,
+    ColumnProfileResponse? profile,
+  }) {
+    final result = create();
+    if (outcome != null) result.outcome = outcome;
+    if (names != null) result.names.addAll(names);
+    if (profile != null) result.profile = profile;
+    return result;
+  }
+
+  ColumnSaveResponse._();
+
+  factory ColumnSaveResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ColumnSaveResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ColumnSaveResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aE<ColumnSaveOutcome>(1, _omitFieldNames ? '' : 'outcome',
+        enumValues: ColumnSaveOutcome.values)
+    ..pPS(2, _omitFieldNames ? '' : 'names')
+    ..aOM<ColumnProfileResponse>(3, _omitFieldNames ? '' : 'profile',
+        subBuilder: ColumnProfileResponse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSaveResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ColumnSaveResponse copyWith(void Function(ColumnSaveResponse) updates) =>
+      super.copyWith((message) => updates(message as ColumnSaveResponse))
+          as ColumnSaveResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ColumnSaveResponse create() => ColumnSaveResponse._();
+  @$core.override
+  ColumnSaveResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ColumnSaveResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ColumnSaveResponse>(create);
+  static ColumnSaveResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ColumnSaveOutcome get outcome => $_getN(0);
+  @$pb.TagNumber(1)
+  set outcome(ColumnSaveOutcome value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasOutcome() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearOutcome() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<$core.String> get names => $_getList(1);
+
+  @$pb.TagNumber(3)
+  ColumnProfileResponse get profile => $_getN(2);
+  @$pb.TagNumber(3)
+  set profile(ColumnProfileResponse value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProfile() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProfile() => $_clearField(3);
+  @$pb.TagNumber(3)
+  ColumnProfileResponse ensureProfile() => $_ensure(2);
+}
+
+/// WriteColumnFactory: the factory key (the servers hold only its SHA-256; a wrong or
+/// missing key is PERMISSION_DENIED) and where the factory defaults come from.
+class WriteColumnFactoryRequest extends $pb.GeneratedMessage {
+  factory WriteColumnFactoryRequest({
+    $core.String? key,
+    ColumnFactorySource? source,
+  }) {
+    final result = create();
+    if (key != null) result.key = key;
+    if (source != null) result.source = source;
+    return result;
+  }
+
+  WriteColumnFactoryRequest._();
+
+  factory WriteColumnFactoryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WriteColumnFactoryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WriteColumnFactoryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'settings'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'key')
+    ..aE<ColumnFactorySource>(2, _omitFieldNames ? '' : 'source',
+        enumValues: ColumnFactorySource.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteColumnFactoryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WriteColumnFactoryRequest copyWith(
+          void Function(WriteColumnFactoryRequest) updates) =>
+      super.copyWith((message) => updates(message as WriteColumnFactoryRequest))
+          as WriteColumnFactoryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WriteColumnFactoryRequest create() => WriteColumnFactoryRequest._();
+  @$core.override
+  WriteColumnFactoryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WriteColumnFactoryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WriteColumnFactoryRequest>(create);
+  static WriteColumnFactoryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get key => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set key($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasKey() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ColumnFactorySource get source => $_getN(1);
+  @$pb.TagNumber(2)
+  set source(ColumnFactorySource value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSource() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSource() => $_clearField(2);
 }
 
 const $core.bool _omitFieldNames =

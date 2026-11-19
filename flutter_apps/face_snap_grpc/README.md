@@ -11,7 +11,9 @@ operator app is built on.
   for all clients; `setAddress(host, port)` switches servers at runtime.
 - `lib/src/automatic_capture.dart` — `startAutomaticCapture()` / `startManualCapture()`:
   the kiosk's capture streams as `Stream<CaptureEvent>` (`CaptureStatus` lines,
-  `CapturePhoto` / per-camera `CameraPhoto` with the JPEG chunks already assembled).
+  `CapturePhoto` / per-camera `CameraPhoto` with the JPEG chunks already assembled,
+  `CaptureCheck` results, `CaptureInstruction` for the head turn, and
+  `CaptureSettingsReport`, the settings used when the capture carries per-capture settings).
 - `example/` — small command-line tools against a live server, e.g.
   `probe.dart` (connect + load settings) and `capture_once.dart` (one automatic
   capture, saves the photo).
@@ -27,7 +29,7 @@ dependencies:
 ```
 dart pub get
 dart run example/probe.dart <server> [port]
-dart run example/capture_once.dart <server> photo.jpg [port]
+dart run example/capture_once.dart <server> photo.jpg [port] [photo_format]
 ```
 
 The server listens for plain-text HTTP/2 (h2c) gRPC on port 50051 by default. The

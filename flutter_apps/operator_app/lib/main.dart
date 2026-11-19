@@ -4,12 +4,17 @@ import 'package:flutter/material.dart';
 import 'home_shell.dart';
 import 'services/app_config.dart';
 import 'services/photo_store.dart';
+import 'services/server_connector.dart';
 import 'services/settings_state.dart';
 import 'ui/dev_info.dart';
 import 'ui/ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The column session (spec 2026-10-10 section 4.12): every call of this app, the updater's
+  // included, carries facesnap-column-session: 1, so a change of a column setting waits for
+  // "Save as standard" on the Column page instead of being saved by the server by itself.
+  GrpcChannelProvider.useColumnSession = true;
 
   // No connect screen: load the last-used address and point the shared channel
   // at it, then enter straight into the app. The operator picks/searches a
@@ -17,6 +22,11 @@ Future<void> main() async {
   // best-effort — if that server is down or unset the app still opens, showing
   // "No server" until one is chosen.
   await AppConfig.load();
+  // The port of the server on this PC is the setup's (server_config.json); a
+  // saved local host follows it, so a port change in the setup never leaves
+  // the app on the old port. config.json keeps the connected server's port.
+  await LocalServerConfig.load();
+  AppConfig.port = effectivePort(AppConfig.host, AppConfig.port, LocalServerConfig.port);
   DevMode.enabled.value = AppConfig.devMode;
   // Two independent startup jobs, in parallel: reading the persisted captures
   // (Face recognition compares them against stored reference photos, possibly

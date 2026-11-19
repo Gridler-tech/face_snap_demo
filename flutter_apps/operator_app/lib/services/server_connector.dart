@@ -13,20 +13,36 @@ import 'settings_state.dart';
 
 /// Connect the app to [host]:[port]. Throws when the server does not answer
 /// (the address is then NOT saved). The deadline is short on purpose: a dead
-/// host must fail fast, not hang the UI on "Connecting…".
+/// host must fail fast, not hang the UI on "Connecting…". On a failure the
+/// shared channel goes back to the previous address (the server the app still
+/// shows as connected) before the error is rethrown.
 Future<void> connectTo(String host, int port) async {
-  await GrpcChannelProvider.setAddress(host, port);
-  await SettingsState.refresh(timeout: const Duration(seconds: 5));
+  final oldHost = GrpcChannelProvider.host, oldPort = GrpcChannelProvider.port;
+  try {
+    await GrpcChannelProvider.setAddress(host, port);
+    await SettingsState.refresh(timeout: const Duration(seconds: 5));
+  } catch (_) {
+    await GrpcChannelProvider.setAddress(oldHost, oldPort);
+    rethrow;
+  }
   AppConfig.host = host;
   AppConfig.port = port;
   await AppConfig.save();
 }
 
-/// A FaceSnap server on this machine, if one is listening on the gRPC port.
+/// The port to use for a saved server at startup: a local host
+/// ([LocalServerConfig.isLocalHost]) is the server on this PC, whose port is
+/// [localPort] (server_config.json, the setup's choice) whatever port
+/// config.json saved; a remote host keeps its [savedPort].
+int effectivePort(String host, int savedPort, int localPort) =>
+    LocalServerConfig.isLocalHost(host) ? localPort : savedPort;
+
+/// A FaceSnap server on this machine, if one is listening on its gRPC port
+/// ([LocalServerConfig.port]: 50051, or the port chosen in the setup).
 /// mDNS only finds provisioned boards (they announce _facesnap._tcp); a
 /// server on this PC announces nothing, so it is probed directly.
 Future<DiscoveredKiosk?> findLocalServer({int? port}) async {
-  final p = port ?? AppConfig.port;
+  final p = port ?? LocalServerConfig.port;
   try {
     final socket = await Socket.connect(InternetAddress.loopbackIPv4, p,
         timeout: const Duration(seconds: 1));

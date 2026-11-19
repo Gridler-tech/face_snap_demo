@@ -1,6 +1,11 @@
-// Lighting page: the kiosk-lighting controls (on/off, R/G/B intensity,
-// glasses mode), the manual per-camera light buttons and the two LED
-// backlights on the USB relay module. Split out of the old Settings page.
+// Lighting page: the kiosk-lighting controls (on/off, R/G/B intensity, the
+// glare-free light, the photo colour correction switch), the manual per-camera
+// light buttons and the two LED backlights (on the LED board, dimmable, or on a USB relay
+// module) with their brightness per light (spec 2026-10-15 section 5). Split out of
+// the old Settings page. The column settings among them show the ● mark while
+// changed and not saved (the LED geometry editor moved to the Column page, spec
+// 2026-10-10 section 5.5; a server from before the column profile keeps the strip
+// gbl.py row here, 5.6).
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -8,9 +13,86 @@ import 'package:flutter/material.dart';
 // our ui.dart helper.
 import 'package:flutter_colorpicker/flutter_colorpicker.dart' hide colorToHex;
 
+import '../services/column_state.dart';
+import '../services/preview_throttle.dart';
 import '../services/settings_state.dart';
+import '../ui/column_mark.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
+
+/// gRPC status UNIMPLEMENTED (`StatusCode.unimplemented`): `grpc` is only a dev dependency of
+/// the operator app (face_snap_grpc exports `GrpcError`, not `StatusCode`).
+const _unimplemented = 12;
+
+/// gRPC status UNAVAILABLE.
+const _unavailable = 14;
+
+/// The servers' own backlight failures (lights.py / LightsService.cs SetBacklight): an
+/// UNAVAILABLE that starts with one of them is the LED board or the relay module failing, not
+/// an unreachable kiosk, so the card shows the server's words.
+const _backlightFailureTexts = ['LED board backlight command failed', 'USB relay module write failed'];
+
+/// A failed backlight call as the card shows it.
+String _backlightFailure(Object e) {
+  if (e is GrpcError &&
+      e.code == _unavailable &&
+      _backlightFailureTexts.any((text) => (e.message ?? '').startsWith(text))) {
+    return e.message!;
+  }
+  return operatorMessage(e);
+}
+
+/// The backlight output a BacklightStatus names (its source) as the card shows it. A server
+/// from before the LED-board backlights sends no source: it only knows the relay.
+String backlightOutputLabel(BacklightStatus s) => switch (s.source) {
+      'board_qwst' => 'LED board (Qw/ST)',
+      'board_header' => 'LED board (header A0/A1)',
+      'relay' => 'USB relay',
+      'none' => 'not connected',
+      _ => s.connected ? 'USB relay' : 'not connected',
+    };
+
+/// At most one live preview per this interval while a backlight slider is dragged. Tests set a
+/// long one, so a drag's preview calls do not depend on how fast the machine runs (the
+/// throttle's own timing is tested on a fake clock in preview_throttle_test.dart).
+@visibleForTesting
+Duration backlightPreviewInterval = const Duration(milliseconds: 100);
+
+/// The light scenes with a backlight brightness of their own (the column setting
+/// backlight_brightness), as the server names them, and their titles on the card.
+const _backlightLights = [('standard', 'Standard light'), ('glare_free', 'Glare-free light')];
+
+/// The glare-free light in a settings snapshot: a server from before the setting sends no
+/// glare_free_light (it reads as off), and its glasses switch then decides.
+GlareFreeLight glareFreeLightOf(LoadSettingsResponse s) =>
+    s.glareFreeLight != GlareFreeLight.GLARE_FREE_LIGHT_OFF
+        ? s.glareFreeLight
+        : (s.glassesLightsOff
+            ? GlareFreeLight.GLARE_FREE_LIGHT_GLASSES
+            : GlareFreeLight.GLARE_FREE_LIGHT_OFF);
+
+/// The glare-free light's choices: the value, its label and the explanation shown under the
+/// selector for the chosen one (spec 2026-10-09 section 5).
+const glareFreeChoices = <(GlareFreeLight, String, String)>[
+  (
+    GlareFreeLight.GLARE_FREE_LIGHT_OFF,
+    'Normal light',
+    'The photo light. The chosen camera\'s ring fades out for the photo and back in after '
+        'it, so there is no green dot in the eyes.'
+  ),
+  (
+    GlareFreeLight.GLARE_FREE_LIGHT_GLASSES,
+    'Glare-free for glasses',
+    'When the first good frame shows glasses, only the rings above the next camera up and '
+        'the backlights light the photo, so nothing mirrors in the lenses.'
+  ),
+  (
+    GlareFreeLight.GLARE_FREE_LIGHT_EVERYONE,
+    'Glare-free for everyone',
+    'That light for every photo: one natural catchlight instead of a row of LED dots. A '
+        'face that stays too dark gets the normal light for that photo.'
+  ),
+];
 
 class LightingPage extends StatefulWidget {
   const LightingPage({super.key});
@@ -21,13 +103,21 @@ class LightingPage extends StatefulWidget {
 
 class _LightingPageState extends State<LightingPage> with ServerCallState {
   late bool _lighting;
-  late bool _glassesLightsOff;
+  late GlareFreeLight _glareFree;
+  // The glare-free light's white balance, Kelvin (0 = the camera's own value).
+  final _whiteBalance = TextEditingController();
+  // The value being pushed: Enter also takes the focus away, so both triggers fire before
+  // the reply; the second one is skipped.
+  int? _whiteBalanceInFlight;
   late bool _ledsOffForPhoto;
+  // The photo colour correction, kiosk-wide (kiosk.colour_correction); the matrices are
+  // measured on the Calibration page.
+  late bool _colourCorrection;
   late double _intensityRed, _intensityGreen, _intensityBlue;
   String _ledLayout = 'strip';
-  // The strip layout's gbl.py on the Plasma board: null until read, true when
-  // the operator's own file is in force (GetBoardGbl; an older server has no
-  // such RPC and the row then only says so).
+  // The strip layout's gbl.py on a server from before the column profile (which has no
+  // Column page): null until read, true when the server's own file is in force
+  // (GetBoardGbl; a server older still has no such RPC and the row then only says so).
   bool? _stripGblCustom;
   String? _stripGblNote;
   // Which LEDs light the photo: 'all', or the 'neighbours' of the selected camera.
@@ -50,15 +140,38 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
 
   SettingsClient get _client => SettingsState.client;
 
-  // The two LED backlights, as read back from the USB relay module (null
-  // until the first read). _backlightsNote says why they can't be switched
-  // (module not connected, older server, failed call); _backlightsFor is the
-  // server they were read from, so a server switch re-reads them.
+  // The two LED backlights, as read back from the server (null until the first read).
+  // _backlightsNote says why they can't be switched (nothing connected, older server,
+  // failed call); _backlightsFor is the server they were read from, so a server switch
+  // re-reads them.
   BacklightStatus? _backlights;
   String? _backlightsNote;
   bool _backlightsNoteIsError = false;
   bool _backlightsBusy = false;
   String? _backlightsFor;
+
+  // The stored brightness per light ('standard', 'glare_free'): (bottom, top) in %, from the
+  // status (empty from a server without the dimming: the sliders are hidden).
+  final Map<String, (int, int)> _brightness = {};
+  // A slider's level while it is dragged and until its store is answered ('<light>-bottom'
+  // or '<light>-top'); the slider shows the stored level otherwise.
+  final Map<String, int> _sliding = {};
+  // The server that answered SetBacklightBrightness with UNIMPLEMENTED: no sliders for it
+  // (until a fresh status brings a brightness list again).
+  String? _brightnessMissingFor;
+  // The last live preview failed (the board stopped answering): its note stays through the
+  // store that follows (which never touches the board) until a preview or a switch works, or
+  // Refresh.
+  bool _previewFailed = false;
+  // The live preview per backlight while its slider moves (at most one call per 100 ms), and
+  // the backlights whose switch was on when their drag began: they preview until let go (a
+  // preview at 0 % reads back as off, and must not end the preview mid-drag).
+  final Set<Backlight> _previewing = {};
+  late final Map<Backlight, PreviewThrottle<int>> _previews = {
+    for (final backlight in [Backlight.BACKLIGHT_BOTTOM, Backlight.BACKLIGHT_TOP])
+      backlight: PreviewThrottle<int>((percent) => _preview(backlight, percent),
+          interval: backlightPreviewInterval),
+  };
 
   LightsClient get _lights => LightsClient(GrpcChannelProvider.channel);
 
@@ -74,9 +187,10 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     }
   }
 
-  /// Whether the operator's own gbl.py is in force for the strip layout. Only
-  /// asked of a server that reports the photo light (1.1.19+): older servers
-  /// have neither that field nor this RPC, and the row then says so.
+  /// Whether the server's own gbl.py is in force for the strip layout (the row shown on a
+  /// server without the column profile). Only asked of a server that reports the photo
+  /// light (1.1.19+): older servers have neither that field nor this RPC, and the row then
+  /// says so.
   Future<void> _loadStripGbl() async {
     if ((SettingsState.current?.photoLight ?? '').isEmpty) {
       if (mounted) setState(() { _stripGblCustom = null; _stripGblNote = 'older server'; });
@@ -166,9 +280,44 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     await _sendStripGbl(content);
   }
 
+  /// The strip gbl.py row of a server from before the column profile.
+  List<Widget> _stripGblRow() => [
+        const SizedBox(height: 6),
+        Row(children: [
+          const RowLabel('Strip file (gbl.py)'),
+          const SizedBox(width: 14),
+          Text(
+              _stripGblCustom == null
+                  ? (_stripGblNote == null ? '…' : 'not available on this server')
+                  : (_stripGblCustom! ? 'your own file is on the board' : 'the default file is on the board'),
+              style: TextStyle(
+                  color: _stripGblCustom == null && _stripGblNote != null ? T.muted : T.ink,
+                  fontSize: 14)),
+          const SizedBox(width: 14),
+          QuietButton(text: 'Edit…', onPressed: _stripGblCustom == null ? null : _editStripGbl),
+          const SizedBox(width: 8),
+          QuietButton(text: 'Load file…', onPressed: _stripGblCustom == null ? null : _loadStripGblFile),
+          if (_stripGblCustom == true) ...[
+            const SizedBox(width: 8),
+            QuietButton(text: 'Restore default', onPressed: () => _sendStripGbl('')),
+          ],
+        ]),
+        if (_stripGblNote != null && _stripGblCustom != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(_stripGblNote!,
+                style: TextStyle(
+                    color: _stripGblNote!.startsWith('rejected') ? T.fail : T.muted, fontSize: 12)),
+          ),
+      ];
+
   @override
   void dispose() {
     SettingsState.revision.removeListener(_onSettingsChanged);
+    _whiteBalance.dispose();
+    for (final preview in _previews.values) {
+      preview.dispose();
+    }
     super.dispose();
   }
 
@@ -185,29 +334,35 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
 
   /// Reads the module state once at a time; a reply that arrives after the
   /// server changed is dropped and the read repeated for the new server. With
-  /// [keepNote] an existing error note survives a "not connected" answer.
+  /// [keepNote] an existing error note survives the answer (the failed call it
+  /// reports is not undone by a status that still names the output).
   Future<void> _loadBacklights({bool keepNote = false}) async {
     if (_backlightsLoading) return;
     _backlightsLoading = true;
     final key = SettingsState.serverKey;
+    if (_backlightsFor != key) _sliding.clear();
     _backlightsFor = key;
     try {
       final state = await _lights.getBacklights(Empty(),
           options: CallOptions(timeout: const Duration(seconds: 5)));
       if (!mounted || key != SettingsState.serverKey) return;
       setState(() {
-        _backlights = state;
-        if (!keepNote || state.connected) {
+        _showBacklights(state);
+        if (state.brightness.isNotEmpty) _brightnessMissingFor = null;
+        if (!keepNote) _previewFailed = false;
+        if (!keepNote || !_backlightsNoteIsError || _backlightsNote == null) {
           _backlightsNoteIsError = false;
           _backlightsNote = state.connected
               ? null
-              : 'USB relay module not connected — plug it in, then press Refresh.';
+              : 'No backlights found — connect them to the LED board or plug in the USB '
+                  'relay module, then press Refresh.';
         }
       });
     } catch (e) {
       if (!mounted || key != SettingsState.serverKey) return;
       setState(() {
         _backlights = null;
+        _brightness.clear();
         _backlightsNoteIsError = true;
         _backlightsNote = 'Could not read the backlights: ${operatorMessage(e)}';
       });
@@ -224,8 +379,9 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
           .setBacklight(BacklightRequest(backlight: backlight, on: on));
       if (!mounted) return;
       setState(() {
-        _backlights = state;
+        _showBacklights(state);
         _backlightsNote = null;
+        _previewFailed = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -234,11 +390,122 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
       // grey out) while this note stays.
       setState(() {
         _backlightsNoteIsError = true;
-        _backlightsNote = 'Could not switch the backlight: ${operatorMessage(e)}';
+        _backlightsNote = 'Could not switch the backlight: ${_backlightFailure(e)}';
       });
       _loadBacklights(keepNote: true);
     } finally {
       if (mounted) setState(() => _backlightsBusy = false);
+    }
+  }
+
+  /// A status read back from the server: the switches, the output and the stored brightness
+  /// per light (call inside setState).
+  void _showBacklights(BacklightStatus state) {
+    _backlights = state;
+    _brightness
+      ..clear()
+      ..addAll({for (final b in state.brightness) b.light: (b.bottom, b.top)});
+  }
+
+  bool _isOn(Backlight backlight) => backlight == Backlight.BACKLIGHT_BOTTOM
+      ? _backlights?.backlightBottom ?? false
+      : _backlights?.backlightTop ?? false;
+
+  /// A slider's level: while dragged (or its store unanswered) the dragged one, otherwise
+  /// the stored one (100 % = the server's default when the light is missing).
+  int _level(String light, Backlight backlight) {
+    final dragged = _sliding[_slideKey(light, backlight)];
+    if (dragged != null) return dragged;
+    final stored = _brightness[light] ?? (100, 100);
+    return backlight == Backlight.BACKLIGHT_BOTTOM ? stored.$1 : stored.$2;
+  }
+
+  static String _slideKey(String light, Backlight backlight) =>
+      '$light-${backlight == Backlight.BACKLIGHT_BOTTOM ? 'bottom' : 'top'}';
+
+  /// One live preview: the backlight on at [percent] (the throttle sends it).
+  Future<void> _preview(Backlight backlight, int percent) async {
+    try {
+      final state = await _lights.setBacklight(
+          BacklightRequest(backlight: backlight, on: true, percent: percent));
+      if (!mounted) return;
+      setState(() {
+        _showBacklights(state);
+        if (_previewFailed) _backlightsNote = null;
+        _previewFailed = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _previewFailed = true;
+        _backlightsNoteIsError = true;
+        _backlightsNote = 'Could not preview the backlight: ${_backlightFailure(e)}';
+      });
+      // The board may have gone: read the backlights again (the source line follows) while
+      // this note stays.
+      _loadBacklights(keepNote: true);
+    }
+  }
+
+  /// A drag begins: it previews when that backlight is switched on now.
+  void _slideStart(Backlight backlight) {
+    _previews[backlight]!.forget();
+    if (_isOn(backlight)) {
+      _previewing.add(backlight);
+    } else {
+      _previewing.remove(backlight);
+    }
+  }
+
+  /// A slider moves: shown at once; previewed live when the drag began with that backlight
+  /// on (throttled).
+  void _slide(String light, Backlight backlight, double value) {
+    final percent = value.round();
+    setState(() => _sliding[_slideKey(light, backlight)] = percent);
+    if (_previewing.contains(backlight)) _previews[backlight]!.add(percent);
+  }
+
+  /// A slider is let go: when the drag previewed, the panel goes to the released level (after
+  /// every preview before it); then the light's brightness is stored with that level. A drag
+  /// that began with the backlight off: stored only.
+  Future<void> _release(String light, Backlight backlight, double value) async {
+    final percent = value.round();
+    final key = _slideKey(light, backlight);
+    setState(() => _sliding[key] = percent);
+    final preview = _previewing.remove(backlight);
+    await _previews[backlight]!.flush(preview ? percent : null);
+    if (!mounted) return;
+    await _storeBrightness(light, key, percent);
+  }
+
+  /// SetBacklightBrightness for [light] with both its levels as shown. A column setting: the
+  /// profile is read again for its ● mark. Refused: the server's words and the slider back
+  /// at the stored level; a server without it (UNIMPLEMENTED): the sliders go.
+  Future<void> _storeBrightness(String light, String key, int percent) async {
+    final server = SettingsState.serverKey;
+    try {
+      final r = await _lights.setBacklightBrightness(BacklightBrightnessRequest(
+          light: light,
+          bottom: _level(light, Backlight.BACKLIGHT_BOTTOM),
+          top: _level(light, Backlight.BACKLIGHT_TOP)));
+      if (!mounted || server != SettingsState.serverKey) return;
+      ColumnState.touch();
+      setState(() {
+        _brightness[light] = (r.brightness.bottom, r.brightness.top);
+        if (_sliding[key] == percent) _sliding.remove(key);
+        if (!_previewFailed) _backlightsNote = null;
+      });
+    } catch (e) {
+      if (!mounted || server != SettingsState.serverKey) return;
+      setState(() {
+        if (_sliding[key] == percent) _sliding.remove(key);
+        if (e is GrpcError && e.code == _unimplemented) {
+          _brightnessMissingFor = server;
+        } else {
+          _backlightsNoteIsError = true;
+          _backlightsNote = 'Could not store the backlight brightness: ${_backlightFailure(e)}';
+        }
+      });
     }
   }
 
@@ -264,11 +531,78 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     }
   }
 
+  /// The glare-free light: shown at once, pushed, and back to the old choice when the server
+  /// refuses. A server from before the setting (UNIMPLEMENTED) still takes "off" and
+  /// "glasses" through its glasses switch; "everyone" it cannot do.
+  Future<void> _pushGlareFree(GlareFreeLight value) async {
+    final previous = _glareFree;
+    if (value == previous) return;
+    setState(() => _glareFree = value);
+    try {
+      try {
+        await _client.setGlareFreeLight(GlareFreeLightRequest(value: value));
+      } on GrpcError catch (e) {
+        if (e.code != _unimplemented ||
+            value == GlareFreeLight.GLARE_FREE_LIGHT_EVERYONE) {
+          rethrow;
+        }
+        await _client.setGlassesLightsOff(GlassesLightsOffRequest(
+            value: value == GlareFreeLight.GLARE_FREE_LIGHT_GLASSES));
+      }
+      SettingsState.current
+        ?..glareFreeLight = value
+        ..glassesLightsOff = value != GlareFreeLight.GLARE_FREE_LIGHT_OFF;
+      if (mounted) setState(() => message = null);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _glareFree = previous;
+        message = 'Server call failed: ${operatorMessage(e)}';
+      });
+    }
+  }
+
+  /// The glare-free white balance from the Kelvin field, pushed when it changed; a refused
+  /// value (not 0 or 2800-6500, or an older server) puts the value in force back.
+  Future<void> _pushWhiteBalance() async {
+    final current = SettingsState.current?.glareFreeWhiteBalance ?? 0;
+    final value = int.tryParse(_whiteBalance.text.trim());
+    if (value == null) {
+      setState(() => _whiteBalance.text = '$current');
+      return;
+    }
+    if (value == current || value == _whiteBalanceInFlight) return;
+    _whiteBalanceInFlight = value;
+    try {
+      final r = await _client.setGlareFreeWhiteBalance(GlareFreeWhiteBalanceRequest(value: value));
+      SettingsState.current?.glareFreeWhiteBalance = r.message;
+      ColumnState.touch();
+      if (mounted) {
+        setState(() {
+          _whiteBalance.text = '${r.message}';
+          message = null;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _whiteBalance.text = '$current';
+        message = 'Server call failed: ${operatorMessage(e)}';
+      });
+    } finally {
+      _whiteBalanceInFlight = null;
+    }
+  }
+
   void _readFromState() {
     final s = SettingsState.current!;
     _lighting = s.lighting;
-    _glassesLightsOff = s.glassesLightsOff;
+    _glareFree = glareFreeLightOf(s);
+    _whiteBalance.text = '${s.glareFreeWhiteBalance}';
     _ledsOffForPhoto = s.ledsOffForPhoto;
+    // A server without the correction sends no colour_corrections; its colourCorrection is
+    // the proto default false, not a value: read it as on (as the C# SDK does).
+    _colourCorrection = s.colourCorrections.isEmpty || s.colourCorrection;
     _intensityRed = s.intensityRed.toDouble();
     _intensityGreen = s.intensityGreen.toDouble();
     _intensityBlue = s.intensityBlue.toDouble();
@@ -340,11 +674,13 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
           (v) => _client.setIntensityGreen(IntensityRequest(value: v))),
       intensity('Intensity Blue', _intensityBlue, (v) => _intensityBlue = v,
           (v) => _client.setIntensityBlue(IntensityRequest(value: v))),
+      const ColumnChangedMark(['led_colour']),
       const SizedBox(height: 8),
       Row(children: [
         const RowLabel('Focus light'),
         const SizedBox(width: 14),
         InkWell(
+          key: const ValueKey('focus-light-colour'),
           onTap: _pickFocusColor,
           borderRadius: BorderRadius.circular(6),
           child: Container(
@@ -376,6 +712,7 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
           await _focusPreview(false);
         },
       ),
+      const ColumnChangedMark(['focus_light']),
       const SizedBox(height: 8),
       Row(children: [
         const RowLabel('LED hardware'),
@@ -394,47 +731,36 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
             runServerCall(() async {
               await _client.setLedLayout(LedLayoutRequest(value: v));
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('LED layout saved — the server is writing the '
-                        'matching files to the Plasma board (takes ~10 s, the '
-                        'board reboots).')));
+                // With the column profile the layout is a session change until it is
+                // saved on the Column page (spec 2026-10-10 section 4.5).
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('${ColumnState.available ? 'LED layout set (save it on the '
+                            'Column page to keep it after a restart)' : 'LED layout saved'} — the '
+                        'server is writing the matching files to the Plasma board (takes '
+                        '~10 s, the board reboots).')));
               }
               if (v == 'strip') _loadStripGbl();
             });
           },
         ),
       ]),
-      // The strip column's geometry (LED count, camera positions, spans) is the
-      // column's own: the operator can put a gbl.py of their own on the board.
-      if (_ledLayout == 'strip') ...[
-        const SizedBox(height: 6),
-        Row(children: [
-          const RowLabel('Strip file (gbl.py)'),
-          const SizedBox(width: 14),
-          Text(
-              _stripGblCustom == null
-                  ? (_stripGblNote == null ? '…' : 'not available on this server')
-                  : (_stripGblCustom! ? 'your own file is on the board' : 'the default file is on the board'),
-              style: TextStyle(
-                  color: _stripGblCustom == null && _stripGblNote != null ? T.muted : T.ink,
-                  fontSize: 14)),
-          const SizedBox(width: 14),
-          QuietButton(text: 'Edit…', onPressed: _stripGblCustom == null ? null : _editStripGbl),
-          const SizedBox(width: 8),
-          QuietButton(text: 'Load file…', onPressed: _stripGblCustom == null ? null : _loadStripGblFile),
-          if (_stripGblCustom == true) ...[
-            const SizedBox(width: 8),
-            QuietButton(text: 'Restore default', onPressed: () => _sendStripGbl('')),
-          ],
-        ]),
-        if (_stripGblNote != null && _stripGblCustom != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, top: 4),
-            child: Text(_stripGblNote!,
-                style: TextStyle(
-                    color: _stripGblNote!.startsWith('rejected') ? T.fail : T.muted, fontSize: 12)),
-          ),
-      ],
+      const ColumnChangedMark(['led_layout', 'led_geometry']),
+      // The column's LED geometry (gbl.py) is edited on the Column page, which only a
+      // server with the column profile has; a server from before it keeps the strip
+      // gbl.py row here (spec 2026-10-10 section 5.6).
+      ValueListenableBuilder<int>(
+        valueListenable: ColumnState.revision,
+        builder: (context, _, _) => !ColumnState.available
+            ? Column(
+                key: const ValueKey('strip-gbl-row'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _ledLayout == 'strip' ? _stripGblRow() : const [])
+            : const Padding(
+                padding: EdgeInsets.only(left: 4, top: 2),
+                child: Text('The LED geometry (gbl.py) of the column is on the Column page.',
+                    style: TextStyle(color: T.muted, fontSize: 12)),
+              ),
+      ),
       const SizedBox(height: 4),
       Row(children: [
         const RowLabel('Photo light'),
@@ -466,20 +792,52 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
               style: TextStyle(color: T.muted, fontSize: 12)),
         ),
       const SizedBox(height: 4),
+      // A Wrap, not a Row: on a narrow window the three choices go under the label.
+      Wrap(spacing: 14, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+        const RowLabel('Glare-free light'),
+        SegmentedButton<GlareFreeLight>(
+          showSelectedIcon: false,
+          segments: [
+            for (final (value, label, _) in glareFreeChoices)
+              ButtonSegment(value: value, label: Text(label)),
+          ],
+          selected: {_glareFree},
+          onSelectionChanged: (chosen) => _pushGlareFree(chosen.first),
+        ),
+      ]),
+      Padding(
+        padding: const EdgeInsets.only(left: 4, top: 4, bottom: 6),
+        child: Text(glareFreeChoices.firstWhere((c) => c.$1 == _glareFree).$3,
+            style: const TextStyle(color: T.muted, fontSize: 12)),
+      ),
       Row(children: [
-        Switch(
-            value: _glassesLightsOff,
-            onChanged: (v) => _pushMode(v,
-                show: (on) => _glassesLightsOff = on,
-                store: (s, on) => s.glassesLightsOff = on,
-                call: (on) => _client
-                    .setGlassesLightsOff(GlassesLightsOffRequest(value: on)))),
+        const RowLabel('Glare-free white balance'),
+        const SizedBox(width: 14),
+        SizedBox(
+          width: 110,
+          // Pushed on focus loss as well as Enter (typed values were lost when the operator
+          // clicked elsewhere: the background colour field had the same trap).
+          child: Focus(
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) _pushWhiteBalance();
+            },
+            child: TextField(
+              key: const ValueKey('glare-free-white-balance'),
+              controller: _whiteBalance,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(suffixText: 'K'),
+              onSubmitted: (_) => _pushWhiteBalance(),
+            ),
+          ),
+        ),
         const SizedBox(width: 10),
         const Expanded(
-            child: RowLabel(
-                'Glasses mode: lights off for the photo only when glasses are '
-                'detected (the chosen camera\'s ring stays on until then)')),
+            child: Text(
+                'Kelvin, 0 = the camera\'s own value. The camera uses it whenever the '
+                'glare-free light lights the photo (the backlights are warmer than the rings).',
+                style: TextStyle(color: T.muted, fontSize: 12))),
       ]),
+      const ColumnChangedMark(['glare_free_white_balance']),
       const SizedBox(height: 4),
       Row(children: [
         Switch(
@@ -495,6 +853,34 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
                 'Lights off for the photo: the chosen camera\'s ring shows for a '
                 'second, then all LEDs go off and the backlights light the photo')),
       ]),
+      _colourCorrectionRow(),
+    ]);
+  }
+
+  /// The photo colour correction, kiosk-wide (SetColourCorrectionEnabled). A server without
+  /// it sends no colour_corrections: the switch is greyed out.
+  Widget _colourCorrectionRow() {
+    final supported = SettingsState.current?.colourCorrections.isNotEmpty ?? false;
+    return Row(children: [
+      Switch(
+          value: _colourCorrection,
+          onChanged: !supported
+              ? null
+              : (v) => _pushMode(v,
+                  show: (on) => _colourCorrection = on,
+                  store: (s, on) => s.colourCorrection = on,
+                  call: (on) => _client.setColourCorrectionEnabled(
+                      ColourCorrectionEnabledRequest(value: on)))),
+      const SizedBox(width: 10),
+      const RowLabel('Photo colour correction'),
+      const SizedBox(width: 10),
+      Expanded(
+          child: Text(
+              supported
+                  ? 'Each photo\'s colours corrected for its light, with this kiosk\'s '
+                      'measured matrix or the shipped one (Calibration page, Photo colour)'
+                  : 'Not available on this server',
+              style: const TextStyle(color: T.muted, fontSize: 12))),
     ]);
   }
 
@@ -597,6 +983,8 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
           ?..focusColor = hex
           ..focusIntensity = percent;
       } while (_focusPushPending);
+      // The focus light is a column setting: read the profile again (debounced).
+      ColumnState.touch();
       if (mounted) setState(() => message = null);
     } catch (e) {
       if (mounted) {
@@ -638,35 +1026,43 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
     }
   }
 
-  /// The two LED backlights on the USB relay module, switched by hand for
-  /// testing (captures switch them themselves).
+  /// The two LED backlights, switched by hand for testing (captures switch them
+  /// themselves), with the output the server drives and, per light, their brightness:
+  /// dimmable on the LED board only (greyed out on a relay or none, hidden on a server
+  /// without the dimming).
   Widget _buildBacklightsCard() {
     final state = _backlights;
     final enabled = state != null && state.connected && !_backlightsBusy;
-    Widget row(String label, Backlight backlight, bool value) => Row(children: [
+    Widget row(String label, String which, Backlight backlight, bool value) => Row(children: [
           Switch(
+              key: ValueKey('backlight-switch-$which'),
               value: value,
               onChanged: enabled ? (v) => _setBacklight(backlight, v) : null),
           const SizedBox(width: 10),
           Expanded(child: RowLabel(label)),
         ]);
-    final note = _backlightsNote ??
-        (state == null ? 'Reading the relay module…' : 'USB relay module connected');
+    final note = _backlightsNote ?? (state == null ? 'Reading the backlights…' : null);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text(
           'For testing: switch each backlight by hand. During a capture both '
-          'go on for the high-resolution photo and off as soon as it is '
-          'taken; starting or stopping the server switches them off.',
+          'go on for the high-resolution photo, at the brightness of its light, and off '
+          'as soon as it is taken; starting or stopping the server switches them off.',
           style: TextStyle(color: T.muted, fontSize: 13)),
+      if (state != null) ...[
+        const SizedBox(height: 8),
+        RowLabel('Output: ${backlightOutputLabel(state)}'),
+      ],
       const SizedBox(height: 8),
-      row('Bottom backlight (relay 1)', Backlight.BACKLIGHT_BOTTOM,
-          state?.backlightBottom ?? false),
-      row('Top backlight (relay 2)', Backlight.BACKLIGHT_TOP,
-          state?.backlightTop ?? false),
+      row('Bottom', 'bottom', Backlight.BACKLIGHT_BOTTOM, state?.backlightBottom ?? false),
+      row('Top', 'top', Backlight.BACKLIGHT_TOP, state?.backlightTop ?? false),
+      if (state != null &&
+          _brightness.isNotEmpty &&
+          _brightnessMissingFor != SettingsState.serverKey)
+        _buildBrightnessSliders(state),
       const SizedBox(height: 6),
       Row(children: [
         Expanded(
-            child: Text(note,
+            child: Text(note ?? '',
                 style: TextStyle(
                     color: _backlightsNoteIsError && _backlightsNote != null
                         ? T.fail
@@ -676,5 +1072,55 @@ class _LightingPageState extends State<LightingPage> with ServerCallState {
         QuietButton(text: 'Refresh', onPressed: _loadBacklights),
       ]),
     ]);
+  }
+
+  /// Per light a Bottom and a Top slider, 0-100 % in steps of 5. Moving one previews the
+  /// level live while that backlight is on; letting go stores it (SetBacklightBrightness).
+  Widget _buildBrightnessSliders(BacklightStatus state) {
+    final dimmable = state.source.startsWith('board_');
+    Widget slider(String light, String label, Backlight backlight) {
+      final key = _slideKey(light, backlight);
+      final level = _level(light, backlight).clamp(0, 100);
+      return Row(children: [
+        SizedBox(width: 70, child: RowLabel(label)),
+        Expanded(
+          child: Slider(
+            key: ValueKey('backlight-slider-$key'),
+            value: level.toDouble(),
+            min: 0,
+            max: 100,
+            divisions: 20,
+            onChangeStart: dimmable ? (_) => _slideStart(backlight) : null,
+            onChanged: dimmable ? (v) => _slide(light, backlight, v) : null,
+            onChangeEnd: dimmable ? (v) => _release(light, backlight, v) : null,
+          ),
+        ),
+        SizedBox(
+            width: 52,
+            child: Text('$level %', style: const TextStyle(color: T.muted, fontSize: 13))),
+      ]);
+    }
+
+    return Column(
+      key: const ValueKey('backlight-sliders'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        const Text(
+            'Brightness for the photo, per light. While a backlight is on, moving its '
+            'slider shows the level live; letting go stores it.',
+            style: TextStyle(color: T.muted, fontSize: 13)),
+        for (final (light, title) in _backlightLights) ...[
+          const SizedBox(height: 6),
+          Text(title, style: const TextStyle(color: T.ink, fontSize: 14, fontWeight: FontWeight.w600)),
+          slider(light, 'Bottom', Backlight.BACKLIGHT_BOTTOM),
+          slider(light, 'Top', Backlight.BACKLIGHT_TOP),
+        ],
+        if (!dimmable)
+          const Text('Dimming needs backlights on the LED board',
+              style: TextStyle(color: T.muted, fontSize: 13)),
+        const ColumnChangedMark(['backlight_brightness']),
+      ],
+    );
   }
 }

@@ -6,10 +6,11 @@
 /// is picked up without an app restart.
 library;
 
-export 'package:grpc/grpc.dart' show CallOptions, GrpcError;
+export 'package:grpc/grpc.dart' show CallOptions, ClientChannel, GrpcError;
 
 export 'src/automatic_capture.dart';
 export 'src/channel_provider.dart';
+export 'src/local_server_config.dart';
 export 'src/rpc_snippets.dart';
 export 'src/rpc_trace.dart';
 export 'src/generated/calibration.pbgrpc.dart';

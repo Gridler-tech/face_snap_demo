@@ -61,6 +61,20 @@ class CalibrationClient extends $grpc.Client {
     return $createUnaryCall(_$calibrateByPerson, request, options: options);
   }
 
+  /// Work out the camera positions from what the cameras see, with nobody in front of the
+  /// column (spec 2026-10-15 section 7): the vertical shift between every pair of cameras'
+  /// frames gives one offset per camera; the smallest is the bottom camera. Two rounds must
+  /// agree. Returns a PROPOSAL - nothing is stored; save it with SetCalibration. Refused
+  /// while a capture runs. A server from before it answers UNIMPLEMENTED.
+  $grpc.ResponseFuture<$1.SurroundingsCalibrationResponse>
+      calibrateBySurroundings(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$calibrateBySurroundings, request,
+        options: options);
+  }
+
   // method descriptors
 
   static final _$getCalibration =
@@ -78,6 +92,11 @@ class CalibrationClient extends $grpc.Client {
           '/calibration.Calibration/CalibrateByPerson',
           ($0.Empty value) => value.writeToBuffer(),
           $1.PersonCalibrationResponse.fromBuffer);
+  static final _$calibrateBySurroundings =
+      $grpc.ClientMethod<$0.Empty, $1.SurroundingsCalibrationResponse>(
+          '/calibration.Calibration/CalibrateBySurroundings',
+          ($0.Empty value) => value.writeToBuffer(),
+          $1.SurroundingsCalibrationResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('calibration.Calibration')
@@ -106,6 +125,15 @@ abstract class CalibrationServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($1.PersonCalibrationResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.Empty, $1.SurroundingsCalibrationResponse>(
+            'CalibrateBySurroundings',
+            calibrateBySurroundings_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+            ($1.SurroundingsCalibrationResponse value) =>
+                value.writeToBuffer()));
   }
 
   $async.Future<$1.CalibrationSettingsResponse> getCalibration_Pre(
@@ -131,5 +159,13 @@ abstract class CalibrationServiceBase extends $grpc.Service {
   }
 
   $async.Future<$1.PersonCalibrationResponse> calibrateByPerson(
+      $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$1.SurroundingsCalibrationResponse> calibrateBySurroundings_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return calibrateBySurroundings($call, await $request);
+  }
+
+  $async.Future<$1.SurroundingsCalibrationResponse> calibrateBySurroundings(
       $grpc.ServiceCall call, $0.Empty request);
 }

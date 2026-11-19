@@ -80,12 +80,15 @@ class LightsClient extends $grpc.Client {
         options: options);
   }
 
-  /// The two LED backlights on the USB relay module (relay 1 = bottom, relay 2 =
-  /// top). A capture switches both on for the high-resolution photo and off as soon
-  /// as it is taken; server start and stop switch them off. SetBacklight switches
-  /// one by hand (for testing) and returns the state read back from the module:
-  /// INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED, FAILED_PRECONDITION when the
-  /// module is not connected.
+  /// The two LED backlights (bottom, top), driven by the column's LED board (dimmable;
+  /// its board file finds the pin pair) or switched by a USB relay module (relay 1 =
+  /// bottom, relay 2 = top); the board wins when both are there. A capture switches
+  /// both on at the photo light's brightness for the high-resolution photo and off as
+  /// soon as it is taken; server start and stop switch them off. SetBacklight switches
+  /// one by hand (for testing; percent = a preview level) and returns the state:
+  /// INVALID_ARGUMENT for BACKLIGHT_UNSPECIFIED or a percent outside 0..100,
+  /// FAILED_PRECONDITION when no backlight output is connected, UNAVAILABLE when the
+  /// board or the relay did not take the command.
   $grpc.ResponseFuture<$0.BacklightStatus> setBacklight(
     $0.BacklightRequest request, {
     $grpc.CallOptions? options,
@@ -98,6 +101,17 @@ class LightsClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$getBacklights, request, options: options);
+  }
+
+  /// Stores the backlight brightness of one light ("standard" or "glare_free"),
+  /// bottom and top 0..100, and returns the stored value: INVALID_ARGUMENT for
+  /// another light or a level outside 0..100.
+  $grpc.ResponseFuture<$0.BacklightBrightnessResponse> setBacklightBrightness(
+    $0.BacklightBrightnessRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setBacklightBrightness, request,
+        options: options);
   }
 
   // method descriptors
@@ -137,6 +151,11 @@ class LightsClient extends $grpc.Client {
           '/lights.Lights/GetBacklights',
           ($1.Empty value) => value.writeToBuffer(),
           $0.BacklightStatus.fromBuffer);
+  static final _$setBacklightBrightness = $grpc.ClientMethod<
+          $0.BacklightBrightnessRequest, $0.BacklightBrightnessResponse>(
+      '/lights.Lights/SetBacklightBrightness',
+      ($0.BacklightBrightnessRequest value) => value.writeToBuffer(),
+      $0.BacklightBrightnessResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('lights.Lights')
@@ -193,6 +212,15 @@ abstract class LightsServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $1.Empty.fromBuffer(value),
         ($0.BacklightStatus value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BacklightBrightnessRequest,
+            $0.BacklightBrightnessResponse>(
+        'SetBacklightBrightness',
+        setBacklightBrightness_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.BacklightBrightnessRequest.fromBuffer(value),
+        ($0.BacklightBrightnessResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$1.Empty> setAllLights_Pre($grpc.ServiceCall $call,
@@ -250,4 +278,13 @@ abstract class LightsServiceBase extends $grpc.Service {
 
   $async.Future<$0.BacklightStatus> getBacklights(
       $grpc.ServiceCall call, $1.Empty request);
+
+  $async.Future<$0.BacklightBrightnessResponse> setBacklightBrightness_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.BacklightBrightnessRequest> $request) async {
+    return setBacklightBrightness($call, await $request);
+  }
+
+  $async.Future<$0.BacklightBrightnessResponse> setBacklightBrightness(
+      $grpc.ServiceCall call, $0.BacklightBrightnessRequest request);
 }

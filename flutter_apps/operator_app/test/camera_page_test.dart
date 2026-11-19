@@ -4,14 +4,14 @@
 // Also the Camera properties card: the main sliders up front, the rest under a
 // collapsed "Advanced" row, and what the camera lacks hidden.
 // The page talks to an in-process fake server over a real loopback connection.
-import 'dart:io';
-
 import 'package:face_snap_grpc/face_snap_grpc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError, Server, ServiceCall;
+import 'package:grpc/grpc.dart' show GrpcError, ServiceCall;
 import 'package:operator_app/pages/camera_page.dart';
 import 'package:operator_app/services/settings_state.dart';
+
+import 'fake_server.dart';
 
 class _FakeCamera extends CameraServiceBase {
   _FakeCamera(
@@ -78,9 +78,10 @@ Finder _msmfSwitch() => find.descendant(
         matching: find.byType(Row)),
     matching: find.byType(Switch));
 
-/// Serves the fakes on [address] and opens the Camera page against it.
-/// 127.0.0.1 is "this PC"; 127.0.0.2 is still loopback but counts as another
-/// host, like a kiosk board.
+/// Serves the fakes on 127.0.0.1 and opens the Camera page against [address].
+/// 127.0.0.1 is "this PC"; ::ffff:127.0.0.1 reaches the same IPv4 server but
+/// counts as another host, like a kiosk board. (127.0.0.2 would too, but macOS
+/// only answers 127.0.0.1 on its loopback, so it cannot be bound there.)
 Future<_FakeSettings> _pumpPage(WidgetTester tester, String address,
     {bool acceptMsmf = true,
     bool autoExposure = false,
@@ -93,16 +94,14 @@ Future<_FakeSettings> _pumpPage(WidgetTester tester, String address,
   addTearDown(tester.view.resetDevicePixelRatio);
 
   final settings = _FakeSettings(acceptMsmf: acceptMsmf);
-  final server = Server.create(
-      services: [
-        _FakeCamera(
-            autoExposure: autoExposure,
-            unsupported: unsupported,
-            ranges: ranges,
-            gamma: gamma),
-        settings
-      ]);
-  await server.serve(address: InternetAddress(address), port: 0);
+  final server = await serveFakes([
+    _FakeCamera(
+        autoExposure: autoExposure,
+        unsupported: unsupported,
+        ranges: ranges,
+        gamma: gamma),
+    settings
+  ]);
   addTearDown(() => tester.runAsync(() => server.shutdown()));
 
   SettingsState.current = LoadSettingsResponse(msmfSelection: true);
@@ -149,7 +148,7 @@ void main() {
 
   testWidgets('the switch is greyed out for a kiosk board', (tester) async {
     await tester.runAsync(() async {
-      await _pumpPage(tester, '127.0.0.2');
+      await _pumpPage(tester, '::ffff:127.0.0.1');
       expect(tester.widget<Switch>(_msmfSwitch()).onChanged, isNull);
       expect(find.textContaining('Windows servers only'), findsOneWidget);
     });

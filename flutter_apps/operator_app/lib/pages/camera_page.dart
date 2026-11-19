@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 import '../services/board_server_manager.dart';
 import '../services/settings_state.dart';
+import '../ui/column_mark.dart';
 import '../ui/dev_info.dart';
 import '../ui/ui.dart';
 
@@ -219,6 +220,7 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
   Future<void> _load() async {
     try {
       final s = await _camera.loadSettings(Empty());
+      if (!mounted) return; // the page went away while the call ran
       final kiosk = SettingsState.current;
       setState(() {
         if (message == _loadError) message = null;
@@ -241,6 +243,7 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => message = _loadError =
           'Could not load camera settings: ${operatorMessage(e)}');
     }
@@ -561,6 +564,8 @@ class _CameraPageState extends State<CameraPage> with ServerCallState {
           child: Text('Set by the camera while $lockedBy is on',
               style: Theme.of(context).textTheme.bodySmall),
         ),
+      // The focus is a column setting (spec 2026-10-10 section 2): saved on the Column page.
+      if (spec.name == 'focus_absolute') const ColumnChangedMark(['focus_absolute']),
     ]);
   }
 }
